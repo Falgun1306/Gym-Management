@@ -6,11 +6,105 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
 enum Role {
   MEMBER
   TRAINER
   ADMIN
 }
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  SUSPENDED
+}
+
+enum ExerciseDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum MuscleGroup {
+  CHEST
+  BACK
+  SHOULDERS
+  BICEPS
+  TRICEPS
+  LEGS
+  ABS
+  CARDIO
+  FULL_BODY
+}
+
+enum TrainerSpecialization {
+  STRENGTH
+  BODYBUILDING
+  WEIGHT_LOSS
+  CROSSFIT
+  YOGA
+  CARDIO
+  POWERLIFTING
+  FUNCTIONAL
+  GENERAL_FITNESS
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CREDIT_CARD
+  DEBIT_CARD
+  NET_BANKING
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum ClassBookingStatus {
+  BOOKED
+  CANCELLED
+  ATTENDED
+  NO_SHOW
+}
+
+enum EquipmentStatus {
+  AVAILABLE
+  IN_USE
+  UNDER_MAINTENANCE
+  DAMAGED
+  RETIRED
+}
+
+enum NotificationType {
+  MEMBERSHIP
+  PAYMENT
+  DIET
+  WORKOUT
+  CLASS
+  GENERAL
+}
+
+enum ComplaintStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
   id        String   @id @default(cuid())
@@ -20,4 +114,236 @@ model User {
   role      Role     @default(MEMBER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  member        Member?
+  trainer       Trainer?
+  notifications Notification[]
+}
+
+model Member {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  firstName             String
+  lastName              String
+  phone                 String    @unique
+  gender                Gender
+  dob                   DateTime?
+  address               String?
+  height                Float?
+  weight                Float?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  trainerId             String?
+  joinedAt              DateTime  @default(now())
+
+  user                User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trainer             Trainer?           @relation(fields: [trainerId], references: [id], onDelete: SetNull)
+  memberships         Membership[]
+  attendances         Attendance[]
+  workoutAssignments  WorkoutAssignment[]
+  dietAssignments     DietAssignment[]
+  progressLogs        ProgressLog[]
+  payments            Payment[]
+  classBookings       ClassBooking[]
+  complaints          Complaint[]
+}
+
+model Trainer {
+  id             String                 @id @default(cuid())
+  userId         String                 @unique
+  firstName      String
+  lastName       String
+  phone          String                 @unique
+  gender         Gender
+  specialization TrainerSpecialization
+  experience     Int?
+  salary         Decimal?
+  averageRating  Float                  @default(0.0)
+  totalReviews   Int                    @default(0)
+  joinedAt       DateTime               @default(now())
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  user               User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  members            Member[]
+  workoutAssignments WorkoutAssignment[]
+  dietAssignments    DietAssignment[]
+  gymClasses         GymClass[]
+}
+
+model MembershipPlan {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  durationMonths Int
+  price          Decimal
+  description    String?
+  isActive       Boolean  @default(true)
+
+  memberships Membership[]
+}
+
+model Membership {
+  id        String           @id @default(cuid())
+  memberId  String
+  planId    String
+  startDate DateTime
+  endDate   DateTime
+  status    MembershipStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+
+  member   Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  plan     MembershipPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payments Payment[]
+}
+
+model Attendance {
+  id       String    @id @default(cuid())
+  memberId String
+  checkIn  DateTime  @default(now())
+  checkOut DateTime?
+  date     DateTime  @default(now()) @db.Date
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model Exercise {
+  id          String             @id @default(cuid())
+  name        String             @unique
+  muscleGroup MuscleGroup
+  description String
+  difficulty  ExerciseDifficulty?
+  videoUrl    String?
+
+  workoutAssignments WorkoutAssignment[]
+}
+
+model WorkoutAssignment {
+  id           String   @id @default(cuid())
+  memberId     String
+  trainerId    String
+  exerciseId   String
+  sets         Int
+  reps         Int
+  weight       Float?
+  restSeconds  Int?
+  assignedDate DateTime @default(now())
+
+  member   Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  trainer  Trainer  @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+}
+
+model DietPlan {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  calories    Int?
+  protein     Float?
+  carbs       Float?
+  fats        Float?
+  durationDays Int
+
+  dietAssignments DietAssignment[]
+}
+
+model DietAssignment {
+  id         String   @id @default(cuid())
+  memberId   String
+  trainerId  String
+  dietPlanId String
+  assignedAt DateTime @default(now())
+  endDate    DateTime?
+  durationDays Int?
+
+  member   Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  trainer  Trainer  @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  dietPlan DietPlan @relation(fields: [dietPlanId], references: [id], onDelete: Restrict)
+}
+
+model ProgressLog {
+  id         String   @id @default(cuid())
+  memberId   String
+  weight     Float?
+  bodyFat    Float?
+  chest      Float?
+  waist      Float?
+  arms       Float?
+  thigh      Float?
+  notes      String?
+  recordedAt DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  memberId      String
+  membershipId  String?
+  amount        Decimal
+  paymentMethod PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  transactionId String?       @unique
+  paidAt        DateTime      @default(now())
+
+  member     Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  membership Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+}
+
+model GymClass {
+  id          String   @id @default(cuid())
+  trainerId   String
+  title       String
+  description String?
+  capacity    Int
+  startTime   DateTime
+  endTime     DateTime
+
+  trainer  Trainer        @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  bookings ClassBooking[]
+}
+
+model ClassBooking {
+  id       String             @id @default(cuid())
+  classId  String
+  memberId String
+  bookedAt DateTime           @default(now())
+  status   ClassBookingStatus @default(BOOKED)
+
+  gymClass GymClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  member   Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+// ─── Optional Models ─────────────────────────────────────────────────────────
+
+model Equipment {
+  id              String          @id @default(cuid())
+  name            String          @unique
+  category        String
+  quantity        Int
+  purchaseDate    DateTime?
+  maintenanceDate DateTime?
+  status          EquipmentStatus @default(AVAILABLE)
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(GENERAL)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Complaint {
+  id          String          @id @default(cuid())
+  memberId    String
+  subject     String
+  description String
+  status      ComplaintStatus @default(OPEN)
+  createdAt   DateTime        @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 }
