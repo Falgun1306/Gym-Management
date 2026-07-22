@@ -4,7 +4,11 @@ import authorize from "../middlewares/authorize.middleware.js";
 import {
     getMyProfile,
     updateMyProfile,
-    promoteToTrainer,
+    listTrainerApplications,
+    getTrainerApplicationById,
+    approveTrainerApplication,
+    rejectTrainerApplication,
+    directPromoteToTrainer,
     updateTrainer,
     removeTrainer,
     assignTrainerToMember,
@@ -44,9 +48,16 @@ router.patch("/me", updateMyProfile);
 
 router.get("/dashboard", getDashboard);
 
+// ─── Trainer Application Management ────────────────────────────────────────
+
+router.get("/trainer-applications", listTrainerApplications);
+router.get("/trainer-applications/:id", getTrainerApplicationById);
+router.patch("/trainer-applications/:id/approve", approveTrainerApplication);
+router.patch("/trainer-applications/:id/reject", rejectTrainerApplication);
+
 // ─── Trainer Management ─────────────────────────────────────────────────────
 
-router.post("/trainers", promoteToTrainer);
+router.post("/trainers/promote", directPromoteToTrainer);
 router.patch("/trainers/:id", updateTrainer);
 router.delete("/trainers/:id", removeTrainer);
 

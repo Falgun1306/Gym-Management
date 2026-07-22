@@ -18,6 +18,8 @@ import {
     createComplaint,
     getMyNotifications,
     markNotificationRead,
+    applyForTrainer,
+    getMyApplications,
 } from "../controller/member.controller.js";
 
 const router = express.Router();
@@ -34,6 +36,11 @@ router.get("/me/workout-plans", auth, getMyWorkoutPlans);
 router.get("/me/diet-plans", auth, getMyDietPlans);
 router.get("/me/notifications", auth, getMyNotifications);
 router.patch("/me/notifications/:id", auth, markNotificationRead);
+
+// ─── Trainer Application ─────────────────────────────────────────────────────
+
+router.post("/apply-trainer", auth, applyForTrainer);
+router.get("/my-applications", auth, getMyApplications);
 
 // ─── Gym Classes ─────────────────────────────────────────────────────────────
 

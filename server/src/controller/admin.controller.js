@@ -1,6 +1,7 @@
 import prisma from "../config/prisma.js";
 import asyncHandler from "../middlewares/asyncHandler.middleware.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
+import { createTrainerFromMember } from "../services/trainer.service.js";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // OWN PROFILE
@@ -82,67 +83,231 @@ const updateMyProfile = asyncHandler(async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TRAINER MANAGEMENT
+// TRAINER APPLICATION MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ─── POST /admins/trainers ───────────────────────────────────────────────────
+// ─── GET /admins/trainer-applications ────────────────────────────────────────
 
-const promoteToTrainer = asyncHandler(async (req, res) => {
+const listTrainerApplications = asyncHandler(async (req, res) => {
+    const {
+        page = 1,
+        limit = 10,
+        status,
+    } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit)));
+    const skip = (pageNum - 1) * limitNum;
+
+    const where = {};
+
+    if (status) {
+        where.status = status;
+    }
+
+    const [applications, total] = await Promise.all([
+        prisma.trainerApplication.findMany({
+            where,
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        email: true,
+                        role: true,
+                    },
+                },
+            },
+            skip,
+            take: limitNum,
+            orderBy: { createdAt: "desc" },
+        }),
+        prisma.trainerApplication.count({ where }),
+    ]);
+
+    res.status(200).json({
+        success: true,
+        data: applications,
+        pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            totalPages: Math.ceil(total / limitNum),
+        },
+    });
+});
+
+// ─── GET /admins/trainer-applications/:id ───────────────────────────────────
+
+const getTrainerApplicationById = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const application = await prisma.trainerApplication.findUnique({
+        where: { id },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    email: true,
+                    role: true,
+                    member: {
+                        select: {
+                            id: true,
+                            firstName: true,
+                            lastName: true,
+                            phone: true,
+                            gender: true,
+                            joinedAt: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!application) {
+        throw new ErrorHandler("Trainer application not found", 404);
+    }
+
+    res.status(200).json({
+        success: true,
+        data: application,
+    });
+});
+
+// ─── PATCH /admins/trainer-applications/:id/approve ────────────────────────
+
+const approveTrainerApplication = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { salary, joiningDate } = req.body;
+
+    // ── 1. Fetch and validate the application ───────────────────────────
+    const application = await prisma.trainerApplication.findUnique({
+        where: { id },
+    });
+
+    if (!application) {
+        throw new ErrorHandler("Trainer application not found", 404);
+    }
+
+    if (application.status !== "PENDING") {
+        throw new ErrorHandler(
+            `This application has already been ${application.status.toLowerCase()}`,
+            400
+        );
+    }
+
+    // ── 2. Execute in a transaction ──────────────────────────────────────
+    const trainer = await prisma.$transaction(async (tx) => {
+        // Create Trainer via shared service (copies Member data automatically)
+        const newTrainer = await createTrainerFromMember(tx, {
+            userId: application.userId,
+            specialization: application.specialization,
+            experience: application.experience,
+            bio: application.bio,
+            certifications: application.certifications,
+            salary: salary || null,
+            joiningDate: joiningDate || null,
+        });
+
+        // Update application status
+        await tx.trainerApplication.update({
+            where: { id },
+            data: {
+                status: "APPROVED",
+                reviewedBy: req.user.id,
+                reviewedAt: new Date(),
+            },
+        });
+
+        return newTrainer;
+    });
+
+    res.status(200).json({
+        success: true,
+        message: "Application approved. Trainer profile created.",
+        data: trainer,
+    });
+});
+
+// ─── PATCH /admins/trainer-applications/:id/reject ─────────────────────────
+
+const rejectTrainerApplication = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { rejectionReason } = req.body;
+
+    if (!rejectionReason) {
+        throw new ErrorHandler("rejectionReason is required", 400);
+    }
+
+    const application = await prisma.trainerApplication.findUnique({
+        where: { id },
+    });
+
+    if (!application) {
+        throw new ErrorHandler("Trainer application not found", 404);
+    }
+
+    if (application.status !== "PENDING") {
+        throw new ErrorHandler(
+            `This application has already been ${application.status.toLowerCase()}`,
+            400
+        );
+    }
+
+    const updatedApplication = await prisma.trainerApplication.update({
+        where: { id },
+        data: {
+            status: "REJECTED",
+            rejectionReason,
+            reviewedBy: req.user.id,
+            reviewedAt: new Date(),
+        },
+    });
+
+    res.status(200).json({
+        success: true,
+        message: "Application rejected",
+        data: updatedApplication,
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRAINER MANAGEMENT (Direct Promote)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── POST /admins/trainers/promote ───────────────────────────────────────────
+
+const directPromoteToTrainer = asyncHandler(async (req, res) => {
     const {
         userId,
-        firstName,
-        lastName,
-        phone,
-        gender,
         specialization,
         experience,
         salary,
         joiningDate,
+        bio,
+        certifications,
     } = req.body;
 
     if (!userId) {
         throw new ErrorHandler("userId is required", 400);
     }
 
-    // Verify user exists
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-
-    if (!user) {
-        throw new ErrorHandler("User not found", 404);
+    if (!specialization) {
+        throw new ErrorHandler("specialization is required", 400);
     }
 
-    // Verify role is MEMBER
-    if (user.role !== "MEMBER") {
-        throw new ErrorHandler(`User is already a ${user.role}`, 400);
-    }
-
-    // Validate required trainer fields
-    if (!firstName || !lastName || !phone || !gender || !specialization) {
-        throw new ErrorHandler(
-            "firstName, lastName, phone, gender, and specialization are required",
-            400
-        );
-    }
-
-    // Create trainer profile + update role in a transaction
+    // Create trainer via shared service (copies Member data automatically)
     const trainer = await prisma.$transaction(async (tx) => {
-        await tx.user.update({
-            where: { id: userId },
-            data: { role: "TRAINER" },
-        });
-
-        return tx.trainer.create({
-            data: {
-                userId,
-                firstName,
-                lastName,
-                phone,
-                gender,
-                specialization,
-                experience: experience ? parseInt(experience) : null,
-                salary: salary ? parseFloat(salary) : null,
-                joinedAt: joiningDate ? new Date(joiningDate) : new Date(),
-            },
+        return createTrainerFromMember(tx, {
+            userId,
+            specialization,
+            experience: experience || null,
+            bio: bio || null,
+            certifications: certifications || [],
+            salary: salary || null,
+            joiningDate: joiningDate || null,
         });
     });
 
@@ -1203,7 +1368,11 @@ const deleteGymClass = asyncHandler(async (req, res) => {
 export {
     getMyProfile,
     updateMyProfile,
-    promoteToTrainer,
+    listTrainerApplications,
+    getTrainerApplicationById,
+    approveTrainerApplication,
+    rejectTrainerApplication,
+    directPromoteToTrainer,
     updateTrainer,
     removeTrainer,
     assignTrainerToMember,

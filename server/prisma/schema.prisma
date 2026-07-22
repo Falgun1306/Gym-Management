@@ -104,6 +104,12 @@ enum ComplaintStatus {
   REJECTED
 }
 
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
@@ -115,9 +121,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  member        Member?
-  trainer       Trainer?
-  notifications Notification[]
+  member              Member?
+  trainer             Trainer?
+  notifications       Notification[]
+  trainerApplications TrainerApplication[]
 }
 
 model Member {
@@ -176,6 +183,30 @@ model Trainer {
   dietPlans          DietPlan[]
   gymClasses         GymClass[]
   schedules          TrainerSchedule[]
+}
+
+model TrainerApplication {
+  id              String                @id @default(cuid())
+  userId          String
+  specialization  TrainerSpecialization
+  experience      Int?
+  bio             String?
+  certifications  String[]              @default([])
+  coverNote       String?
+
+  status          ApplicationStatus     @default(PENDING)
+  rejectionReason String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model MembershipPlan {

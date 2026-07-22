@@ -3,7 +3,6 @@ import auth from "../middlewares/auth.middleware.js";
 import authorize from "../middlewares/authorize.middleware.js";
 import {
     getMyProfile,
-    createMyProfile,
     updateMyProfile,
     listTrainers,
     getTrainerById,
@@ -39,7 +38,6 @@ const router = express.Router();
 // ─── Profile ─────────────────────────────────────────────────────────────────
 
 router.get("/me", auth, authorize("TRAINER"), getMyProfile);
-router.post("/me", auth, createMyProfile);
 router.patch("/me", auth, authorize("TRAINER"), updateMyProfile);
 
 // ─── Assigned Members ────────────────────────────────────────────────────────

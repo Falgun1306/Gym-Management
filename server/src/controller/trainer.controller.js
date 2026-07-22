@@ -56,55 +56,6 @@ const getMyProfile = asyncHandler(async (req, res) => {
         data: trainer,
     });
 });
-// ─── 1b. Create Own Profile (Initial Setup) ─────────────────────────────────
-
-const createMyProfile = asyncHandler(async (req, res) => {
-    // Check if trainer profile already exists
-    const existingTrainer = await prisma.trainer.findUnique({
-        where: { userId: req.user.id },
-    });
-
-    if (existingTrainer) {
-        throw new ErrorHandler("Trainer profile already exists. Use PATCH to update.", 409);
-    }
-
-    const { firstName, lastName, phone, gender, specialization, experience, bio, certifications } = req.body;
-
-    if (!firstName || !lastName || !phone || !gender || !specialization) {
-        throw new ErrorHandler("First name, last name, phone, gender, and specialization are required", 400);
-    }
-
-    // Create trainer profile and update user role to TRAINER in a transaction
-    const newTrainer = await prisma.$transaction(async (tx) => {
-        const trainer = await tx.trainer.create({
-            data: {
-                user: { connect: { id: req.user.id } },
-                firstName,
-                lastName,
-                phone,
-                gender,
-                specialization,
-                experience: experience ? parseInt(experience) : null,
-                bio: bio || null,
-                certifications: certifications || [],
-            },
-        });
-
-        // Update user role to TRAINER
-        await tx.user.update({
-            where: { id: req.user.id },
-            data: { role: "TRAINER" },
-        });
-
-        return trainer;
-    });
-
-    res.status(201).json({
-        success: true,
-        message: "Trainer profile created successfully",
-        data: newTrainer,
-    });
-});
 
 // ─── 2. Update Own Profile ───────────────────────────────────────────────────
 
@@ -1137,7 +1088,6 @@ const getClassBookings = asyncHandler(async (req, res) => {
 
 export {
     getMyProfile,
-    createMyProfile,
     updateMyProfile,
     listTrainers,
     getTrainerById,

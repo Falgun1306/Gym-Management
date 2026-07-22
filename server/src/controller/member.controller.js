@@ -706,6 +706,87 @@ const markNotificationRead = asyncHandler(async (req, res) => {
     });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRAINER APPLICATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── POST /members/apply-trainer ─────────────────────────────────────────────
+
+const applyForTrainer = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    // ── 1. Verify user is a MEMBER ───────────────────────────────────────
+    if (req.user.role !== "MEMBER") {
+        throw new ErrorHandler(
+            `You are already a ${req.user.role}. Only MEMBERs can apply.`,
+            400
+        );
+    }
+
+    // ── 2. Verify member profile exists ──────────────────────────────────
+    const member = await prisma.member.findUnique({
+        where: { userId },
+    });
+
+    if (!member) {
+        throw new ErrorHandler(
+            "Please create your member profile first before applying.",
+            400
+        );
+    }
+
+    // ── 3. Check for existing PENDING application ────────────────────────
+    const pendingApplication = await prisma.trainerApplication.findFirst({
+        where: { userId, status: "PENDING" },
+    });
+
+    if (pendingApplication) {
+        throw new ErrorHandler(
+            "You already have a pending trainer application. Please wait for admin review.",
+            409
+        );
+    }
+
+    // ── 4. Validate required fields ──────────────────────────────────────
+    const { specialization, experience, bio, certifications, coverNote } = req.body;
+
+    if (!specialization) {
+        throw new ErrorHandler("specialization is required", 400);
+    }
+
+    // ── 5. Create the application ────────────────────────────────────────
+    const application = await prisma.trainerApplication.create({
+        data: {
+            userId,
+            specialization,
+            experience: experience ? parseInt(experience) : null,
+            bio: bio || null,
+            certifications: certifications || [],
+            coverNote: coverNote || null,
+        },
+    });
+
+    res.status(201).json({
+        success: true,
+        message: "Trainer application submitted successfully. Please wait for admin review.",
+        data: application,
+    });
+});
+
+// ─── GET /members/my-applications ────────────────────────────────────────────
+
+const getMyApplications = asyncHandler(async (req, res) => {
+    const applications = await prisma.trainerApplication.findMany({
+        where: { userId: req.user.id },
+        orderBy: { createdAt: "desc" },
+    });
+
+    res.status(200).json({
+        success: true,
+        data: applications,
+    });
+});
+
 export {
     getMyProfile,
     createMyProfile,
@@ -723,5 +804,7 @@ export {
     createComplaint,
     getMyNotifications,
     markNotificationRead,
+    applyForTrainer,
+    getMyApplications,
 };
 
