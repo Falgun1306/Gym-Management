@@ -133,6 +133,7 @@ model Member {
   weight                Float?
   emergencyContactName  String?
   emergencyContactPhone String?
+  medicalNotes          String?
   trainerId             String?
   joinedAt              DateTime  @default(now())
 
@@ -158,6 +159,9 @@ model Trainer {
   specialization TrainerSpecialization
   experience     Int?
   salary         Decimal?
+  bio            String?
+  profilePhoto   String?
+  certifications String[]               @default([])
   averageRating  Float                  @default(0.0)
   totalReviews   Int                    @default(0)
   joinedAt       DateTime               @default(now())
@@ -167,8 +171,11 @@ model Trainer {
   user               User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
   members            Member[]
   workoutAssignments WorkoutAssignment[]
+  workoutPlans       WorkoutPlan[]
   dietAssignments    DietAssignment[]
+  dietPlans          DietPlan[]
   gymClasses         GymClass[]
+  schedules          TrainerSchedule[]
 }
 
 model MembershipPlan {
@@ -214,7 +221,8 @@ model Exercise {
   difficulty  ExerciseDifficulty?
   videoUrl    String?
 
-  workoutAssignments WorkoutAssignment[]
+  workoutAssignments     WorkoutAssignment[]
+  workoutPlanExercises   WorkoutPlanExercise[]
 }
 
 model WorkoutAssignment {
@@ -234,15 +242,19 @@ model WorkoutAssignment {
 }
 
 model DietPlan {
-  id          String  @id @default(cuid())
-  title       String
-  description String?
-  calories    Int?
-  protein     Float?
-  carbs       Float?
-  fats        Float?
+  id           String  @id @default(cuid())
+  trainerId    String
+  title        String
+  description  String?
+  calories     Int?
+  protein      Float?
+  carbs        Float?
+  fats         Float?
   durationDays Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
+  trainer         Trainer          @relation(fields: [trainerId], references: [id], onDelete: Cascade)
   dietAssignments DietAssignment[]
 }
 
@@ -311,6 +323,49 @@ model ClassBooking {
 
   gymClass GymClass @relation(fields: [classId], references: [id], onDelete: Cascade)
   member   Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+// ─── Workout Plan Models ─────────────────────────────────────────────────────
+
+model WorkoutPlan {
+  id          String   @id @default(cuid())
+  trainerId   String
+  title       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trainer   Trainer              @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  exercises WorkoutPlanExercise[]
+}
+
+model WorkoutPlanExercise {
+  id            String  @id @default(cuid())
+  workoutPlanId String
+  exerciseId    String
+  sets          Int
+  reps          Int
+  weight        Float?
+  restSeconds   Int?
+  orderIndex    Int     @default(0)
+
+  workoutPlan WorkoutPlan @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+  exercise    Exercise    @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+}
+
+// ─── Trainer Schedule ────────────────────────────────────────────────────────
+
+model TrainerSchedule {
+  id          String  @id @default(cuid())
+  trainerId   String
+  dayOfWeek   Int                 // 0=Sun, 1=Mon, ..., 6=Sat
+  startTime   String              // "09:00"
+  endTime     String              // "17:00"
+  isAvailable Boolean @default(true)
+
+  trainer Trainer @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@unique([trainerId, dayOfWeek])
 }
 
 // ─── Optional Models ─────────────────────────────────────────────────────────

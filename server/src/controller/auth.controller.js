@@ -6,9 +6,9 @@ import asyncHandler from "../middlewares/asyncHandler.middleware.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
 
 const register = asyncHandler(async (req, res) => {
-    const { username, password, confirmpassword, email, role } = req.body;
+    const { username, password, confirmpassword, email} = req.body;
 
-    if (!username || !password || !confirmpassword || !email || !role) {
+    if (!username || !password || !confirmpassword || !email) {
         throw new ErrorHandler("All fields are required", 400);
     }
 
@@ -39,7 +39,6 @@ const register = asyncHandler(async (req, res) => {
             username,
             email,
             password: hashedPassword,
-            role: role.toUpperCase()
         }
     });
 
