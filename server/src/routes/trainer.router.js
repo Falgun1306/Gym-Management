@@ -25,6 +25,13 @@ import {
     updateMySchedule,
     logMemberProgress,
     getMemberProgress,
+    getMemberAttendance,
+    markMemberAttendance,
+    listExercises,
+    searchExercises,
+    updateExercise,
+    deleteExercise,
+    getClassBookings,
 } from "../controller/trainer.controller.js";
 
 const router = express.Router();
@@ -67,6 +74,22 @@ router.post("/diet-plans/:planId/assign/:memberId", auth, authorize("TRAINER"), 
 
 router.post("/members/:memberId/progress", auth, authorize("TRAINER"), logMemberProgress);
 router.get("/members/:memberId/progress", auth, authorize("TRAINER"), getMemberProgress);
+
+// ─── Member Attendance ──────────────────────────────────────────────────────
+
+router.get("/members/:memberId/attendance", auth, authorize("TRAINER"), getMemberAttendance);
+router.post("/members/:memberId/attendance", auth, authorize("TRAINER"), markMemberAttendance);
+
+// ─── Exercises ──────────────────────────────────────────────────────────────
+
+router.get("/exercises", auth, authorize("TRAINER"), listExercises);
+router.get("/exercises/search", auth, authorize("TRAINER"), searchExercises);
+router.patch("/exercises/:id", auth, authorize("TRAINER"), updateExercise);
+router.delete("/exercises/:id", auth, authorize("TRAINER"), deleteExercise);
+
+// ─── Class Bookings ─────────────────────────────────────────────────────────
+
+router.get("/class-bookings", auth, authorize("TRAINER"), getClassBookings);
 
 // ─── Public Trainer Listings (any authenticated user) ────────────────────────
 

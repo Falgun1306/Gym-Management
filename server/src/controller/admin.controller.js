@@ -745,6 +745,460 @@ const getDashboard = asyncHandler(async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// TRAINER ↔ MEMBER ASSIGNMENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── PATCH /admins/members/:memberId/assign-trainer ──────────────────────────
+
+const assignTrainerToMember = asyncHandler(async (req, res) => {
+    const { memberId } = req.params;
+    const { trainerId } = req.body;
+
+    if (!trainerId) {
+        throw new ErrorHandler("trainerId is required", 400);
+    }
+
+    const member = await prisma.member.findUnique({ where: { id: memberId } });
+
+    if (!member) {
+        throw new ErrorHandler("Member not found", 404);
+    }
+
+    const trainer = await prisma.trainer.findUnique({ where: { id: trainerId } });
+
+    if (!trainer) {
+        throw new ErrorHandler("Trainer not found", 404);
+    }
+
+    const updatedMember = await prisma.member.update({
+        where: { id: memberId },
+        data: { trainerId },
+        include: {
+            trainer: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    specialization: true,
+                },
+            },
+        },
+    });
+
+    res.status(200).json({
+        success: true,
+        message: `Trainer ${trainer.firstName} ${trainer.lastName} assigned to member successfully`,
+        data: updatedMember,
+    });
+});
+
+// ─── PATCH /admins/members/:memberId/remove-trainer ──────────────────────────
+
+const removeTrainerFromMember = asyncHandler(async (req, res) => {
+    const { memberId } = req.params;
+
+    const member = await prisma.member.findUnique({ where: { id: memberId } });
+
+    if (!member) {
+        throw new ErrorHandler("Member not found", 404);
+    }
+
+    if (!member.trainerId) {
+        throw new ErrorHandler("Member has no trainer assigned", 400);
+    }
+
+    const updatedMember = await prisma.member.update({
+        where: { id: memberId },
+        data: { trainerId: null },
+    });
+
+    res.status(200).json({
+        success: true,
+        message: "Trainer removed from member successfully",
+        data: updatedMember,
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MEMBERSHIP MANAGEMENT (Individual Memberships, not Plans)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── GET /admins/memberships ─────────────────────────────────────────────────
+
+const listMemberships = asyncHandler(async (req, res) => {
+    const {
+        page = 1,
+        limit = 20,
+        status,
+    } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit)));
+    const skip = (pageNum - 1) * limitNum;
+
+    const where = {};
+
+    if (status) {
+        where.status = status;
+    }
+
+    const [memberships, total] = await Promise.all([
+        prisma.membership.findMany({
+            where,
+            include: {
+                member: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        phone: true,
+                    },
+                },
+                plan: true,
+                payments: {
+                    orderBy: { paidAt: "desc" },
+                    take: 1,
+                },
+            },
+            skip,
+            take: limitNum,
+            orderBy: { createdAt: "desc" },
+        }),
+        prisma.membership.count({ where }),
+    ]);
+
+    res.status(200).json({
+        success: true,
+        data: memberships,
+        pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            totalPages: Math.ceil(total / limitNum),
+        },
+    });
+});
+
+// ─── GET /admins/memberships/:id ─────────────────────────────────────────────
+
+const getMembershipById = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const membership = await prisma.membership.findUnique({
+        where: { id },
+        include: {
+            member: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    phone: true,
+                },
+            },
+            plan: true,
+            payments: {
+                orderBy: { paidAt: "desc" },
+            },
+        },
+    });
+
+    if (!membership) {
+        throw new ErrorHandler("Membership not found", 404);
+    }
+
+    res.status(200).json({
+        success: true,
+        data: membership,
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ATTENDANCE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── GET /admins/attendance ──────────────────────────────────────────────────
+
+const listAttendance = asyncHandler(async (req, res) => {
+    const {
+        page = 1,
+        limit = 20,
+        date,
+        memberId,
+    } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit)));
+    const skip = (pageNum - 1) * limitNum;
+
+    const where = {};
+
+    // Filter by specific date
+    if (date) {
+        const dayStart = new Date(date);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(dayStart);
+        dayEnd.setDate(dayEnd.getDate() + 1);
+
+        where.checkIn = { gte: dayStart, lt: dayEnd };
+    }
+
+    if (memberId) {
+        where.memberId = memberId;
+    }
+
+    const [attendances, total] = await Promise.all([
+        prisma.attendance.findMany({
+            where,
+            include: {
+                member: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        phone: true,
+                    },
+                },
+            },
+            skip,
+            take: limitNum,
+            orderBy: { checkIn: "desc" },
+        }),
+        prisma.attendance.count({ where }),
+    ]);
+
+    res.status(200).json({
+        success: true,
+        data: attendances,
+        pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            totalPages: Math.ceil(total / limitNum),
+        },
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPLAINTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── GET /admins/complaints ──────────────────────────────────────────────────
+
+const listComplaints = asyncHandler(async (req, res) => {
+    const {
+        page = 1,
+        limit = 20,
+        status,
+    } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit)));
+    const skip = (pageNum - 1) * limitNum;
+
+    const where = {};
+
+    if (status) {
+        where.status = status;
+    }
+
+    const [complaints, total] = await Promise.all([
+        prisma.complaint.findMany({
+            where,
+            include: {
+                member: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        phone: true,
+                    },
+                },
+            },
+            skip,
+            take: limitNum,
+            orderBy: { createdAt: "desc" },
+        }),
+        prisma.complaint.count({ where }),
+    ]);
+
+    res.status(200).json({
+        success: true,
+        data: complaints,
+        pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            totalPages: Math.ceil(total / limitNum),
+        },
+    });
+});
+
+// ─── PATCH /admins/complaints/:id ────────────────────────────────────────────
+
+const resolveComplaint = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const validStatuses = ["OPEN", "IN_PROGRESS", "RESOLVED", "REJECTED"];
+
+    if (!status || !validStatuses.includes(status)) {
+        throw new ErrorHandler(
+            `status is required and must be one of: ${validStatuses.join(", ")}`,
+            400
+        );
+    }
+
+    const complaint = await prisma.complaint.findUnique({ where: { id } });
+
+    if (!complaint) {
+        throw new ErrorHandler("Complaint not found", 404);
+    }
+
+    const updatedComplaint = await prisma.complaint.update({
+        where: { id },
+        data: { status },
+        include: {
+            member: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                },
+            },
+        },
+    });
+
+    res.status(200).json({
+        success: true,
+        message: `Complaint status updated to ${status}`,
+        data: updatedComplaint,
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GYM CLASS MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── POST /admins/gym-classes ────────────────────────────────────────────────
+
+const createGymClass = asyncHandler(async (req, res) => {
+    const { trainerId, title, description, capacity, startTime, endTime } = req.body;
+
+    if (!trainerId || !title || !capacity || !startTime || !endTime) {
+        throw new ErrorHandler(
+            "trainerId, title, capacity, startTime, and endTime are required",
+            400
+        );
+    }
+
+    const trainer = await prisma.trainer.findUnique({ where: { id: trainerId } });
+
+    if (!trainer) {
+        throw new ErrorHandler("Trainer not found", 404);
+    }
+
+    const gymClass = await prisma.gymClass.create({
+        data: {
+            trainerId,
+            title,
+            description: description || null,
+            capacity: parseInt(capacity),
+            startTime: new Date(startTime),
+            endTime: new Date(endTime),
+        },
+        include: {
+            trainer: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                },
+            },
+        },
+    });
+
+    res.status(201).json({
+        success: true,
+        message: "Gym class created successfully",
+        data: gymClass,
+    });
+});
+
+// ─── PATCH /admins/gym-classes/:id ───────────────────────────────────────────
+
+const updateGymClass = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const gymClass = await prisma.gymClass.findUnique({ where: { id } });
+
+    if (!gymClass) {
+        throw new ErrorHandler("Gym class not found", 404);
+    }
+
+    const updateData = {};
+
+    if (req.body.title !== undefined) updateData.title = req.body.title;
+    if (req.body.description !== undefined) updateData.description = req.body.description;
+    if (req.body.capacity !== undefined) updateData.capacity = parseInt(req.body.capacity);
+    if (req.body.startTime !== undefined) updateData.startTime = new Date(req.body.startTime);
+    if (req.body.endTime !== undefined) updateData.endTime = new Date(req.body.endTime);
+
+    if (req.body.trainerId !== undefined) {
+        const trainer = await prisma.trainer.findUnique({ where: { id: req.body.trainerId } });
+        if (!trainer) {
+            throw new ErrorHandler("Trainer not found", 404);
+        }
+        updateData.trainerId = req.body.trainerId;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+        throw new ErrorHandler("No valid fields provided to update", 400);
+    }
+
+    const updatedClass = await prisma.gymClass.update({
+        where: { id },
+        data: updateData,
+        include: {
+            trainer: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                },
+            },
+        },
+    });
+
+    res.status(200).json({
+        success: true,
+        message: "Gym class updated successfully",
+        data: updatedClass,
+    });
+});
+
+// ─── DELETE /admins/gym-classes/:id ──────────────────────────────────────────
+
+const deleteGymClass = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const gymClass = await prisma.gymClass.findUnique({
+        where: { id },
+        include: { _count: { select: { bookings: true } } },
+    });
+
+    if (!gymClass) {
+        throw new ErrorHandler("Gym class not found", 404);
+    }
+
+    await prisma.gymClass.delete({ where: { id } });
+
+    res.status(200).json({
+        success: true,
+        message: "Gym class deleted successfully",
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export {
     getMyProfile,
@@ -752,6 +1206,8 @@ export {
     promoteToTrainer,
     updateTrainer,
     removeTrainer,
+    assignTrainerToMember,
+    removeTrainerFromMember,
     listMembers,
     getMemberById,
     updateMember,
@@ -760,7 +1216,15 @@ export {
     listMembershipPlans,
     updateMembershipPlan,
     deleteMembershipPlan,
+    listMemberships,
+    getMembershipById,
     listPayments,
     getPaymentById,
+    listAttendance,
+    listComplaints,
+    resolveComplaint,
+    createGymClass,
+    updateGymClass,
+    deleteGymClass,
     getDashboard,
 };

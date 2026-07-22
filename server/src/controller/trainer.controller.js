@@ -843,6 +843,298 @@ const getMemberProgress = asyncHandler(async (req, res) => {
     });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// MEMBER ATTENDANCE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Get Member Attendance ──────────────────────────────────────────────────
+
+const getMemberAttendance = asyncHandler(async (req, res) => {
+    const trainer = await getTrainerRecord(req.user.id);
+    const { memberId } = req.params;
+
+    const member = await prisma.member.findUnique({
+        where: { id: memberId, trainerId: trainer.id },
+    });
+
+    if (!member) {
+        throw new ErrorHandler("Member not found or not assigned to you", 404);
+    }
+
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit)));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [attendances, total] = await Promise.all([
+        prisma.attendance.findMany({
+            where: { memberId: member.id },
+            orderBy: { checkIn: "desc" },
+            skip,
+            take: limitNum,
+        }),
+        prisma.attendance.count({
+            where: { memberId: member.id },
+        }),
+    ]);
+
+    res.status(200).json({
+        success: true,
+        data: attendances,
+        pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            totalPages: Math.ceil(total / limitNum),
+        },
+    });
+});
+
+// ─── Mark Member Attendance ─────────────────────────────────────────────────
+
+const markMemberAttendance = asyncHandler(async (req, res) => {
+    const trainer = await getTrainerRecord(req.user.id);
+    const { memberId } = req.params;
+
+    const member = await prisma.member.findUnique({
+        where: { id: memberId, trainerId: trainer.id },
+    });
+
+    if (!member) {
+        throw new ErrorHandler("Member not found or not assigned to you", 404);
+    }
+
+    // Check if already checked in today without checkout
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const existingAttendance = await prisma.attendance.findFirst({
+        where: {
+            memberId: member.id,
+            checkIn: { gte: today, lt: tomorrow },
+            checkOut: null,
+        },
+    });
+
+    // If already checked in, mark checkout
+    if (existingAttendance) {
+        const updated = await prisma.attendance.update({
+            where: { id: existingAttendance.id },
+            data: { checkOut: new Date() },
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Member checked out successfully",
+            data: updated,
+        });
+    }
+
+    // Otherwise, mark check-in
+    const attendance = await prisma.attendance.create({
+        data: {
+            memberId: member.id,
+            checkIn: new Date(),
+            date: new Date(),
+        },
+    });
+
+    res.status(201).json({
+        success: true,
+        message: "Member checked in successfully",
+        data: attendance,
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXERCISES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── List Exercises ─────────────────────────────────────────────────────────
+
+const listExercises = asyncHandler(async (req, res) => {
+    const { muscleGroup, difficulty } = req.query;
+
+    const where = {};
+
+    if (muscleGroup) {
+        where.muscleGroup = muscleGroup;
+    }
+
+    if (difficulty) {
+        where.difficulty = difficulty;
+    }
+
+    const exercises = await prisma.exercise.findMany({
+        where,
+        orderBy: { name: "asc" },
+    });
+
+    res.status(200).json({
+        success: true,
+        data: exercises,
+    });
+});
+
+// ─── Search Exercises ───────────────────────────────────────────────────────
+
+const searchExercises = asyncHandler(async (req, res) => {
+    const { q } = req.query;
+
+    if (!q) {
+        throw new ErrorHandler("Search query (q) is required", 400);
+    }
+
+    const exercises = await prisma.exercise.findMany({
+        where: {
+            OR: [
+                { name: { contains: q, mode: "insensitive" } },
+                { description: { contains: q, mode: "insensitive" } },
+            ],
+        },
+        orderBy: { name: "asc" },
+    });
+
+    res.status(200).json({
+        success: true,
+        data: exercises,
+    });
+});
+
+// ─── Update Exercise ────────────────────────────────────────────────────────
+
+const updateExercise = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const exercise = await prisma.exercise.findUnique({ where: { id } });
+
+    if (!exercise) {
+        throw new ErrorHandler("Exercise not found", 404);
+    }
+
+    const updateData = {};
+
+    if (req.body.name !== undefined) {
+        const existing = await prisma.exercise.findUnique({ where: { name: req.body.name } });
+        if (existing && existing.id !== id) {
+            throw new ErrorHandler("An exercise with this name already exists", 409);
+        }
+        updateData.name = req.body.name;
+    }
+    if (req.body.muscleGroup !== undefined) updateData.muscleGroup = req.body.muscleGroup;
+    if (req.body.description !== undefined) updateData.description = req.body.description;
+    if (req.body.difficulty !== undefined) updateData.difficulty = req.body.difficulty;
+    if (req.body.videoUrl !== undefined) updateData.videoUrl = req.body.videoUrl;
+
+    if (Object.keys(updateData).length === 0) {
+        throw new ErrorHandler("No valid fields provided to update", 400);
+    }
+
+    const updatedExercise = await prisma.exercise.update({
+        where: { id },
+        data: updateData,
+    });
+
+    res.status(200).json({
+        success: true,
+        message: "Exercise updated successfully",
+        data: updatedExercise,
+    });
+});
+
+// ─── Delete Exercise ────────────────────────────────────────────────────────
+
+const deleteExercise = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const exercise = await prisma.exercise.findUnique({ where: { id } });
+
+    if (!exercise) {
+        throw new ErrorHandler("Exercise not found", 404);
+    }
+
+    await prisma.exercise.delete({ where: { id } });
+
+    res.status(200).json({
+        success: true,
+        message: "Exercise deleted successfully",
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLASS BOOKINGS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Get Class Bookings (for a particular member or gym class) ──────────────
+
+const getClassBookings = asyncHandler(async (req, res) => {
+    const trainer = await getTrainerRecord(req.user.id);
+    const { memberId, classId } = req.query;
+
+    const where = {};
+
+    // Filter by member (only if assigned to this trainer)
+    if (memberId) {
+        const member = await prisma.member.findUnique({
+            where: { id: memberId, trainerId: trainer.id },
+        });
+
+        if (!member) {
+            throw new ErrorHandler("Member not found or not assigned to you", 404);
+        }
+
+        where.memberId = memberId;
+    }
+
+    // Filter by gym class (only if the class belongs to this trainer)
+    if (classId) {
+        const gymClass = await prisma.gymClass.findUnique({
+            where: { id: classId, trainerId: trainer.id },
+        });
+
+        if (!gymClass) {
+            throw new ErrorHandler("Gym class not found or not assigned to you", 404);
+        }
+
+        where.classId = classId;
+    }
+
+    if (!memberId && !classId) {
+        // Default: show bookings for all classes owned by this trainer
+        where.gymClass = { trainerId: trainer.id };
+    }
+
+    const bookings = await prisma.classBooking.findMany({
+        where,
+        include: {
+            member: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    phone: true,
+                },
+            },
+            gymClass: {
+                select: {
+                    id: true,
+                    title: true,
+                    startTime: true,
+                    endTime: true,
+                },
+            },
+        },
+        orderBy: { bookedAt: "desc" },
+    });
+
+    res.status(200).json({
+        success: true,
+        data: bookings,
+    });
+});
+
 export {
     getMyProfile,
     createMyProfile,
@@ -867,4 +1159,12 @@ export {
     updateMySchedule,
     logMemberProgress,
     getMemberProgress,
+    getMemberAttendance,
+    markMemberAttendance,
+    listExercises,
+    searchExercises,
+    updateExercise,
+    deleteExercise,
+    getClassBookings,
 };
+

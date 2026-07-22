@@ -469,6 +469,242 @@ const getMyDietPlans = asyncHandler(async (req, res) => {
         data: dietAssignments,
     });
 });
+// ═══════════════════════════════════════════════════════════════════════════════
+// GYM CLASSES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── List Gym Classes ───────────────────────────────────────────────────────
+
+const listGymClasses = asyncHandler(async (req, res) => {
+    const gymClasses = await prisma.gymClass.findMany({
+        include: {
+            trainer: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    specialization: true,
+                },
+            },
+            _count: { select: { bookings: true } },
+        },
+        orderBy: { startTime: "asc" },
+    });
+
+    res.status(200).json({
+        success: true,
+        data: gymClasses,
+    });
+});
+
+// ─── Book Gym Class ─────────────────────────────────────────────────────────
+
+const bookGymClass = asyncHandler(async (req, res) => {
+    const member = await prisma.member.findUnique({
+        where: { userId: req.user.id },
+    });
+
+    if (!member) {
+        throw new ErrorHandler("Member profile not found", 404);
+    }
+
+    const { classId } = req.params;
+
+    const gymClass = await prisma.gymClass.findUnique({
+        where: { id: classId },
+        include: { _count: { select: { bookings: true } } },
+    });
+
+    if (!gymClass) {
+        throw new ErrorHandler("Gym class not found", 404);
+    }
+
+    // Check capacity
+    if (gymClass._count.bookings >= gymClass.capacity) {
+        throw new ErrorHandler("Gym class is fully booked", 400);
+    }
+
+    // Check if already booked
+    const existingBooking = await prisma.classBooking.findFirst({
+        where: {
+            classId,
+            memberId: member.id,
+            status: { in: ["BOOKED", "ATTENDED"] },
+        },
+    });
+
+    if (existingBooking) {
+        throw new ErrorHandler("You have already booked this class", 409);
+    }
+
+    const booking = await prisma.classBooking.create({
+        data: {
+            classId,
+            memberId: member.id,
+        },
+        include: {
+            gymClass: {
+                select: {
+                    title: true,
+                    startTime: true,
+                    endTime: true,
+                },
+            },
+        },
+    });
+
+    res.status(201).json({
+        success: true,
+        message: "Class booked successfully",
+        data: booking,
+    });
+});
+
+// ─── Cancel Gym Class ───────────────────────────────────────────────────────
+
+const cancelGymClass = asyncHandler(async (req, res) => {
+    const member = await prisma.member.findUnique({
+        where: { userId: req.user.id },
+    });
+
+    if (!member) {
+        throw new ErrorHandler("Member profile not found", 404);
+    }
+
+    const { bookingId } = req.params;
+
+    const booking = await prisma.classBooking.findUnique({
+        where: { id: bookingId },
+    });
+
+    if (!booking) {
+        throw new ErrorHandler("Booking not found", 404);
+    }
+
+    if (booking.memberId !== member.id) {
+        throw new ErrorHandler("This booking does not belong to you", 403);
+    }
+
+    if (booking.status === "CANCELLED") {
+        throw new ErrorHandler("Booking is already cancelled", 400);
+    }
+
+    const updatedBooking = await prisma.classBooking.update({
+        where: { id: bookingId },
+        data: { status: "CANCELLED" },
+    });
+
+    res.status(200).json({
+        success: true,
+        message: "Class booking cancelled successfully",
+        data: updatedBooking,
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPLAINTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Create Complaint ───────────────────────────────────────────────────────
+
+const createComplaint = asyncHandler(async (req, res) => {
+    const member = await prisma.member.findUnique({
+        where: { userId: req.user.id },
+    });
+
+    if (!member) {
+        throw new ErrorHandler("Member profile not found", 404);
+    }
+
+    const { subject, description } = req.body;
+
+    if (!subject || !description) {
+        throw new ErrorHandler("Subject and description are required", 400);
+    }
+
+    const complaint = await prisma.complaint.create({
+        data: {
+            memberId: member.id,
+            subject,
+            description,
+        },
+    });
+
+    res.status(201).json({
+        success: true,
+        message: "Complaint submitted successfully",
+        data: complaint,
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Get My Notifications ───────────────────────────────────────────────────
+
+const getMyNotifications = asyncHandler(async (req, res) => {
+    const { page = 1, limit = 20, unreadOnly } = req.query;
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit)));
+    const skip = (pageNum - 1) * limitNum;
+
+    const where = { userId: req.user.id };
+
+    if (unreadOnly === "true") {
+        where.isRead = false;
+    }
+
+    const [notifications, total] = await Promise.all([
+        prisma.notification.findMany({
+            where,
+            orderBy: { createdAt: "desc" },
+            skip,
+            take: limitNum,
+        }),
+        prisma.notification.count({ where }),
+    ]);
+
+    res.status(200).json({
+        success: true,
+        data: notifications,
+        pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            totalPages: Math.ceil(total / limitNum),
+        },
+    });
+});
+
+// ─── Mark Notification as Read ──────────────────────────────────────────────
+
+const markNotificationRead = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const notification = await prisma.notification.findUnique({
+        where: { id },
+    });
+
+    if (!notification) {
+        throw new ErrorHandler("Notification not found", 404);
+    }
+
+    if (notification.userId !== req.user.id) {
+        throw new ErrorHandler("This notification does not belong to you", 403);
+    }
+
+    const updated = await prisma.notification.update({
+        where: { id },
+        data: { isRead: true },
+    });
+
+    res.status(200).json({
+        success: true,
+        message: "Notification marked as read",
+        data: updated,
+    });
+});
 
 export {
     getMyProfile,
@@ -481,4 +717,11 @@ export {
     getMySubscriptions,
     getMyWorkoutPlans,
     getMyDietPlans,
+    listGymClasses,
+    bookGymClass,
+    cancelGymClass,
+    createComplaint,
+    getMyNotifications,
+    markNotificationRead,
 };
+

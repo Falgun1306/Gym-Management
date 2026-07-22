@@ -12,6 +12,12 @@ import {
     getMySubscriptions,
     getMyWorkoutPlans,
     getMyDietPlans,
+    listGymClasses,
+    bookGymClass,
+    cancelGymClass,
+    createComplaint,
+    getMyNotifications,
+    markNotificationRead,
 } from "../controller/member.controller.js";
 
 const router = express.Router();
@@ -26,6 +32,18 @@ router.get("/me/payments", auth, getMyPayments);
 router.get("/me/subscriptions", auth, getMySubscriptions);
 router.get("/me/workout-plans", auth, getMyWorkoutPlans);
 router.get("/me/diet-plans", auth, getMyDietPlans);
+router.get("/me/notifications", auth, getMyNotifications);
+router.patch("/me/notifications/:id", auth, markNotificationRead);
+
+// ─── Gym Classes ─────────────────────────────────────────────────────────────
+
+router.get("/gym-classes", auth, listGymClasses);
+router.post("/gym-classes/:classId/book", auth, bookGymClass);
+router.patch("/gym-classes/bookings/:bookingId/cancel", auth, cancelGymClass);
+
+// ─── Complaints ──────────────────────────────────────────────────────────────
+
+router.post("/complaints", auth, createComplaint);
 
 // ─── Admin / Trainer routes ──────────────────────────────────────────────────
 

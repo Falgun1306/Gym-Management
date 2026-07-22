@@ -7,6 +7,8 @@ import {
     promoteToTrainer,
     updateTrainer,
     removeTrainer,
+    assignTrainerToMember,
+    removeTrainerFromMember,
     listMembers,
     getMemberById,
     updateMember,
@@ -15,8 +17,16 @@ import {
     listMembershipPlans,
     updateMembershipPlan,
     deleteMembershipPlan,
+    listMemberships,
+    getMembershipById,
     listPayments,
     getPaymentById,
+    listAttendance,
+    listComplaints,
+    resolveComplaint,
+    createGymClass,
+    updateGymClass,
+    deleteGymClass,
     getDashboard,
 } from "../controller/admin.controller.js";
 
@@ -46,6 +56,8 @@ router.get("/members", listMembers);
 router.get("/members/:id", getMemberById);
 router.patch("/members/:id", updateMember);
 router.delete("/members/:id", deleteMember);
+router.patch("/members/:memberId/assign-trainer", assignTrainerToMember);
+router.patch("/members/:memberId/remove-trainer", removeTrainerFromMember);
 
 // ─── Membership Plan Management ─────────────────────────────────────────────
 
@@ -54,9 +66,29 @@ router.get("/membership-plans", listMembershipPlans);
 router.patch("/membership-plans/:id", updateMembershipPlan);
 router.delete("/membership-plans/:id", deleteMembershipPlan);
 
+// ─── Membership Management (Individual Memberships) ─────────────────────────
+
+router.get("/memberships", listMemberships);
+router.get("/memberships/:id", getMembershipById);
+
 // ─── Payment Management ─────────────────────────────────────────────────────
 
 router.get("/payments", listPayments);
 router.get("/payments/:id", getPaymentById);
+
+// ─── Attendance ──────────────────────────────────────────────────────────────
+
+router.get("/attendance", listAttendance);
+
+// ─── Complaints ──────────────────────────────────────────────────────────────
+
+router.get("/complaints", listComplaints);
+router.patch("/complaints/:id", resolveComplaint);
+
+// ─── Gym Class Management ───────────────────────────────────────────────────
+
+router.post("/gym-classes", createGymClass);
+router.patch("/gym-classes/:id", updateGymClass);
+router.delete("/gym-classes/:id", deleteGymClass);
 
 export default router;
