@@ -29,9 +29,6 @@ async function main() {
     });
 
     console.log("✅ Admin user seeded successfully:");
-    console.log(`   Email:    ${admin.email}`);
-    console.log(`   Username: ${admin.username}`);
-    console.log(`   Password: admin123`);
 }
 
 main()
