@@ -1,4 +1,35 @@
-server/.env
-server/node_modules
-client/.env
-client/node_modules
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build output
+dist/
+build/
+
+# Prisma generated client
+server/src/generated/
+
+# Package manager lock (keep only one)
+# package-lock.json
+# yarn.lock

@@ -7,9 +7,12 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "set NODE_OPTIONS=--experimental-vm-modules&& npx jest --forceExit --detectOpenHandles",
+    "test:watch": "set NODE_OPTIONS=--experimental-vm-modules&& npx jest --watch --forceExit --detectOpenHandles",
+    "test:coverage": "set NODE_OPTIONS=--experimental-vm-modules&& npx jest --coverage --forceExit --detectOpenHandles",
     "start": "nodemon src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
@@ -25,7 +28,10 @@
     "razorpay": "^2.9.8"
   },
   "devDependencies": {
+    "@jest/globals": "^30.4.1",
     "@types/node": "^26.1.1",
-    "nodemon": "^3.1.14"
+    "jest": "^30.4.2",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
   }
 }

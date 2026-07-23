@@ -30,6 +30,15 @@ app.use("/api/v1/users",userRouter);
 import paymentRouter from "./routes/payment.router.js";
 app.use("/api/v1/payments", paymentRouter);
 
+import memberRouter from "./routes/member.router.js";
+app.use("/api/v1/members", memberRouter);
+
+import trainerRouter from "./routes/trainer.router.js";
+app.use("/api/v1/trainers", trainerRouter);
+
+import adminRouter from "./routes/admin.router.js";
+app.use("/api/v1/admins", adminRouter);
+
 app.use(errorHandler);
 
 export {app};
