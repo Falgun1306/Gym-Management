@@ -64,6 +64,7 @@ enum PaymentMethod {
   CREDIT_CARD
   DEBIT_CARD
   NET_BANKING
+  ONLINE
 }
 
 enum PaymentStatus {
@@ -284,6 +285,21 @@ model Payment {
   status        PaymentStatus @default(PENDING)
   transactionId String?       @unique
   paidAt        DateTime      @default(now())
+  description   String?
+
+  // ─── Razorpay Gateway Fields ──────────────────────────
+  razorpayOrderId   String?   @unique
+  razorpayPaymentId String?   @unique
+  razorpaySignature String?
+
+  // ─── Refund Tracking ─────────────────────────────────
+  refundId       String?   @unique
+  refundedAmount Decimal?
+  refundReason   String?
+  refundedAt     DateTime?
+
+  // ─── Invoice ─────────────────────────────────────────
+  invoiceNumber  String?   @unique
 
   member     Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
   membership Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
