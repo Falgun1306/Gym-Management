@@ -32,6 +32,8 @@ import {
     updateGymClass,
     deleteGymClass,
     getDashboard,
+    listTrainers,
+    getTrainerById,
 } from "../controller/admin.controller.js";
 
 const router = express.Router();
@@ -57,6 +59,8 @@ router.patch("/trainer-applications/:id/reject", rejectTrainerApplication);
 
 // ─── Trainer Management ─────────────────────────────────────────────────────
 
+router.get("/trainers", listTrainers);
+router.get("/trainers/:id", getTrainerById);
 router.post("/trainers/promote", directPromoteToTrainer);
 router.patch("/trainers/:id", updateTrainer);
 router.delete("/trainers/:id", removeTrainer);

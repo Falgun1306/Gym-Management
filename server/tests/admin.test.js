@@ -5,6 +5,9 @@
  *   GET    /api/v1/admins/me
  *   PATCH  /api/v1/admins/me
  *   GET    /api/v1/admins/dashboard
+ *   GET    /api/v1/admins/trainers
+ *   GET    /api/v1/admins/trainers/:id
+ *   POST   /api/v1/admins/trainers/promote
  *   PATCH  /api/v1/admins/trainers/:id
  *   DELETE /api/v1/admins/trainers/:id
  *   GET    /api/v1/admins/members
@@ -127,12 +130,26 @@ describe("Admin Profile & Dashboard", () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 2. TRAINER MANAGEMENT (Update & Remove)
+// 2. TRAINER MANAGEMENT (Listing, Update & Remove)
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe("Admin Trainer Management", () => {
     const adminUser = createAdminUser();
     beforeEach(() => { resetAll(); prismaMock.user.findUnique.mockResolvedValue(adminUser); });
+
+    it("GET /admins/trainers — list all trainers for admin", async () => {
+        prismaMock.trainer.findMany.mockResolvedValue([createTrainerRecord()]);
+        const res = await auth(request.get("/api/v1/admins/trainers"), adminUser);
+        expect(res.status).toBe(200);
+        expect(res.body.data).toHaveLength(1);
+    });
+
+    it("GET /admins/trainers/:id — get trainer profile by ID for admin", async () => {
+        prismaMock.trainer.findUnique.mockResolvedValue(createTrainerRecord());
+        const res = await auth(request.get("/api/v1/admins/trainers/tr1"), adminUser);
+        expect(res.status).toBe(200);
+        expect(res.body.data.id).toBe("tr1");
+    });
 
     it("PATCH /admins/trainers/:id — update trainer details", async () => {
         prismaMock.trainer.findUnique.mockResolvedValue(createTrainerRecord());
@@ -225,6 +242,15 @@ describe("Admin Membership Plans", () => {
         expect(res.status).toBe(200);
     });
 
+    it("PATCH /admins/membership-plans/:id — update plan details", async () => {
+        prismaMock.membershipPlan.findUnique.mockResolvedValue({ id: "p1", name: "Gold Plan" });
+        prismaMock.membershipPlan.update.mockResolvedValue({ id: "p1", name: "Platinum Plan" });
+
+        const res = await auth(request.patch("/api/v1/admins/membership-plans/p1").send({ name: "Platinum Plan" }), adminUser);
+        expect(res.status).toBe(200);
+        expect(res.body.message).toContain("updated successfully");
+    });
+
     it("DELETE /admins/membership-plans/:id — soft delete if has active memberships", async () => {
         prismaMock.membershipPlan.findUnique.mockResolvedValue({ id: "p1", _count: { memberships: 5 } });
         prismaMock.membershipPlan.update.mockResolvedValue({ id: "p1", isActive: false });
@@ -236,7 +262,7 @@ describe("Admin Membership Plans", () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 5. PAYMENTS, COMPLAINTS & GYM CLASSES
+// 5. PAYMENTS, MEMBERSHIPS, COMPLAINTS & GYM CLASSES
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe("Admin Payments, Complaints & Gym Classes", () => {
@@ -249,6 +275,20 @@ describe("Admin Payments, Complaints & Gym Classes", () => {
 
         const res = await auth(request.get("/api/v1/admins/payments"), adminUser);
         expect(res.status).toBe(200);
+    });
+
+    it("GET /admins/payments/:id — get payment details by ID", async () => {
+        prismaMock.payment.findUnique.mockResolvedValue({ id: "pay1", amount: 5000, status: "SUCCESS" });
+        const res = await auth(request.get("/api/v1/admins/payments/pay1"), adminUser);
+        expect(res.status).toBe(200);
+        expect(res.body.data.id).toBe("pay1");
+    });
+
+    it("GET /admins/memberships/:id — get membership details by ID", async () => {
+        prismaMock.membership.findUnique.mockResolvedValue({ id: "ms1", status: "ACTIVE" });
+        const res = await auth(request.get("/api/v1/admins/memberships/ms1"), adminUser);
+        expect(res.status).toBe(200);
+        expect(res.body.data.id).toBe("ms1");
     });
 
     it("PATCH /admins/complaints/:id — resolve complaint", async () => {
