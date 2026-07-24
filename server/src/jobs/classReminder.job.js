@@ -1,10 +1,11 @@
 import prisma from "../config/prisma.js";
+import { sendClassReminder } from "../services/email.service.js";
 
 /**
  * Class Reminder Job
  *
  * Finds all gym classes scheduled for tomorrow and notifies
- * every member who has a BOOKED booking for that class.
+ * every member who has a BOOKED booking for that class via database notification and email.
  */
 export async function runClassReminderJob() {
     const jobName = "ClassReminder";
@@ -34,7 +35,12 @@ export async function runClassReminderJob() {
                     where: { status: "BOOKED" },
                     include: {
                         member: {
-                            select: { userId: true, firstName: true },
+                            select: {
+                                userId: true,
+                                firstName: true,
+                                lastName: true,
+                                user: { select: { email: true } },
+                            },
                         },
                     },
                 },
@@ -63,6 +69,23 @@ export async function runClassReminderJob() {
                     message: `Reminder: You have "${gymClass.title}" tomorrow at ${classTime} with ${trainerName}. Don't miss it!`,
                     type: "CLASS",
                 });
+
+                // Send class reminder email
+                if (booking.member?.user?.email) {
+                    sendClassReminder(
+                        {
+                            name: `${booking.member.firstName} ${booking.member.lastName || ""}`.trim(),
+                            email: booking.member.user.email,
+                        },
+                        {
+                            className: gymClass.title,
+                            instructorName: trainerName,
+                            classTime,
+                        }
+                    ).catch((err) =>
+                        console.error(`⚠️ [${jobName}] Email send failed for user ${booking.member.userId}:`, err.message || err)
+                    );
+                }
             }
         }
 

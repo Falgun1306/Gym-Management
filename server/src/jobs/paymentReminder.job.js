@@ -1,4 +1,5 @@
 import prisma from "../config/prisma.js";
+import { sendMembershipExpiryReminder } from "../services/email.service.js";
 
 /**
  * Payment Reminder Job
@@ -29,7 +30,12 @@ export async function runPaymentReminderJob() {
             },
             include: {
                 member: {
-                    select: { userId: true, firstName: true },
+                    select: {
+                        userId: true,
+                        firstName: true,
+                        lastName: true,
+                        user: { select: { email: true } },
+                    },
                 },
                 plan: {
                     select: { name: true },
@@ -80,6 +86,23 @@ export async function runPaymentReminderJob() {
                     : `Your ${membership.plan.name} membership expires on ${endDateStr}. Renew now to avoid interruption.`,
                 type: "PAYMENT",
             });
+
+            // Send email reminder
+            if (membership.member?.user?.email) {
+                sendMembershipExpiryReminder(
+                    {
+                        name: `${membership.member.firstName} ${membership.member.lastName || ""}`.trim(),
+                        email: membership.member.user.email,
+                    },
+                    {
+                        planName: membership.plan.name,
+                        expiryDate: endDateStr,
+                        daysRemaining,
+                    }
+                ).catch((err) =>
+                    console.error(`⚠️ [${jobName}] Email send failed for user ${membership.member.userId}:`, err.message || err)
+                );
+            }
         }
 
         if (notifications.length > 0) {
