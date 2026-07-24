@@ -36,6 +36,7 @@ export default {
         "src/controller/**/*.js",
         "src/services/**/*.js",
         "src/middlewares/**/*.js",
+        "src/jobs/**/*.js",
         "!src/config/**",
         "!src/server.js",
     ],
