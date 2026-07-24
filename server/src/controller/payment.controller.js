@@ -4,6 +4,7 @@ import prisma from "../config/prisma.js";
 import razorpay from "../config/razorpay.js";
 import asyncHandler from "../middlewares/asyncHandler.middleware.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
+import { sendPaymentReceipt } from "../services/email.service.js";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -215,6 +216,19 @@ const createPayment = asyncHandler(async (req, res) => {
         return newPayment;
     });
 
+    // Send email receipt asynchronously (non-blocking)
+    prisma.member.findUnique({
+        where: { id: validMemberId },
+        include: { user: { select: { email: true } } },
+    }).then((m) => {
+        if (m?.user?.email) {
+            sendPaymentReceipt(
+                { name: `${m.firstName} ${m.lastName}`, email: m.user.email },
+                { amount: validAmount, transactionId: payment.id, paymentMethod: method }
+            ).catch((err) => console.error("⚠️ Failed to send payment receipt email:", err.message || err));
+        }
+    }).catch((err) => console.error("⚠️ Member lookup for payment receipt failed:", err.message || err));
+
     res.status(201).json({
         success: true,
         message: "Payment recorded successfully",
@@ -296,6 +310,19 @@ const verifyPayment = asyncHandler(async (req, res) => {
             });
         }
     });
+
+    // Send email receipt asynchronously (non-blocking)
+    prisma.member.findUnique({
+        where: { id: payment.memberId },
+        include: { user: { select: { email: true } } },
+    }).then((m) => {
+        if (m?.user?.email) {
+            sendPaymentReceipt(
+                { name: `${m.firstName} ${m.lastName}`, email: m.user.email },
+                { amount: payment.amount, transactionId: razorpay_payment_id || payment.id, paymentMethod: payment.paymentMethod }
+            ).catch((err) => console.error("⚠️ Failed to send payment receipt email:", err.message || err));
+        }
+    }).catch((err) => console.error("⚠️ Member lookup for payment receipt failed:", err.message || err));
 
     res.status(200).json({
         success: true,

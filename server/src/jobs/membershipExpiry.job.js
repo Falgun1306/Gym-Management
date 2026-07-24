@@ -1,10 +1,11 @@
 import prisma from "../config/prisma.js";
+import { sendMembershipExpiryReminder } from "../services/email.service.js";
 
 /**
  * Membership Expiry Job
  *
  * Finds all ACTIVE memberships whose endDate has passed,
- * marks them EXPIRED, and notifies each member.
+ * marks them EXPIRED, and notifies each member via database notification and email.
  */
 export async function runMembershipExpiryJob() {
     const jobName = "MembershipExpiry";
@@ -21,7 +22,12 @@ export async function runMembershipExpiryJob() {
             },
             include: {
                 member: {
-                    select: { userId: true, firstName: true, lastName: true },
+                    select: {
+                        userId: true,
+                        firstName: true,
+                        lastName: true,
+                        user: { select: { email: true } },
+                    },
                 },
                 plan: {
                     select: { name: true },
@@ -50,6 +56,30 @@ export async function runMembershipExpiryJob() {
         }));
 
         await prisma.notification.createMany({ data: notifications });
+
+        // Send email notification for each expired membership
+        for (const membership of expiredMemberships) {
+            if (membership.member?.user?.email) {
+                const expiryDateStr = new Date(membership.endDate).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                });
+                sendMembershipExpiryReminder(
+                    {
+                        name: `${membership.member.firstName} ${membership.member.lastName || ""}`.trim(),
+                        email: membership.member.user.email,
+                    },
+                    {
+                        planName: membership.plan.name,
+                        expiryDate: expiryDateStr,
+                        daysRemaining: 0,
+                    }
+                ).catch((err) =>
+                    console.error(`⚠️ [${jobName}] Email send failed for user ${membership.member.userId}:`, err.message || err)
+                );
+            }
+        }
 
         console.log(
             `[${jobName}] Expired ${expiredMemberships.length} memberships, sent ${notifications.length} notifications.`
