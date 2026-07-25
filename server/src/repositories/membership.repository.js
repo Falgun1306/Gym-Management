@@ -28,6 +28,13 @@ class MembershipRepository {
         return prisma.membershipPlan.delete({ where: { id } });
     }
 
+    async createMembership(data) {
+        return prisma.membership.create({
+            data,
+            include: { plan: true, member: true },
+        });
+    }
+
     async findMembershipById(id, include = null) {
         return prisma.membership.findUnique({
             where: { id },

@@ -113,6 +113,11 @@ const removeTrainerFromMember = asyncHandler(async (req, res) => {
     res.status(200).json(new ApiResponse(200, updatedMember, "Trainer removed from member successfully"));
 });
 
+const assignMembership = asyncHandler(async (req, res) => {
+    const membership = await adminService.assignMembership(req.body);
+    res.status(201).json(new ApiResponse(201, membership, "Membership assigned successfully"));
+});
+
 const listMemberships = asyncHandler(async (req, res) => {
     const { memberships, pagination } = await adminService.listMemberships(req.query);
     res.status(200).json(new ApiResponse(200, memberships, "Memberships retrieved", pagination));
@@ -143,6 +148,7 @@ export {
     listMembershipPlans,
     updateMembershipPlan,
     deleteMembershipPlan,
+    assignMembership,
     listMemberships,
     getMembershipById,
     listPayments,
