@@ -284,6 +284,25 @@ describe("Admin Payments, Complaints & Gym Classes", () => {
         expect(res.body.data.id).toBe("pay1");
     });
 
+    it("POST /admins/memberships — assign membership to member", async () => {
+        prismaMock.member.findUnique.mockResolvedValue({ id: "mem1" });
+        prismaMock.membershipPlan.findUnique.mockResolvedValue({ id: "plan1", durationMonths: 6 });
+        prismaMock.membership.create.mockResolvedValue({ id: "ms1", memberId: "mem1", planId: "plan1", status: "PENDING" });
+
+        const res = await auth(request.post("/api/v1/admins/memberships").send({ memberId: "mem1", planId: "plan1" }), adminUser);
+        expect(res.status).toBe(201);
+        expect(res.body.data.id).toBe("ms1");
+    });
+
+    it("GET /admins/memberships — list memberships", async () => {
+        prismaMock.membership.findMany.mockResolvedValue([]);
+        prismaMock.membership.count.mockResolvedValue(0);
+
+        const res = await auth(request.get("/api/v1/admins/memberships"), adminUser);
+        expect(res.status).toBe(200);
+        expect(res.body.data).toEqual([]);
+    });
+
     it("GET /admins/memberships/:id — get membership details by ID", async () => {
         prismaMock.membership.findUnique.mockResolvedValue({ id: "ms1", status: "ACTIVE" });
         const res = await auth(request.get("/api/v1/admins/memberships/ms1"), adminUser);

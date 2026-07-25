@@ -575,6 +575,39 @@ class AdminService {
         return memberRepository.update(memberId, { trainerId: null });
     }
 
+    async assignMembership(body) {
+        const { memberId, planId, startDate, status } = body;
+        if (!memberId || !planId) {
+            throw new ErrorHandler("memberId and planId are required", 400);
+        }
+
+        const member = await memberRepository.findById(memberId);
+        if (!member) {
+            throw new ErrorHandler("Member not found", 404);
+        }
+
+        const plan = await membershipRepository.findPlanById(planId);
+        if (!plan) {
+            throw new ErrorHandler("Membership plan not found", 404);
+        }
+
+        const start = startDate ? new Date(startDate) : new Date();
+        if (isNaN(start.getTime())) {
+            throw new ErrorHandler("Invalid startDate", 400);
+        }
+
+        const end = new Date(start);
+        end.setMonth(end.getMonth() + plan.durationMonths);
+
+        return membershipRepository.createMembership({
+            memberId,
+            planId,
+            startDate: start,
+            endDate: end,
+            status: status || "PENDING",
+        });
+    }
+
     async listMemberships(query) {
         const { page = 1, limit = 20, status } = query;
         const pageNum = Math.max(1, parseInt(page));
@@ -600,7 +633,7 @@ class AdminService {
             },
         };
 
-        const { data, total } = await membershipRepository.findMany(where, skip, limitNum, { createdAt: "desc" }, include);
+        const { data, total } = await membershipRepository.findMemberships(where, skip, limitNum, { createdAt: "desc" }, include);
 
         return {
             memberships: data,

@@ -21,6 +21,7 @@ import {
     listMembershipPlans,
     updateMembershipPlan,
     deleteMembershipPlan,
+    assignMembership,
     listMemberships,
     getMembershipById,
     listPayments,
@@ -83,6 +84,7 @@ router.delete("/membership-plans/:id", deleteMembershipPlan);
 
 // ─── Membership Management (Individual Memberships) ─────────────────────────
 
+router.post("/memberships", assignMembership);
 router.get("/memberships", listMemberships);
 router.get("/memberships/:id", getMembershipById);
 
