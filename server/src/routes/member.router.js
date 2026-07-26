@@ -20,6 +20,8 @@ import {
     markNotificationRead,
     applyForTrainer,
     getMyApplications,
+    freezeMembership,
+    unfreezeMembership,
 } from "../controller/member.controller.js";
 
 const router = express.Router();
@@ -36,6 +38,11 @@ router.get("/me/workout-plans", auth, getMyWorkoutPlans);
 router.get("/me/diet-plans", auth, getMyDietPlans);
 router.get("/me/notifications", auth, getMyNotifications);
 router.patch("/me/notifications/:id", auth, markNotificationRead);
+
+// ─── Membership Freeze / Pause ───────────────────────────────────────────────
+
+router.patch("/me/memberships/:membershipId/freeze", auth, freezeMembership);
+router.patch("/me/memberships/:membershipId/unfreeze", auth, unfreezeMembership);
 
 // ─── Trainer Application ─────────────────────────────────────────────────────
 

@@ -235,6 +235,12 @@ model Membership {
   status    MembershipStatus @default(PENDING)
   createdAt DateTime         @default(now())
 
+  // ─── Freeze / Pause ──────────────────────────
+  frozenAt           DateTime?
+  freezeDurationDays Int?
+  freezeReason       String?
+  freezeCount        Int       @default(0)
+
   member   Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
   plan     MembershipPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
   payments Payment[]

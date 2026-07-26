@@ -128,6 +128,11 @@ const getMembershipById = asyncHandler(async (req, res) => {
     res.status(200).json(new ApiResponse(200, membership));
 });
 
+const unfreezeMembership = asyncHandler(async (req, res) => {
+    const membership = await adminService.unfreezeMembership(req.params.id);
+    res.status(200).json(new ApiResponse(200, membership, "Membership resumed successfully"));
+});
+
 export {
     getMyProfile,
     updateMyProfile,
@@ -151,6 +156,7 @@ export {
     assignMembership,
     listMemberships,
     getMembershipById,
+    unfreezeMembership,
     listPayments,
     getPaymentById,
     listAttendance,
