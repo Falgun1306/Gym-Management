@@ -54,6 +54,16 @@ const getMyApplications = asyncHandler(async (req, res) => {
     res.status(200).json(new ApiResponse(200, applications));
 });
 
+const freezeMembership = asyncHandler(async (req, res) => {
+    const membership = await memberService.freezeMembership(req.user.id, req.params.membershipId, req.body);
+    res.status(200).json(new ApiResponse(200, membership, "Membership frozen successfully"));
+});
+
+const unfreezeMembership = asyncHandler(async (req, res) => {
+    const membership = await memberService.unfreezeMembership(req.user.id, req.params.membershipId);
+    res.status(200).json(new ApiResponse(200, membership, "Membership resumed successfully"));
+});
+
 export {
     getMyProfile,
     createMyProfile,
@@ -73,4 +83,6 @@ export {
     markNotificationRead,
     applyForTrainer,
     getMyApplications,
+    freezeMembership,
+    unfreezeMembership,
 };

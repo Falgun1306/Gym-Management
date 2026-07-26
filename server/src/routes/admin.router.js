@@ -24,6 +24,7 @@ import {
     assignMembership,
     listMemberships,
     getMembershipById,
+    unfreezeMembership,
     listPayments,
     getPaymentById,
     listAttendance,
@@ -87,6 +88,7 @@ router.delete("/membership-plans/:id", deleteMembershipPlan);
 router.post("/memberships", assignMembership);
 router.get("/memberships", listMemberships);
 router.get("/memberships/:id", getMembershipById);
+router.patch("/memberships/:id/unfreeze", unfreezeMembership);
 
 // ─── Payment Management ─────────────────────────────────────────────────────
 

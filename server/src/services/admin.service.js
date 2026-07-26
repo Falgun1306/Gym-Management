@@ -668,6 +668,54 @@ class AdminService {
 
         return membership;
     }
+
+    async unfreezeMembership(membershipId) {
+        const membership = await prisma.membership.findUnique({
+            where: { id: membershipId },
+            include: { plan: true, member: { select: { userId: true, firstName: true } } },
+        });
+
+        if (!membership) {
+            throw new ErrorHandler("Membership not found", 404);
+        }
+
+        if (membership.status !== "SUSPENDED" || !membership.frozenAt) {
+            throw new ErrorHandler("This membership is not currently frozen", 400);
+        }
+
+        // Calculate actual frozen days and extend endDate
+        const frozenAt = new Date(membership.frozenAt);
+        const now = new Date();
+        const actualFrozenMs = now.getTime() - frozenAt.getTime();
+        const actualFrozenDays = Math.ceil(actualFrozenMs / (1000 * 60 * 60 * 24));
+
+        const newEndDate = new Date(membership.endDate);
+        newEndDate.setDate(newEndDate.getDate() + actualFrozenDays);
+
+        const updatedMembership = await prisma.membership.update({
+            where: { id: membershipId },
+            data: {
+                status: "ACTIVE",
+                endDate: newEndDate,
+                frozenAt: null,
+                freezeDurationDays: null,
+                freezeReason: null,
+            },
+            include: { plan: true },
+        });
+
+        // Notify the member
+        await prisma.notification.create({
+            data: {
+                userId: membership.member.userId,
+                title: "Membership Resumed by Admin",
+                message: `Your ${membership.plan.name} membership has been resumed by an admin. It was frozen for ${actualFrozenDays} day(s). Your new end date is ${newEndDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}.`,
+                type: "MEMBERSHIP",
+            },
+        });
+
+        return updatedMembership;
+    }
 }
 
 export default new AdminService();
