@@ -428,7 +428,7 @@ class AdminService {
     }
 
     async listMembershipPlans() {
-        return membershipRepository.findPlans({
+        return membershipRepository.findPlans({}, {
             _count: { select: { memberships: true } },
         });
     }

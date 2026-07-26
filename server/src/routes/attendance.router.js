@@ -9,6 +9,8 @@ import {
     markMemberAttendance,
     listAttendance,
     getAttendanceReport,
+    generateQrCode,
+    scanQrCode,
 } from "../controller/attendance.controller.js";
 
 const router = express.Router();
@@ -17,6 +19,10 @@ const router = express.Router();
 router.post("/check-in", auth, authorize("MEMBER"), checkIn);
 router.post("/check-out", auth, authorize("MEMBER"), checkOut);
 router.get("/me", auth, authorize("MEMBER"), getMyAttendance);
+
+// QR Code check-in
+router.get("/me/qr-code", auth, authorize("MEMBER"), generateQrCode);
+router.post("/qr/scan", auth, authorize("TRAINER", "ADMIN"), scanQrCode);
 
 // Trainer member attendance
 router.get("/members/:memberId", auth, authorize("TRAINER"), getMemberAttendance);

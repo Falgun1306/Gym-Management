@@ -12,8 +12,12 @@ class MembershipRepository {
         return prisma.membershipPlan.findUnique({ where: { name } });
     }
 
-    async findPlans(where = {}) {
-        return prisma.membershipPlan.findMany({ where, orderBy: { price: "asc" } });
+    async findPlans(where = {}, include = null) {
+        return prisma.membershipPlan.findMany({
+            where,
+            orderBy: { price: "asc" },
+            ...(include && { include }),
+        });
     }
 
     async createPlan(data) {
