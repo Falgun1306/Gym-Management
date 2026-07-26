@@ -24,6 +24,7 @@ class AttendanceService {
             memberId: member.id,
             checkIn: new Date(),
             date: new Date(),
+            checkInMethod: "MANUAL",
         });
     }
 
@@ -140,6 +141,7 @@ class AttendanceService {
                 memberId: member.id,
                 checkIn: new Date(),
                 date: new Date(),
+                checkInMethod: "MANUAL",
             }),
         };
     }
