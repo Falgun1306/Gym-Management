@@ -6,6 +6,7 @@ import paymentRepository from "../repositories/payment.repository.js";
 import prisma from "../config/prisma.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
 import { createTrainerFromMember } from "./trainer.service.js";
+import couponService from "./coupon.service.js";
 
 const ADMIN_EDITABLE_FIELDS = ["username", "email"];
 const TRAINER_EDITABLE_FIELDS = ["salary", "experience", "specialization"];
@@ -576,7 +577,7 @@ class AdminService {
     }
 
     async assignMembership(body) {
-        const { memberId, planId, startDate, status } = body;
+        const { memberId, planId, startDate, status, couponCode } = body;
         if (!memberId || !planId) {
             throw new ErrorHandler("memberId and planId are required", 400);
         }
@@ -599,12 +600,42 @@ class AdminService {
         const end = new Date(start);
         end.setMonth(end.getMonth() + plan.durationMonths);
 
-        return membershipRepository.createMembership({
-            memberId,
-            planId,
-            startDate: start,
-            endDate: end,
-            status: status || "PENDING",
+        // ── Validate coupon before entering the transaction ──────────────
+        let couponPreview = null;
+        if (couponCode) {
+            // validateCoupon throws if invalid, so errors surface cleanly
+            couponPreview = await couponService.validateCoupon(couponCode, memberId, parseFloat(plan.price));
+        }
+
+        // ── Atomically create membership + apply coupon ──────────────────
+        return prisma.$transaction(async (tx) => {
+            const membership = await tx.membership.create({
+                data: {
+                    memberId,
+                    planId,
+                    startDate: start,
+                    endDate: end,
+                    status: status || "PENDING",
+                    couponId: couponPreview?.couponId || null,
+                },
+                include: { plan: true, member: true },
+            });
+
+            if (couponCode && couponPreview) {
+                // applyCoupon works inside an existing tx
+                const usage = await couponService.applyCoupon(
+                    couponCode,
+                    memberId,
+                    membership.id,
+                    parseFloat(plan.price),
+                    tx
+                );
+
+                // Return the enriched membership object
+                return { ...membership, couponUsage: usage };
+            }
+
+            return membership;
         });
     }
 

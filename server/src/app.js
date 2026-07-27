@@ -67,6 +67,9 @@ app.use("/api/v1/dashboards", dashboardRouter);
 import reportRouter from "./routes/report.router.js";
 app.use("/api/v1/reports", reportRouter);
 
+import couponRouter from "./routes/coupon.router.js";
+app.use("/api/v1/coupons", couponRouter);
+
 import healthRouter from "./routes/health.router.js";
 app.use("/api/v1/health", healthRouter);
 
