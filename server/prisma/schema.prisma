@@ -116,6 +116,18 @@ enum ApplicationStatus {
   REJECTED
 }
 
+enum DiscountType {
+  PERCENTAGE    // e.g. 20% off
+  FIXED_AMOUNT  // e.g. ₹500 off
+  FREE_DAYS     // e.g. 15 extra days added to membership
+}
+
+enum CouponStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
@@ -160,6 +172,11 @@ model Member {
   payments            Payment[]
   classBookings       ClassBooking[]
   complaints          Complaint[]
+
+  // ─── Coupon & Referral Relations ───────────────────
+  couponUsages        CouponUsage[]
+  referralLink        ReferralLink?
+  referredBy          Referral?     @relation("ReferredMember")
 }
 
 model Trainer {
@@ -241,9 +258,13 @@ model Membership {
   freezeReason       String?
   freezeCount        Int       @default(0)
 
-  member   Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  plan     MembershipPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
-  payments Payment[]
+  // ─── Coupon ───────────────────────────────────
+  couponId    String?
+
+  member      Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  plan        MembershipPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payments    Payment[]
+  couponUsage CouponUsage?
 }
 
 model Attendance {
@@ -356,8 +377,12 @@ model Payment {
   // ─── Invoice ─────────────────────────────────────────
   invoiceNumber  String?   @unique
 
-  member     Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  membership Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  // ─── Coupon Usage ─────────────────────────────────
+  couponUsageId  String?   @unique
+
+  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  membership   Membership?  @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  couponUsage  CouponUsage? @relation(fields: [couponUsageId], references: [id], onDelete: SetNull)
 }
 
 model GymClass {
@@ -460,4 +485,83 @@ model Complaint {
   createdAt   DateTime        @default(now())
 
   member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+// ─── Coupon & Referral Models ─────────────────────────────────────────────────
+
+model Coupon {
+  id                 String       @id @default(cuid())
+  code               String       @unique
+  description        String?
+  discountType       DiscountType
+  discountValue      Decimal
+  minPurchaseAmount  Decimal?     // Minimum order amount for coupon to apply
+  maxDiscountAmount  Decimal?     // Cap for PERCENTAGE discounts
+  maxUsageCount      Int?         // null = unlimited
+  usageCount         Int          @default(0)
+  perUserLimit       Int          @default(1) // Times a single user can use it
+  isReferral         Boolean      @default(false) // System-generated referral coupon
+  startDate          DateTime     @default(now())
+  expiresAt          DateTime?
+  status             CouponStatus @default(ACTIVE)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  usages    CouponUsage[]
+  referrals Referral[]    @relation("RefereeCoupon")
+
+  @@index([code])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model CouponUsage {
+  id               String   @id @default(cuid())
+  couponId         String
+  memberId         String
+  membershipId     String?  @unique // One coupon usage per membership
+  discountApplied  Decimal  // Actual INR amount saved
+  extraDaysGranted Int?     // For FREE_DAYS coupon type
+  usedAt           DateTime @default(now())
+
+  coupon     Coupon      @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  member     Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  membership Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  payment    Payment?
+
+  @@index([couponId])
+  @@index([memberId])
+}
+
+model ReferralLink {
+  id                   String   @id @default(cuid())
+  memberId             String   @unique
+  code                 String   @unique
+  totalReferrals       Int      @default(0)
+  successfulReferrals  Int      @default(0)
+  createdAt            DateTime @default(now())
+
+  member    Member     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  referrals Referral[]
+
+  @@index([code])
+}
+
+model Referral {
+  id                     String    @id @default(cuid())
+  referralLinkId         String
+  referredMemberId       String    @unique
+  referrerRewardGranted  Boolean   @default(false)
+  refereeRewardGranted   Boolean   @default(false)
+  referrerMembershipId   String?   // Which membership had days added
+  refereeCouponId        String?   // FK → Coupon (auto-created referral coupon for referee)
+  rewardGrantedAt        DateTime?
+  createdAt              DateTime  @default(now())
+
+  referralLink    ReferralLink @relation(fields: [referralLinkId], references: [id], onDelete: Cascade)
+  referredMember  Member       @relation("ReferredMember", fields: [referredMemberId], references: [id], onDelete: Cascade)
+  refereeCoupon   Coupon?      @relation("RefereeCoupon", fields: [refereeCouponId], references: [id], onDelete: SetNull)
+
+  @@index([referralLinkId])
+  @@index([referredMemberId])
 }

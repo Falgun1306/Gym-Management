@@ -3,6 +3,7 @@ import paymentRepository from "../repositories/payment.repository.js";
 import membershipRepository from "../repositories/membership.repository.js";
 import prisma from "../config/prisma.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
+import couponService from "./coupon.service.js";
 
 const EDITABLE_FIELDS = [
     "firstName",
@@ -62,13 +63,13 @@ class MemberService {
             throw new ErrorHandler("Member profile already exists. Use PATCH to update.", 409);
         }
 
-        const { firstName, lastName, phone, gender, dob, address, height, weight, medicalNotes, emergencyContactName, emergencyContactPhone } = body;
+        const { firstName, lastName, phone, gender, dob, address, height, weight, medicalNotes, emergencyContactName, emergencyContactPhone, referralCode } = body;
 
         if (!firstName || !lastName || !phone || !gender) {
             throw new ErrorHandler("First name, last name, phone, and gender are required", 400);
         }
 
-        return memberRepository.create({
+        const newMember = await memberRepository.create({
             user: { connect: { id: userId } },
             firstName,
             lastName,
@@ -82,6 +83,18 @@ class MemberService {
             emergencyContactName: emergencyContactName || undefined,
             emergencyContactPhone: emergencyContactPhone || undefined,
         });
+
+        // ── Track referral signup (non-blocking, silently skipped on errors) ──
+        if (referralCode && referralCode.trim()) {
+            couponService.trackReferralSignup(referralCode.trim().toUpperCase(), newMember.id)
+                .catch((err) => {
+                    // Self-referral errors are propagated back via the catch here
+                    // but we still don't block the member creation response
+                    console.error("⚠️ Referral tracking error:", err.message || err);
+                });
+        }
+
+        return newMember;
     }
 
     async updateMyProfile(userId, body) {

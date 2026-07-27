@@ -5,6 +5,7 @@ import razorpay from "../config/razorpay.js";
 import asyncHandler from "../middlewares/asyncHandler.middleware.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
 import { sendPaymentReceipt } from "../services/email.service.js";
+import couponService from "../services/coupon.service.js";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -324,6 +325,10 @@ const verifyPayment = asyncHandler(async (req, res) => {
         }
     }).catch((err) => console.error("⚠️ Member lookup for payment receipt failed:", err.message || err));
 
+    // Grant referral rewards (fire-and-forget — non-blocking)
+    couponService.grantReferralRewards(payment.memberId)
+        .catch((err) => console.error("⚠️ Referral reward grant failed:", err.message || err));
+
     res.status(200).json({
         success: true,
         message: "Payment verified successfully",
@@ -402,6 +407,10 @@ const webhook = asyncHandler(async (req, res) => {
                 });
             }
         });
+
+        // Grant referral rewards (fire-and-forget)
+        couponService.grantReferralRewards(payment.memberId)
+            .catch((err) => console.error("⚠️ Referral reward grant failed (webhook):", err.message || err));
     } else if (eventType === "payment.failed") {
         const rpPayment = event.payload?.payment?.entity;
         if (rpPayment?.order_id) {
