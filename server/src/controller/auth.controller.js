@@ -4,21 +4,21 @@ import cookieOptions from "../utility/cookieOptions.utility.js";
 import authService from "../services/auth.service.js";
 
 const register = asyncHandler(async (req, res) => {
-    const { token } = await authService.register(req.body);
+    const { token, user } = await authService.register(req.body);
 
     res
         .status(201)
         .cookie("token", token, cookieOptions)
-        .json(new ApiResponse(201, null, "User created successfully"));
+        .json(new ApiResponse(201, { user, token }, "User created successfully"));
 });
 
 const login = asyncHandler(async (req, res) => {
-    const { token } = await authService.login(req.body);
+    const { token, user } = await authService.login(req.body);
 
     res
         .status(200)
         .cookie("token", token, cookieOptions)
-        .json(new ApiResponse(200, null, "User logged in successfully"));
+        .json(new ApiResponse(200, { user, token }, "User logged in successfully"));
 });
 
 const logout = asyncHandler(async (req, res) => {
