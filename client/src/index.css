@@ -1,0 +1,188 @@
+@import "tailwindcss";
+
+/* ─── Custom Theme Tokens (IronPulse / IronPeak Design System) ─────────────── */
+
+@theme {
+  /* ── Premium Slate Neutrals ── */
+  --color-surface-900: #0f172a;
+  --color-surface-800: #1e293b;
+  --color-surface-700: #334155;
+  --color-surface-600: #475569;
+  --color-surface-500: #64748b;
+  --color-surface-400: #94a3b8;
+  --color-surface-300: #cbd5e1;
+  --color-surface-200: #e2e8f0;
+  --color-surface-100: #f1f5f9;
+  --color-surface-50: #f8fafc;
+
+  /* ── Muted Executive Emerald Accents ── */
+  --color-accent-900: #022c22;
+  --color-accent-800: #064e3b;
+  --color-accent-700: #047857;
+  --color-accent-600: #059669;
+  --color-accent-500: #10b981;
+  --color-accent-400: #34d399;
+  --color-accent-300: #6ee7b7;
+  --color-accent-200: #a7f3d0;
+  --color-accent-100: #d1fae5;
+  --color-accent-50: #ecfdf5;
+
+  /* ── Warm Indigo Highlights ── */
+  --color-indigo-700: #4338ca;
+  --color-indigo-600: #4f46e5;
+  --color-indigo-500: #6366f1;
+  --color-indigo-400: #818cf8;
+  --color-indigo-100: #e0e7ff;
+  --color-indigo-50: #eff6ff;
+
+  /* ── Status Colors ── */
+  --color-status-active: #059669;
+  --color-status-pending: #2563eb;
+  --color-status-expired: #dc2626;
+  --color-status-cancelled: #6b7280;
+  --color-status-suspended: #dc2626;
+  --color-status-frozen: #0891b2;
+  --color-status-maintenance: #ea580c;
+  --color-status-success: #059669;
+  --color-status-failed: #dc2626;
+
+  /* ── Typography ── */
+  --font-sans: 'Inter', 'system-ui', '-apple-system', 'Segoe UI', sans-serif;
+}
+
+/* ─── Base Layer ──────────────────────────────────────────────────────────── */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-surface-50);
+    color: var(--color-surface-900);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+/* ─── UI Design System Classes (Matching Mockups) ────────────────────────── */
+
+@utility ui-card {
+  background-color: #ffffff;
+  border: 1px solid var(--color-surface-200);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+@utility ui-card-hover {
+  background-color: #ffffff;
+  border: 1px solid var(--color-surface-200);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--color-accent-500);
+    box-shadow: 0 4px 12px 0 rgba(5, 150, 105, 0.08);
+  }
+}
+
+@utility text-gradient {
+  background: linear-gradient(135deg, var(--color-accent-700), var(--color-accent-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Animation Keyframes ─────────────────────────────────────────────────── */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse-gentle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@utility animate-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@utility animate-slide-right {
+  animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@utility animate-slide-left {
+  animation: slideInLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@utility animate-pulse-gentle {
+  animation: pulse-gentle 2s ease-in-out infinite;
+}
+
+@utility animate-shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+}
+
+/* ─── Dark Mode Overrides (for theme toggle support) ───────────────────────── */
+
+[data-theme="dark"] body {
+  background-color: var(--color-surface-900);
+  color: var(--color-surface-100);
+}
+
+[data-theme="dark"] .ui-card,
+[data-theme="dark"] .ui-card-hover {
+  background-color: var(--color-surface-800);
+  border-color: var(--color-surface-700);
+}
