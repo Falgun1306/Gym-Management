@@ -3,11 +3,7 @@ import { persist } from 'zustand/middleware';
 
 /**
  * UI Store — manages global client-side UI state.
- *
- * Controls:
- *  - Sidebar collapse/expand
- *  - Theme toggle (dark/light)
- *  - Global modal/drawer overlays
+ * Default theme set to 'light' to match the IronPulse / IronPeak UI design examples.
  */
 export const useUIStore = create(
   persist(
@@ -18,7 +14,7 @@ export const useUIStore = create(
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
 
       // ── Theme State ──
-      theme: 'dark',
+      theme: 'light',
       toggleTheme: () =>
         set((s) => {
           const newTheme = s.theme === 'dark' ? 'light' : 'dark';

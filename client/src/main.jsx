@@ -8,8 +8,8 @@ import { queryClient } from '@/lib/react-query';
 import App from './App';
 import './index.css';
 
-// Apply persisted theme on mount
-const savedTheme = JSON.parse(localStorage.getItem('gym-ui-storage') || '{}')?.state?.theme || 'dark';
+// Apply persisted theme on mount (defaulting to 'light' to match UI design examples)
+const savedTheme = JSON.parse(localStorage.getItem('gym-ui-storage') || '{}')?.state?.theme || 'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -22,22 +22,21 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           toastOptions={{
             duration: 4000,
             style: {
-              background: '#1e293b',
-              color: '#f1f5f9',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#0f172a',
+              color: '#f8fafc',
               borderRadius: '10px',
               fontSize: '14px',
             },
             success: {
               iconTheme: {
                 primary: '#059669',
-                secondary: '#f1f5f9',
+                secondary: '#f8fafc',
               },
             },
             error: {
               iconTheme: {
                 primary: '#dc2626',
-                secondary: '#f1f5f9',
+                secondary: '#f8fafc',
               },
             },
           }}

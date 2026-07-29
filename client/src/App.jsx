@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
+import ComponentShowcase from '@/pages/ComponentShowcase';
 
 // ── Placeholder pages (will be replaced in Phase 3+) ──
 
@@ -61,6 +62,9 @@ export default function App() {
           isAuthenticated ? <DashboardPlaceholder /> : <Navigate to="/login" replace />
         }
       />
+
+      {/* Component showcase (dev only) */}
+      <Route path="/components" element={<ComponentShowcase />} />
 
       {/* Catch-all */}
       <Route path="*" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />
