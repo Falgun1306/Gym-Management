@@ -28,7 +28,6 @@ export default function NotFoundPage() {
           <div className="relative md:w-1/2 bg-slate-900 overflow-hidden flex items-stretch">
             {/* Search chip overlay */}
             <div className="absolute top-5 left-5 z-10 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-sm border border-slate-200">
-              <Search className="w-4 h-4 text-slate-500" />
               <span className="text-sm font-medium text-slate-700">System Error</span>
             </div>
 

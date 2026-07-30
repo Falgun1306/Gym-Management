@@ -73,8 +73,6 @@ export default function LoginPage() {
   return (
     <AuthLayout variant="login">
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 space-y-6">
-        {/* Green accent bar at top matching mockup */}
-        <div className="w-full h-1 bg-emerald-600 rounded-full -mt-8 mb-6" />
 
         <div className="space-y-1.5">
           <h1 className="text-2xl font-bold text-slate-900">Welcome Back</h1>
