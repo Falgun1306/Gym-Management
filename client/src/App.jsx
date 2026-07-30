@@ -7,6 +7,9 @@ import RegisterPage from '@/pages/auth/RegisterPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 
+// ── Error pages ──
+import NotFoundPage from '@/pages/NotFoundPage';
+
 // ── Layouts ──
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 
@@ -99,11 +102,14 @@ export default function App() {
       {/* ── Dev Tools ── */}
       <Route path="/components" element={<ComponentShowcase />} />
 
-      {/* ── Catch-all ── */}
+      {/* ── Root redirect ── */}
       <Route
-        path="*"
+        path="/"
         element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />}
       />
+
+      {/* ── 404 Catch-all ── */}
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
