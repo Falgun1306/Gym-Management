@@ -1,193 +1,194 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import { cn } from '@/utils/cn';
 import {
-  Search,
-  ChevronUp,
-  ChevronDown,
-  ChevronsLeft,
-  ChevronsRight,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Search,
   Inbox,
+  Filter,
 } from 'lucide-react';
-import { cn } from '@/utils/cn';
-import { Input } from './Input';
-import { Select } from './Select';
-import { Skeleton } from './Skeleton';
 
 /**
- * DataTable matching the exact table design in members.png and admin dashboard.png mockups.
+ * Helper to safely extract nested property values from an object using dot notation.
+ * e.g., getNestedValue({ user: { name: 'John' } }, 'user.name') => 'John'
  */
+function getNestedValue(obj, path) {
+  if (!obj || !path) return undefined;
+  return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+}
 
-function DataTable({
+/**
+ * Standard reusable DataTable matching GymPulse layout specifications.
+ */
+export function DataTable({
   columns = [],
   data = [],
   loading = false,
-  // Search
-  searchable = true,
-  searchPlaceholder = 'Search...',
-  searchValue: controlledSearch,
-  onSearchChange,
+  searchable = false,
+  searchPlaceholder = 'Search records...',
   searchKeys = [],
-  // Sorting
-  defaultSortKey,
-  defaultSortDir = 'asc',
-  // Pagination
-  pagination: paginationConfig,
-  onPageChange,
-  onPageSizeChange,
-  clientPagination = true,
-  pageSizeOptions = [10, 20, 50],
-  defaultPageSize = 10,
-  // Interaction
-  onRowClick,
   selectable = false,
   selectedIds = [],
   onSelectRow,
   onSelectAll,
-  // Styling
-  className,
+  onRowClick,
   emptyMessage = 'No records found',
   emptyIcon: EmptyIcon = Inbox,
-  // Extra toolbar content
-  toolbar,
+  pageSizeOptions = [10, 20, 50, 100],
+  defaultPageSize = 10,
+  serverPagination = false,
+  totalCount,
+  currentPage: externalPage,
+  onPageChange: externalPageChange,
+  onPageSizeChange: externalPageSizeChange,
+  filters = null,
+  activeFilterCount = 0,
+  className,
 }) {
-  const [localSearch, setLocalSearch] = useState('');
-  const [sortKey, setSortKey] = useState(defaultSortKey || null);
-  const [sortDir, setSortDir] = useState(defaultSortDir);
-  const [localPage, setLocalPage] = useState(1);
-  const [localPageSize, setLocalPageSize] = useState(defaultPageSize);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [internalPageSize, setInternalPageSize] = useState(defaultPageSize);
+  const [internalPage, setInternalPage] = useState(1);
 
-  const searchTerm = controlledSearch !== undefined ? controlledSearch : localSearch;
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    if (onSearchChange) {
-      onSearchChange(value);
-    } else {
-      setLocalSearch(value);
-      setLocalPage(1);
-    }
-  };
+  const isServerPagination = serverPagination && totalCount !== undefined;
+  const pageSize = isServerPagination ? defaultPageSize : internalPageSize;
+  const page = isServerPagination ? externalPage || 1 : internalPage;
 
-  // ── Client-Side Filtering ──
-  const filteredData = useMemo(() => {
-    if (!searchTerm || onSearchChange) return data;
-
+  // 1. Search filtering (Client-side)
+  const searchedData = useMemo(() => {
+    if (isServerPagination || !searchTerm.trim()) return data;
     const term = searchTerm.toLowerCase();
-    const keys = searchKeys.length > 0 ? searchKeys : columns.map((c) => c.key);
 
-    return data.filter((row) =>
-      keys.some((key) => {
-        const value = getNestedValue(row, key);
-        return value != null && String(value).toLowerCase().includes(term);
-      })
-    );
-  }, [data, searchTerm, searchKeys, columns, onSearchChange]);
+    return data.filter((row) => {
+      if (searchKeys.length > 0) {
+        return searchKeys.some((key) => {
+          const val = getNestedValue(row, key);
+          return val != null && String(val).toLowerCase().includes(term);
+        });
+      }
+      return Object.values(row).some((val) => {
+        if (val == null) return false;
+        if (typeof val === 'object') {
+          return Object.values(val).some(
+            (nestedVal) => nestedVal != null && String(nestedVal).toLowerCase().includes(term)
+          );
+        }
+        return String(val).toLowerCase().includes(term);
+      });
+    });
+  }, [data, searchTerm, searchKeys, isServerPagination]);
 
-  // ── Client-Side Sorting ──
+  // 2. Sorting (Client-side)
   const sortedData = useMemo(() => {
-    if (!sortKey) return filteredData;
+    if (isServerPagination || !sortConfig.key) return searchedData;
 
-    return [...filteredData].sort((a, b) => {
-      const aVal = getNestedValue(a, sortKey);
-      const bVal = getNestedValue(b, sortKey);
+    return [...searchedData].sort((a, b) => {
+      const aVal = getNestedValue(a, sortConfig.key);
+      const bVal = getNestedValue(b, sortConfig.key);
 
-      if (aVal == null && bVal == null) return 0;
       if (aVal == null) return 1;
       if (bVal == null) return -1;
 
-      let comparison;
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        comparison = aVal - bVal;
-      } else if (aVal instanceof Date && bVal instanceof Date) {
-        comparison = aVal.getTime() - bVal.getTime();
-      } else {
-        comparison = String(aVal).localeCompare(String(bVal));
+      if (typeof aVal === 'string') {
+        return sortConfig.direction === 'asc'
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
       }
 
-      return sortDir === 'asc' ? comparison : -comparison;
+      return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
     });
-  }, [filteredData, sortKey, sortDir]);
+  }, [searchedData, sortConfig, isServerPagination]);
 
-  // ── Pagination ──
-  const isServerPagination = !!paginationConfig;
-  const page = isServerPagination ? paginationConfig.page : localPage;
-  const pageSize = isServerPagination ? paginationConfig.pageSize : localPageSize;
-  const totalItems = isServerPagination ? paginationConfig.total : sortedData.length;
+  // 3. Pagination (Client-side)
+  const totalItems = isServerPagination ? totalCount : sortedData.length;
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
   const paginatedData = useMemo(() => {
-    if (isServerPagination || !clientPagination) return sortedData;
-    const start = (localPage - 1) * localPageSize;
-    return sortedData.slice(start, start + localPageSize);
-  }, [sortedData, localPage, localPageSize, isServerPagination, clientPagination]);
+    if (isServerPagination) return data;
+    const start = (page - 1) * pageSize;
+    return sortedData.slice(start, start + pageSize);
+  }, [sortedData, page, pageSize, isServerPagination, data]);
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  };
 
   const handlePageChange = (newPage) => {
-    if (newPage < 1 || newPage > totalPages) return;
-    if (onPageChange) {
-      onPageChange(newPage);
+    const clamped = Math.max(1, Math.min(newPage, totalPages));
+    if (isServerPagination) {
+      externalPageChange?.(clamped);
     } else {
-      setLocalPage(newPage);
+      setInternalPage(clamped);
     }
   };
 
   const handlePageSizeChange = (e) => {
     const newSize = Number(e.target.value);
-    if (onPageSizeChange) {
-      onPageSizeChange(newSize);
+    if (isServerPagination) {
+      externalPageSizeChange?.(newSize);
     } else {
-      setLocalPageSize(newSize);
-      setLocalPage(1);
+      setInternalPageSize(newSize);
+      setInternalPage(1);
     }
   };
 
-  const handleSort = (key) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortKey(key);
-      setSortDir('asc');
-    }
-  };
-
-  const startItem = (page - 1) * pageSize + 1;
-  const endItem = Math.min(page * pageSize, totalItems);
-
-  const allSelected =
+  const isAllSelected =
     paginatedData.length > 0 &&
     paginatedData.every((row) => selectedIds.includes(row.id));
 
   return (
-    <div className={cn('space-y-4', className)}>
-      {/* Toolbar: Search + Custom Actions */}
-      {(searchable || toolbar) && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <div className={cn('bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden space-y-0', className)}>
+      {/* Search & Filter Header Toolbar */}
+      {(searchable || filters) && (
+        <div className="p-4 border-b border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
           {searchable && (
-            <div className="w-full sm:w-72">
-              <Input
-                icon={Search}
+            <div className="relative w-full sm:w-72">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
                 placeholder={searchPlaceholder}
                 value={searchTerm}
-                onChange={handleSearch}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  if (!isServerPagination) setInternalPage(1);
+                }}
+                className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-slate-200 rounded-lg placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all"
               />
             </div>
           )}
-          {toolbar && <div className="flex items-center gap-2 w-full sm:w-auto">{toolbar}</div>}
+
+          {filters && (
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              {activeFilterCount > 0 && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                  {activeFilterCount} active
+                </span>
+              )}
+              {filters}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Table Container matching mockup */}
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
-        <table className="w-full text-sm">
-          {/* Header */}
+      {/* Main Table View */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/80">
+            <tr className="border-b border-slate-200 bg-slate-50/80 text-xs font-semibold uppercase tracking-wider text-slate-600">
               {selectable && (
-                <th className="px-4 py-3 text-left w-10">
+                <th className="w-10 px-4 py-3.5">
                   <input
                     type="checkbox"
-                    checked={allSelected}
-                    onChange={(e) => onSelectAll && onSelectAll(e.target.checked, paginatedData)}
+                    checked={isAllSelected}
+                    onChange={() => onSelectAll && onSelectAll(paginatedData)}
                     className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/20"
                   />
                 </th>
@@ -196,25 +197,25 @@ function DataTable({
                 <th
                   key={col.key}
                   className={cn(
-                    'px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider',
-                    col.sortable && 'cursor-pointer select-none hover:text-slate-900 transition-colors',
+                    'px-4 py-3.5 select-none',
+                    col.sortable && 'cursor-pointer hover:bg-slate-100/80 transition-colors',
                     col.width,
-                    col.headerClassName
+                    col.className
                   )}
-                  onClick={col.sortable ? () => handleSort(col.key) : undefined}
+                  onClick={() => col.sortable && handleSort(col.key)}
                 >
                   <div className="flex items-center gap-1.5">
-                    {col.header}
+                    <span>{col.label}</span>
                     {col.sortable && (
-                      <span className="inline-flex flex-col">
-                        {sortKey === col.key ? (
-                          sortDir === 'asc' ? (
-                            <ChevronUp className="w-3.5 h-3.5 text-emerald-700" />
+                      <span className="text-slate-400">
+                        {sortConfig.key === col.key ? (
+                          sortConfig.direction === 'asc' ? (
+                            <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
                           ) : (
-                            <ChevronDown className="w-3.5 h-3.5 text-emerald-700" />
+                            <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                           )
                         ) : (
-                          <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+                          <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 opacity-60 hover:opacity-100" />
                         )}
                       </span>
                     )}
@@ -223,20 +224,18 @@ function DataTable({
               ))}
             </tr>
           </thead>
-
-          {/* Body */}
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-200/80 bg-white">
             {loading ? (
-              Array.from({ length: pageSize > 5 ? 5 : pageSize }).map((_, i) => (
-                <tr key={`skeleton-${i}`}>
+              Array.from({ length: pageSize > 5 ? 5 : pageSize }).map((_, idx) => (
+                <tr key={idx} className="animate-pulse">
                   {selectable && (
                     <td className="px-4 py-3.5">
-                      <Skeleton className="h-4 w-4 rounded" />
+                      <div className="w-4 h-4 bg-slate-200 rounded" />
                     </td>
                   )}
                   {columns.map((col) => (
                     <td key={col.key} className="px-4 py-3.5">
-                      <Skeleton className="h-4 w-full bg-slate-100" />
+                      <div className="h-4 bg-slate-200 rounded w-2/3" />
                     </td>
                   ))}
                 </tr>
@@ -273,20 +272,23 @@ function DataTable({
                         />
                       </td>
                     )}
-                    {columns.map((col) => (
-                      <td
-                        key={col.key}
-                        className={cn(
-                          'px-4 py-3.5 text-slate-800',
-                          col.width,
-                          col.className
-                        )}
-                      >
-                        {col.render
-                          ? col.render(getNestedValue(row, col.key), row)
-                          : getNestedValue(row, col.key) ?? '—'}
-                      </td>
-                    ))}
+                    {columns.map((col) => {
+                      const cellValue = getNestedValue(row, col.key);
+                      return (
+                        <td
+                          key={col.key}
+                          className={cn(
+                            'px-4 py-3.5 text-slate-800',
+                            col.width,
+                            col.className
+                          )}
+                        >
+                          {col.render
+                            ? col.render(row, cellValue)
+                            : cellValue ?? '—'}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })
@@ -295,111 +297,77 @@ function DataTable({
         </table>
       </div>
 
-      {/* Pagination Footer matching mockup */}
-      {!loading && totalItems > 0 && (clientPagination || isServerPagination) && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+      {/* Pagination Footer */}
+      {!loading && totalItems > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 px-4 py-3 border-t border-slate-200/80 bg-slate-50/50">
           <div className="flex items-center gap-3">
             <span>
-              Showing {startItem}–{endItem} of {totalItems}
+              Showing{' '}
+              <span className="font-semibold text-slate-700">
+                {Math.min((page - 1) * pageSize + 1, totalItems)}
+              </span>{' '}
+              to{' '}
+              <span className="font-semibold text-slate-700">
+                {Math.min(page * pageSize, totalItems)}
+              </span>{' '}
+              of <span className="font-semibold text-slate-700">{totalItems}</span> results
             </span>
-            <Select
-              value={pageSize}
-              onChange={handlePageSizeChange}
-              className="!py-1 !text-xs w-20"
-              containerClassName="w-auto"
-              placeholder=""
-              options={pageSizeOptions.map((s) => ({ value: s, label: `${s}` }))}
-            />
+
+            <div className="flex items-center gap-1.5 ml-2">
+              <span>Rows per page:</span>
+              <select
+                value={pageSize}
+                onChange={handlePageSizeChange}
+                className="bg-white border border-slate-200 rounded px-2 py-1 text-xs text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              >
+                {pageSizeOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="flex items-center gap-1">
-            <PaginationButton
+            <button
               onClick={() => handlePageChange(1)}
               disabled={page === 1}
+              className="p-1.5 rounded hover:bg-slate-200/60 disabled:opacity-40 disabled:hover:bg-transparent text-slate-600 transition-colors"
+              title="First Page"
             >
-              <ChevronsLeft className="w-3.5 h-3.5" />
-            </PaginationButton>
-            <PaginationButton
+              <ChevronsLeft className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => handlePageChange(page - 1)}
               disabled={page === 1}
+              className="p-1.5 rounded hover:bg-slate-200/60 disabled:opacity-40 disabled:hover:bg-transparent text-slate-600 transition-colors"
+              title="Previous Page"
             >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </PaginationButton>
-
-            {getPageNumbers(page, totalPages).map((p, i) =>
-              p === '...' ? (
-                <span key={`dots-${i}`} className="px-1.5 text-slate-400">
-                  …
-                </span>
-              ) : (
-                <PaginationButton
-                  key={p}
-                  onClick={() => handlePageChange(p)}
-                  active={p === page}
-                >
-                  {p}
-                </PaginationButton>
-              )
-            )}
-
-            <PaginationButton
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="px-2 font-medium text-slate-700">
+              Page {page} of {totalPages}
+            </span>
+            <button
               onClick={() => handlePageChange(page + 1)}
               disabled={page === totalPages}
+              className="p-1.5 rounded hover:bg-slate-200/60 disabled:opacity-40 disabled:hover:bg-transparent text-slate-600 transition-colors"
+              title="Next Page"
             >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </PaginationButton>
-            <PaginationButton
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => handlePageChange(totalPages)}
               disabled={page === totalPages}
+              className="p-1.5 rounded hover:bg-slate-200/60 disabled:opacity-40 disabled:hover:bg-transparent text-slate-600 transition-colors"
+              title="Last Page"
             >
-              <ChevronsRight className="w-3.5 h-3.5" />
-            </PaginationButton>
+              <ChevronsRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
     </div>
   );
 }
-
-function PaginationButton({ children, onClick, disabled, active }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        'inline-flex items-center justify-center w-7 h-7 rounded-md text-xs font-medium transition-all border',
-        active
-          ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
-          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50',
-        disabled && 'opacity-40 cursor-not-allowed pointer-events-none'
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function getNestedValue(obj, path) {
-  if (!path) return undefined;
-  return path.split('.').reduce((acc, part) => acc?.[part], obj);
-}
-
-function getPageNumbers(current, total) {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-
-  const pages = [];
-
-  if (current <= 3) {
-    pages.push(1, 2, 3, 4, '...', total);
-  } else if (current >= total - 2) {
-    pages.push(1, '...', total - 3, total - 2, total - 1, total);
-  } else {
-    pages.push(1, '...', current - 1, current, current + 1, '...', total);
-  }
-
-  return pages;
-}
-
-export { DataTable };

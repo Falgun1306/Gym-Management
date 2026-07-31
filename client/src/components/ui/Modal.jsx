@@ -1,10 +1,12 @@
 import { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 /**
  * Modal overlay matching UI design example mockups.
  * Clean white surface, slate border, soft shadow, backdrop blur.
+ * Uses React Portal to avoid CSS stacking context traps with sticky headers.
  */
 
 const sizeStyles = {
@@ -48,8 +50,8 @@ function Modal({
 
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-slate-900/50 backdrop-blur-xs animate-fade-in"
@@ -100,7 +102,8 @@ function Modal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

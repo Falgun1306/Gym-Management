@@ -22,8 +22,8 @@ import DashboardHome from '@/pages/dashboard/DashboardHome';
 import MembersPage from '@/pages/dashboard/MembersPage';
 
 // ── Admin pages ──
-import TrainerApplicationsPage from '@/pages/admin/TrainerApplicationsPage';
 import TrainersPage from '@/pages/admin/TrainersPage';
+import TrainerApplicationsPage from '@/pages/admin/TrainerApplicationsPage';
 import MembershipPlansPage from '@/pages/admin/MembershipPlansPage';
 import GymClassesPage from '@/pages/admin/GymClassesPage';
 import PaymentsPage from '@/pages/admin/PaymentsPage';
@@ -31,6 +31,16 @@ import EquipmentPage from '@/pages/admin/EquipmentPage';
 import ComplaintsPage from '@/pages/admin/ComplaintsPage';
 import ReportsPage from '@/pages/admin/ReportsPage';
 import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
+
+// ── Trainer pages ──
+import TrainerDashboard from '@/pages/trainers/TrainerDashboard';
+import TrainerProfilePage from '@/pages/trainers/TrainerProfilePage';
+import MyMembersPage from '@/pages/trainers/MyMembersPage';
+import ExercisesPage from '@/pages/trainers/ExercisesPage';
+import WorkoutPlansPage from '@/pages/trainers/WorkoutPlansPage';
+import DietPlansPage from '@/pages/trainers/DietPlansPage';
+import MemberAttendancePage from '@/pages/trainers/MemberAttendancePage';
+import ClassBookingsPage from '@/pages/trainers/ClassBookingsPage';
 
 // ── Dev tools ──
 import ComponentShowcase from '@/pages/ComponentShowcase';
@@ -42,6 +52,16 @@ function GuestRoute({ children }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
   return children;
+}
+
+/**
+ * DashboardRouter — shows trainer-specific dashboard for TRAINER role,
+ * falls back to the generic DashboardHome for other roles.
+ */
+function DashboardRouter() {
+  const role = useAuthStore((s) => s.user?.role);
+  if (role === 'TRAINER') return <TrainerDashboard />;
+  return <DashboardHome />;
 }
 
 export default function App() {
@@ -85,11 +105,10 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        {/* Dashboard home (all roles) */}
-        <Route index element={<DashboardHome />} />
+        {/* Dashboard home — role-aware */}
+        <Route index element={<DashboardRouter />} />
 
-        {/* Phase 4+ placeholder routes — will be replaced with real pages */}
-        {/* Admin-only routes */}
+        {/* ── Admin-only routes ── */}
         <Route path="members" element={<RoleGuard allowedRoles={['ADMIN']}><MembersPage /></RoleGuard>} />
         <Route path="trainers" element={<RoleGuard allowedRoles={['ADMIN']}><TrainersPage /></RoleGuard>} />
         <Route path="trainer-applications" element={<RoleGuard allowedRoles={['ADMIN']}><TrainerApplicationsPage /></RoleGuard>} />
@@ -100,15 +119,18 @@ export default function App() {
         <Route path="complaints" element={<RoleGuard allowedRoles={['ADMIN']}><ComplaintsPage /></RoleGuard>} />
         <Route path="reports" element={<RoleGuard allowedRoles={['ADMIN']}><ReportsPage /></RoleGuard>} />
         <Route path="settings" element={<RoleGuard allowedRoles={['ADMIN']}><AdminSettingsPage /></RoleGuard>} />
-        <Route path="workout-plans" element={<PlaceholderPage title="Workout Plans" />} />
-        <Route path="diet-plans" element={<PlaceholderPage title="Diet Plans" />} />
 
-        {/* Trainer routes */}
-        <Route path="my-members" element={<PlaceholderPage title="My Members" />} />
-        <Route path="my-schedule" element={<PlaceholderPage title="My Schedule" />} />
-        <Route path="progress" element={<PlaceholderPage title="Progress Tracking" />} />
+        {/* ── Trainer-only routes ── */}
+        <Route path="my-members" element={<RoleGuard allowedRoles={['TRAINER']}><MyMembersPage /></RoleGuard>} />
+        <Route path="workout-plans" element={<RoleGuard allowedRoles={['TRAINER']}><WorkoutPlansPage /></RoleGuard>} />
+        <Route path="diet-plans" element={<RoleGuard allowedRoles={['TRAINER']}><DietPlansPage /></RoleGuard>} />
+        <Route path="exercises" element={<RoleGuard allowedRoles={['TRAINER']}><ExercisesPage /></RoleGuard>} />
+        <Route path="my-schedule" element={<RoleGuard allowedRoles={['TRAINER']}><TrainerProfilePage /></RoleGuard>} />
+        <Route path="attendance" element={<RoleGuard allowedRoles={['TRAINER']}><MemberAttendancePage /></RoleGuard>} />
+        <Route path="class-bookings" element={<RoleGuard allowedRoles={['TRAINER']}><ClassBookingsPage /></RoleGuard>} />
+        <Route path="profile" element={<RoleGuard allowedRoles={['TRAINER']}><TrainerProfilePage /></RoleGuard>} />
 
-        {/* Member routes */}
+        {/* ── Member routes (Placeholders for member portal views) ── */}
         <Route path="my-membership" element={<PlaceholderPage title="My Membership" />} />
         <Route path="my-attendance" element={<PlaceholderPage title="My Attendance" />} />
         <Route path="my-workout" element={<PlaceholderPage title="My Workout Plan" />} />

@@ -59,9 +59,11 @@ const trainerNav = [
   { to: '/dashboard/my-members', icon: Users, label: 'My Members' },
   { to: '/dashboard/workout-plans', icon: Dumbbell, label: 'Workout Plans' },
   { to: '/dashboard/diet-plans', icon: UtensilsCrossed, label: 'Diet Plans' },
+  { to: '/dashboard/exercises', icon: BookOpen, label: 'Exercises' },
   { to: '/dashboard/my-schedule', icon: CalendarClock, label: 'My Schedule' },
-  { to: '/dashboard/progress', icon: TrendingUp, label: 'Progress' },
-  { to: '/dashboard/classes', icon: CalendarDays, label: 'Gym Classes' },
+  { to: '/dashboard/attendance', icon: UserCheck, label: 'Attendance' },
+  { to: '/dashboard/class-bookings', icon: CalendarDays, label: 'Class Bookings' },
+  { to: '/dashboard/profile', icon: User, label: 'Profile' },
 ];
 
 const memberNav = [
