@@ -1,9 +1,11 @@
 import { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 /**
  * Sheet — slide-over drawer matching members.png mockup design.
+ * Uses React Portal to avoid CSS stacking context traps with sticky headers.
  */
 
 const widthStyles = {
@@ -46,8 +48,8 @@ function Sheet({
 
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex justify-end">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-slate-900/50 backdrop-blur-xs animate-fade-in"
@@ -97,7 +99,8 @@ function Sheet({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

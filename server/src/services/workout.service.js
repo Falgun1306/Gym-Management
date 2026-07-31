@@ -1,6 +1,7 @@
 import workoutRepository from "../repositories/workout.repository.js";
 import trainerRepository from "../repositories/trainer.repository.js";
 import memberRepository from "../repositories/member.repository.js";
+import prisma from "../config/prisma.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
 
 class WorkoutService {
@@ -27,10 +28,10 @@ class WorkoutService {
             exercises: {
                 create: exercises.map((ex, index) => ({
                     exerciseId: ex.exerciseId,
-                    sets: ex.sets,
-                    reps: ex.reps,
-                    weight: ex.weight || null,
-                    restSeconds: ex.restSeconds || null,
+                    sets: parseInt(ex.sets),
+                    reps: parseInt(ex.reps),
+                    weight: ex.weight ? parseFloat(ex.weight) : null,
+                    restSeconds: ex.rest ? parseInt(ex.rest) : (ex.restSeconds ? parseInt(ex.restSeconds) : null),
                     orderIndex: ex.orderIndex ?? index,
                 })),
             },
@@ -68,7 +69,7 @@ class WorkoutService {
             throw new ErrorHandler("Workout plan not found", 404);
         }
 
-        const { title, description, exercises } = body;
+        const { title, description } = body;
         const updateData = {};
         if (title !== undefined) updateData.title = title;
         if (description !== undefined) updateData.description = description;
@@ -101,7 +102,14 @@ class WorkoutService {
             throw new ErrorHandler("Workout plan not found", 404);
         }
 
-        const member = await memberRepository.findById(memberId);
+        let member = await memberRepository.findById(memberId);
+        if (!member) {
+            member = await prisma.member.findFirst({
+                where: {
+                    user: { username: memberId },
+                },
+            });
+        }
         if (!member || member.trainerId !== trainer.id) {
             throw new ErrorHandler("Member not found or not assigned to you", 404);
         }

@@ -165,7 +165,9 @@ class MemberService {
         const limitNum = Math.max(1, Math.min(100, parseInt(limit)));
         const skip = (pageNum - 1) * limitNum;
 
-        const where = {};
+        const where = {
+            user: { role: "MEMBER" },
+        };
 
         if (search) {
             where.OR = [

@@ -2,7 +2,7 @@ import api from '@/lib/axios';
 
 /**
  * Trainer API service layer.
- * Maps 1:1 to backend routes in server/src/routes/trainer.router.js
+ * Maps 1:1 to backend routes in server/src/routes/trainer.router.js & exercise.router.js
  *
  * All functions return the unwrapped ApiResponse from our Axios interceptor.
  */
@@ -94,6 +94,9 @@ export const markMemberAttendance = (memberId, data) =>
   api.post(`/trainers/members/${memberId}/attendance`, data);
 
 // ─── Exercises ──────────────────────────────────────────────────────────────
+
+/** POST /api/v1/exercises */
+export const createExercise = (data) => api.post('/exercises', data);
 
 /** GET /api/v1/trainers/exercises */
 export const listExercises = (params) => api.get('/trainers/exercises', { params });

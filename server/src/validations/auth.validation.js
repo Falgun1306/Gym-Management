@@ -1,5 +1,5 @@
 export const validateRegister = (req) => {
-    const { username, email, password, confirmPassword } = req.body;
+    const { username, email, password, confirmPassword, gender } = req.body;
 
     if (!username || !email || !password) {
         return "All fields are required";
@@ -7,6 +7,10 @@ export const validateRegister = (req) => {
 
     if (confirmPassword && password !== confirmPassword) {
         return "Passwords do not match";
+    }
+
+    if (gender && !["MALE", "FEMALE", "OTHER"].includes(gender.toUpperCase())) {
+        return "Invalid gender specified";
     }
 
     return null;

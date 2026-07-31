@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { queryKeys } from '@/lib/queryKeys';
-import { listExercises, searchExercises, updateExercise, deleteExercise } from '@/services/trainerService';
+import { listExercises, searchExercises, createExercise, updateExercise, deleteExercise } from '@/services/trainerService';
 import { Card, Button, Input, Textarea, Select, Badge, Modal, ConfirmDialog } from '@/components/ui';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { MUSCLE_GROUPS, EXERCISE_DIFFICULTY } from '@/utils/constants';
@@ -14,17 +14,11 @@ import {
   Pencil,
   Trash2,
   Dumbbell,
-  Filter,
 } from 'lucide-react';
 
 /**
- * ExercisesPage — Exercise catalog with grid/list view, filters, and CRUD.
- *
- * Matches the Exercise Library mockup:
- *  - Filter bar: muscle group, difficulty, equipment type
- *  - Grid/List toggle
- *  - Exercise cards with name, description, muscle group badge, difficulty badge
- *  - Edit/Delete exercise
+ * ExercisesPage — Exercise catalog with grid/list view, filters, search, and full CRUD.
+ * 1:1 integration with backend exercise.controller.js.
  */
 export default function ExercisesPage() {
   const queryClient = useQueryClient();
@@ -32,6 +26,7 @@ export default function ExercisesPage() {
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ muscleGroup: '', difficulty: '' });
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [editExercise, setEditExercise] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -72,6 +67,9 @@ export default function ExercisesPage() {
             Manage and curate training movements for member programs.
           </p>
         </div>
+        <Button onClick={() => setShowCreateModal(true)} icon={Plus}>
+          New Exercise
+        </Button>
       </div>
 
       {/* ── Filter Bar ── */}
@@ -131,7 +129,7 @@ export default function ExercisesPage() {
         <Card className="py-16 text-center">
           <Dumbbell className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <p className="text-base font-semibold text-slate-400">No exercises found</p>
-          <p className="text-sm text-slate-400 mt-1">Try adjusting your filters or search query.</p>
+          <p className="text-sm text-slate-400 mt-1">Try adjusting your filters or add a new exercise.</p>
         </Card>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -156,6 +154,16 @@ export default function ExercisesPage() {
           ))}
         </Card>
       )}
+
+      {/* ── Create Exercise Modal ── */}
+      <CreateExerciseModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.exercises.all });
+          setShowCreateModal(false);
+        }}
+      />
 
       {/* ── Edit Exercise Modal ── */}
       <EditExerciseModal
@@ -187,7 +195,6 @@ export default function ExercisesPage() {
 function ExerciseCard({ exercise, onEdit, onDelete }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hover:border-emerald-300 hover:shadow-md transition-all group">
-      {/* Image placeholder */}
       <div className="h-40 bg-slate-100 flex items-center justify-center relative">
         <Dumbbell className="w-10 h-10 text-slate-300" />
         <button
@@ -269,29 +276,132 @@ function ExerciseListRow({ exercise, onEdit, onDelete }) {
   );
 }
 
+// ─── Create Exercise Modal ──────────────────────────────────────────────────
+
+function CreateExerciseModal({ open, onClose, onSuccess }) {
+  const [form, setForm] = useState({
+    name: '',
+    category: 'STRENGTH',
+    muscleGroup: 'CHEST',
+    difficulty: 'BEGINNER',
+    equipment: '',
+    description: '',
+    instructions: '',
+  });
+
+  const mutation = useMutation({
+    mutationFn: (data) => createExercise(data),
+    onSuccess: () => {
+      toast.success('Exercise created successfully');
+      setForm({
+        name: '',
+        category: 'STRENGTH',
+        muscleGroup: 'CHEST',
+        difficulty: 'BEGINNER',
+        equipment: '',
+        description: '',
+        instructions: '',
+      });
+      onSuccess();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) {
+      toast.error('Exercise name is required');
+      return;
+    }
+    mutation.mutate(form);
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Create New Exercise"
+      description="Add a new training movement to the exercise library."
+      size="lg"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSubmit} loading={mutation.isPending} icon={Plus}>
+            Create Exercise
+          </Button>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          label="Exercise Name *"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="e.g. Incline Dumbbell Press"
+          required
+        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Select
+            label="Muscle Group *"
+            value={form.muscleGroup}
+            onChange={(e) => setForm({ ...form, muscleGroup: e.target.value })}
+            options={Object.entries(MUSCLE_GROUPS).map(([value, label]) => ({ value, label }))}
+            required
+          />
+          <Select
+            label="Difficulty *"
+            value={form.difficulty}
+            onChange={(e) => setForm({ ...form, difficulty: e.target.value })}
+            options={Object.entries(EXERCISE_DIFFICULTY).map(([value, obj]) => ({ value, label: obj.label }))}
+            required
+          />
+          <Input
+            label="Equipment"
+            value={form.equipment}
+            onChange={(e) => setForm({ ...form, equipment: e.target.value })}
+            placeholder="Dumbbell, Barbell..."
+          />
+        </div>
+        <Textarea
+          label="Description"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          placeholder="Brief description of the exercise movement..."
+          rows={2}
+        />
+        <Textarea
+          label="Instructions"
+          value={form.instructions}
+          onChange={(e) => setForm({ ...form, instructions: e.target.value })}
+          placeholder="Step-by-step performance cues..."
+          rows={3}
+        />
+      </form>
+    </Modal>
+  );
+}
+
 // ─── Edit Exercise Modal ────────────────────────────────────────────────────
 
 function EditExerciseModal({ exercise, open, onClose, onSuccess }) {
   const [form, setForm] = useState({});
 
-  // Reset form when exercise changes
-  useState(() => {
-    if (exercise) {
-      setForm({
-        name: exercise.name || '',
-        description: exercise.description || '',
-        muscleGroup: exercise.muscleGroup || '',
-        difficulty: exercise.difficulty || '',
-        equipment: exercise.equipment || '',
-        instructions: exercise.instructions || '',
-      });
-    }
-  }, [exercise]);
+  if (exercise && form.name === undefined) {
+    setForm({
+      name: exercise.name || '',
+      description: exercise.description || '',
+      muscleGroup: exercise.muscleGroup || 'CHEST',
+      difficulty: exercise.difficulty || 'BEGINNER',
+      equipment: exercise.equipment || '',
+      instructions: exercise.instructions || '',
+    });
+  }
 
   const mutation = useMutation({
     mutationFn: (data) => updateExercise(exercise.id, data),
     onSuccess: () => {
       toast.success('Exercise updated');
+      setForm({});
       onSuccess();
     },
     onError: (err) => toast.error(err.message),
@@ -302,27 +412,20 @@ function EditExerciseModal({ exercise, open, onClose, onSuccess }) {
     mutation.mutate(form);
   };
 
-  // Update form when exercise changes
-  if (exercise && form.name === undefined) {
-    setForm({
-      name: exercise.name || '',
-      description: exercise.description || '',
-      muscleGroup: exercise.muscleGroup || '',
-      difficulty: exercise.difficulty || '',
-      equipment: exercise.equipment || '',
-      instructions: exercise.instructions || '',
-    });
-  }
+  const handleClose = () => {
+    setForm({});
+    onClose();
+  };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Edit Exercise"
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={handleClose}>Cancel</Button>
           <Button onClick={handleSubmit} loading={mutation.isPending}>
             Save Changes
           </Button>
@@ -341,7 +444,7 @@ function EditExerciseModal({ exercise, open, onClose, onSuccess }) {
           value={form.description || ''}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           placeholder="Describe the exercise..."
-          rows={3}
+          rows={2}
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Select
@@ -349,14 +452,12 @@ function EditExerciseModal({ exercise, open, onClose, onSuccess }) {
             value={form.muscleGroup || ''}
             onChange={(e) => setForm({ ...form, muscleGroup: e.target.value })}
             options={Object.entries(MUSCLE_GROUPS).map(([value, label]) => ({ value, label }))}
-            placeholder="Select..."
           />
           <Select
             label="Difficulty"
             value={form.difficulty || ''}
             onChange={(e) => setForm({ ...form, difficulty: e.target.value })}
             options={Object.entries(EXERCISE_DIFFICULTY).map(([value, obj]) => ({ value, label: obj.label }))}
-            placeholder="Select..."
           />
           <Input
             label="Equipment"
@@ -370,7 +471,7 @@ function EditExerciseModal({ exercise, open, onClose, onSuccess }) {
           value={form.instructions || ''}
           onChange={(e) => setForm({ ...form, instructions: e.target.value })}
           placeholder="Step-by-step instructions..."
-          rows={4}
+          rows={3}
         />
       </form>
     </Modal>

@@ -8,9 +8,15 @@ import { Button } from '@/components/ui';
 import { registerUser } from '@/services/authService';
 import { useAuthStore } from '@/store/useAuthStore';
 
+const GENDER_OPTIONS = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+  { value: 'OTHER', label: 'Other' },
+];
+
 /**
- * RegisterPage — matching register page.png mockup design.
- * Split-screen with username, email, password, confirm password form.
+ * RegisterPage — matching register page mockup design with Gender selection.
+ * Split-screen with username, email, gender, password, confirm password form.
  */
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -19,6 +25,7 @@ export default function RegisterPage() {
   const [form, setForm] = useState({
     username: '',
     email: '',
+    gender: 'MALE',
     password: '',
     confirmPassword: '',
   });
@@ -68,6 +75,7 @@ export default function RegisterPage() {
     registerMutation.mutate({
       username: form.username.trim(),
       email: form.email.trim(),
+      gender: form.gender,
       password: form.password,
       confirmPassword: form.confirmPassword,
     });
@@ -132,6 +140,32 @@ export default function RegisterPage() {
             {errors.email && (
               <p className="text-xs text-red-600 font-medium">{errors.email}</p>
             )}
+          </div>
+
+          {/* Gender */}
+          <div className="space-y-1.5">
+            <label
+              htmlFor="reg-gender"
+              className="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider"
+            >
+              Gender
+            </label>
+            <select
+              id="reg-gender"
+              name="gender"
+              value={form.gender}
+              onChange={handleChange}
+              className="w-full rounded-lg border border-slate-300 bg-white text-slate-900
+                px-3.5 py-2.5 text-sm transition-all duration-150
+                focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600
+                hover:border-slate-400"
+            >
+              {GENDER_OPTIONS.map((g) => (
+                <option key={g.value} value={g.value}>
+                  {g.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Password */}

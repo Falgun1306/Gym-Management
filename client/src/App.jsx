@@ -21,15 +21,26 @@ import RoleGuard from '@/components/auth/RoleGuard';
 import DashboardHome from '@/pages/dashboard/DashboardHome';
 import MembersPage from '@/pages/dashboard/MembersPage';
 
-// ── Trainer feature pages ──
-import TrainerDashboard from '@/features/trainer/TrainerDashboard';
-import TrainerProfilePage from '@/features/trainer/TrainerProfilePage';
-import MyMembersPage from '@/features/trainer/MyMembersPage';
-import ExercisesPage from '@/features/trainer/ExercisesPage';
-import WorkoutPlansPage from '@/features/trainer/WorkoutPlansPage';
-import DietPlansPage from '@/features/trainer/DietPlansPage';
-import MemberAttendancePage from '@/features/trainer/MemberAttendancePage';
-import ClassBookingsPage from '@/features/trainer/ClassBookingsPage';
+// ── Admin pages ──
+import TrainersPage from '@/pages/admin/TrainersPage';
+import TrainerApplicationsPage from '@/pages/admin/TrainerApplicationsPage';
+import MembershipPlansPage from '@/pages/admin/MembershipPlansPage';
+import GymClassesPage from '@/pages/admin/GymClassesPage';
+import PaymentsPage from '@/pages/admin/PaymentsPage';
+import EquipmentPage from '@/pages/admin/EquipmentPage';
+import ComplaintsPage from '@/pages/admin/ComplaintsPage';
+import ReportsPage from '@/pages/admin/ReportsPage';
+import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
+
+// ── Trainer pages ──
+import TrainerDashboard from '@/pages/trainers/TrainerDashboard';
+import TrainerProfilePage from '@/pages/trainers/TrainerProfilePage';
+import MyMembersPage from '@/pages/trainers/MyMembersPage';
+import ExercisesPage from '@/pages/trainers/ExercisesPage';
+import WorkoutPlansPage from '@/pages/trainers/WorkoutPlansPage';
+import DietPlansPage from '@/pages/trainers/DietPlansPage';
+import MemberAttendancePage from '@/pages/trainers/MemberAttendancePage';
+import ClassBookingsPage from '@/pages/trainers/ClassBookingsPage';
 
 // ── Dev tools ──
 import ComponentShowcase from '@/pages/ComponentShowcase';
@@ -44,7 +55,7 @@ function GuestRoute({ children }) {
 }
 
 /**
- * TrainerDashboardRouter — shows trainer-specific dashboard for TRAINER role,
+ * DashboardRouter — shows trainer-specific dashboard for TRAINER role,
  * falls back to the generic DashboardHome for other roles.
  */
 function DashboardRouter() {
@@ -97,27 +108,29 @@ export default function App() {
         {/* Dashboard home — role-aware */}
         <Route index element={<DashboardRouter />} />
 
-        {/* ── Trainer-only routes ── */}
-        <Route element={<RoleGuard allowed={['TRAINER']} />}>
-          <Route path="my-members" element={<MyMembersPage />} />
-          <Route path="workout-plans" element={<WorkoutPlansPage />} />
-          <Route path="diet-plans" element={<DietPlansPage />} />
-          <Route path="exercises" element={<ExercisesPage />} />
-          <Route path="my-schedule" element={<TrainerProfilePage />} />
-          <Route path="attendance" element={<MemberAttendancePage />} />
-          <Route path="class-bookings" element={<ClassBookingsPage />} />
-          <Route path="profile" element={<TrainerProfilePage />} />
-        </Route>
-
-        {/* Admin-only routes */}
+        {/* ── Admin-only routes ── */}
         <Route path="members" element={<RoleGuard allowedRoles={['ADMIN']}><MembersPage /></RoleGuard>} />
-        <Route path="trainers" element={<PlaceholderPage title="Staff / Trainers" />} />
-        <Route path="reports" element={<PlaceholderPage title="Reports & Analytics" />} />
+        <Route path="trainers" element={<RoleGuard allowedRoles={['ADMIN']}><TrainersPage /></RoleGuard>} />
+        <Route path="trainer-applications" element={<RoleGuard allowedRoles={['ADMIN']}><TrainerApplicationsPage /></RoleGuard>} />
+        <Route path="membership-plans" element={<RoleGuard allowedRoles={['ADMIN']}><MembershipPlansPage /></RoleGuard>} />
+        <Route path="classes" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER', 'MEMBER']}><GymClassesPage /></RoleGuard>} />
+        <Route path="payments" element={<RoleGuard allowedRoles={['ADMIN']}><PaymentsPage /></RoleGuard>} />
+        <Route path="equipment" element={<RoleGuard allowedRoles={['ADMIN']}><EquipmentPage /></RoleGuard>} />
+        <Route path="complaints" element={<RoleGuard allowedRoles={['ADMIN']}><ComplaintsPage /></RoleGuard>} />
+        <Route path="reports" element={<RoleGuard allowedRoles={['ADMIN']}><ReportsPage /></RoleGuard>} />
+        <Route path="settings" element={<RoleGuard allowedRoles={['ADMIN']}><AdminSettingsPage /></RoleGuard>} />
 
-        {/* ── Shared routes ── */}
-        <Route path="classes" element={<PlaceholderPage title="Gym Classes" />} />
+        {/* ── Trainer-only routes ── */}
+        <Route path="my-members" element={<RoleGuard allowedRoles={['TRAINER']}><MyMembersPage /></RoleGuard>} />
+        <Route path="workout-plans" element={<RoleGuard allowedRoles={['TRAINER']}><WorkoutPlansPage /></RoleGuard>} />
+        <Route path="diet-plans" element={<RoleGuard allowedRoles={['TRAINER']}><DietPlansPage /></RoleGuard>} />
+        <Route path="exercises" element={<RoleGuard allowedRoles={['TRAINER']}><ExercisesPage /></RoleGuard>} />
+        <Route path="my-schedule" element={<RoleGuard allowedRoles={['TRAINER']}><TrainerProfilePage /></RoleGuard>} />
+        <Route path="attendance" element={<RoleGuard allowedRoles={['TRAINER']}><MemberAttendancePage /></RoleGuard>} />
+        <Route path="class-bookings" element={<RoleGuard allowedRoles={['TRAINER']}><ClassBookingsPage /></RoleGuard>} />
+        <Route path="profile" element={<RoleGuard allowedRoles={['TRAINER']}><TrainerProfilePage /></RoleGuard>} />
 
-        {/* ── Member routes (Phase 7+ placeholders) ── */}
+        {/* ── Member routes (Placeholders for member portal views) ── */}
         <Route path="my-membership" element={<PlaceholderPage title="My Membership" />} />
         <Route path="my-attendance" element={<PlaceholderPage title="My Attendance" />} />
         <Route path="my-workout" element={<PlaceholderPage title="My Workout Plan" />} />
@@ -154,4 +167,3 @@ function PlaceholderPage({ title }) {
     </div>
   );
 }
-

@@ -44,8 +44,13 @@ import toast from 'react-hot-toast';
 const adminNav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/dashboard/members', icon: Users, label: 'Members' },
-  { to: '/dashboard/classes', icon: CalendarDays, label: 'Classes' },
-  { to: '/dashboard/trainers', icon: GraduationCap, label: 'Staff' },
+  { to: '/dashboard/trainers', icon: GraduationCap, label: 'Trainers' },
+  { to: '/dashboard/trainer-applications', icon: UserCheck, label: 'Applications' },
+  { to: '/dashboard/membership-plans', icon: CreditCard, label: 'Plans & Subs' },
+  { to: '/dashboard/classes', icon: CalendarDays, label: 'Gym Classes' },
+  { to: '/dashboard/payments', icon: ClipboardList, label: 'Payments' },
+  { to: '/dashboard/equipment', icon: Wrench, label: 'Equipment' },
+  { to: '/dashboard/complaints', icon: MessageSquare, label: 'Complaints' },
   { to: '/dashboard/reports', icon: BarChart3, label: 'Reports' },
 ];
 
@@ -194,7 +199,7 @@ export default function DashboardLayout() {
           )}
         </div>
 
-        {/* New Check-in button */}
+        {/* New Check-in button
         {!sidebarCollapsed && (
           <div className="px-4 pt-4">
             <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-colors">
@@ -202,7 +207,7 @@ export default function DashboardLayout() {
               New Check-in
             </button>
           </div>
-        )}
+        )} */}
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
@@ -229,15 +234,19 @@ export default function DashboardLayout() {
 
         {/* Bottom section */}
         <div className={cn('border-t border-slate-800 p-3 space-y-1', sidebarCollapsed && 'px-2')}>
-          <button
-            className={cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors w-full',
-              sidebarCollapsed && 'justify-center px-2'
-            )}
+          <NavLink
+            to="/dashboard/settings"
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full',
+                isActive ? 'bg-emerald-700/20 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-slate-800',
+                sidebarCollapsed && 'justify-center px-2'
+              )
+            }
           >
             <Settings className="w-[18px] h-[18px]" />
             {!sidebarCollapsed && <span>Settings</span>}
-          </button>
+          </NavLink>
           <button
             onClick={handleLogout}
             disabled={logoutMutation.isPending}

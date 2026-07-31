@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import {
   Users,
   ShieldCheck,
@@ -10,12 +11,18 @@ import {
   Activity,
   Bell,
   Footprints,
+  UserPlus,
+  PlusCircle,
+  CalendarDays,
+  ArrowRight,
+  Clock,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAdminDashboard, useTrainerDashboard, useMemberDashboard } from '@/hooks/useDashboard';
-import { StatCard, Card, CardHeader } from '@/components/ui';
-import { SkeletonStat } from '@/components/ui';
-import { formatCurrency } from '@/utils/formatters';
+import { useAdminPayments, useGymClasses } from '@/hooks/useAdmin';
+import { StatCard, Card, CardHeader, Badge, Button, Avatar } from '@/components/ui';
+import { SkeletonStat, SkeletonTable } from '@/components/ui';
+import { formatCurrency, formatDate } from '@/utils/formatters';
 
 /**
  * DashboardHome — role-aware dashboard with real API data.
@@ -40,15 +47,39 @@ export default function DashboardHome() {
 
 function AdminDashboard() {
   const { data, isLoading, isError } = useAdminDashboard();
+  const { data: paymentsData } = useAdminPayments({ limit: 5 });
+  const { data: classesData } = useGymClasses();
+
+  const recentPayments = paymentsData?.payments?.slice(0, 4) || [];
+  const upcomingClasses = classesData?.slice(0, 3) || [];
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Overview of current operations and metrics.
-        </p>
+      {/* Page Header & Quick Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Overview of current operations, revenue, and attendance.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link to="/dashboard/members">
+            <Button size="sm" icon={UserPlus} className="!py-2 text-xs">
+              Add Member
+            </Button>
+          </Link>
+          <Link to="/dashboard/payments">
+            <Button size="sm" variant="outline" icon={CreditCard} className="!py-2 text-xs">
+              Record Payment
+            </Button>
+          </Link>
+          <Link to="/dashboard/membership-plans">
+            <Button size="sm" variant="outline" icon={PlusCircle} className="!py-2 text-xs">
+              New Plan
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stat Cards Grid */}
@@ -114,20 +145,103 @@ function AdminDashboard() {
       {/* Chart Placeholders */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
-          <CardHeader title="Revenue Trend" />
-          <div className="bg-slate-50 rounded-lg h-48 flex items-center justify-center">
-            <p className="text-sm text-slate-400">
+          <CardHeader title="Revenue Trend" subtitle="Monthly gross revenue accumulation" />
+          <div className="bg-slate-50 rounded-lg h-48 flex items-center justify-center border border-slate-200">
+            <p className="text-xs font-semibold text-slate-400">
               [Line Chart: Revenue over last 30 days]
             </p>
           </div>
         </Card>
         <Card>
-          <CardHeader title="Peak Attendance Hours" />
-          <div className="bg-slate-50 rounded-lg h-48 flex items-center justify-center">
-            <p className="text-sm text-slate-400">
+          <CardHeader title="Peak Attendance Hours" subtitle="Hourly check-ins distribution" />
+          <div className="bg-slate-50 rounded-lg h-48 flex items-center justify-center border border-slate-200">
+            <p className="text-xs font-semibold text-slate-400">
               [Bar Chart: Attendance by hour today]
             </p>
           </div>
+        </Card>
+      </div>
+
+      {/* Widgets Grid: Recent Payments & Upcoming Classes */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Recent Payments Table Widget */}
+        <Card className="lg:col-span-2 !p-0 overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Recent Payments</h3>
+              <p className="text-xs text-slate-500">Latest transactions</p>
+            </div>
+            <Link to="/dashboard/payments" className="text-xs font-semibold text-emerald-700 hover:underline flex items-center gap-1">
+              View All <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          {recentPayments.length === 0 ? (
+            <p className="text-xs text-slate-400 p-6 text-center">No recent payment records found.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold uppercase tracking-wider">
+                  <tr>
+                    <th className="py-2.5 px-4">Member</th>
+                    <th className="py-2.5 px-4">Amount</th>
+                    <th className="py-2.5 px-4">Status</th>
+                    <th className="py-2.5 px-4">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {recentPayments.map((p) => (
+                    <tr key={p.id} className="hover:bg-slate-50/50">
+                      <td className="py-3 px-4 font-semibold text-slate-900">
+                        {p.member ? `${p.member.firstName} ${p.member.lastName}` : 'N/A'}
+                      </td>
+                      <td className="py-3 px-4 font-bold text-slate-900">{formatCurrency(p.amount)}</td>
+                      <td className="py-3 px-4">
+                        <Badge variant={p.status === 'SUCCESS' ? 'success' : 'warning'}>{p.status}</Badge>
+                      </td>
+                      <td className="py-3 px-4 text-slate-500">{formatDate(p.paidAt || p.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        {/* Upcoming Classes Widget */}
+        <Card className="!p-4 space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Upcoming Classes</h3>
+              <p className="text-xs text-slate-500">Scheduled group sessions</p>
+            </div>
+            <Link to="/dashboard/classes" className="text-xs font-semibold text-emerald-700 hover:underline">
+              View All
+            </Link>
+          </div>
+          {upcomingClasses.length === 0 ? (
+            <p className="text-xs text-slate-400 py-6 text-center">No upcoming classes scheduled.</p>
+          ) : (
+            <div className="space-y-2.5">
+              {upcomingClasses.map((c) => (
+                <div key={c.id} className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-xs">
+                  <div>
+                    <p className="font-bold text-slate-900">{c.name}</p>
+                    <p className="text-slate-500 text-[11px]">
+                      Trainer: {c.trainer ? `${c.trainer.firstName} ${c.trainer.lastName}` : 'Unassigned'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-mono font-semibold text-emerald-700 block">
+                      {new Date(c.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      {c.bookings?.length || 0}/{c.capacity} slots
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import dietRepository from "../repositories/diet.repository.js";
 import trainerRepository from "../repositories/trainer.repository.js";
 import memberRepository from "../repositories/member.repository.js";
+import prisma from "../config/prisma.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
 
 class DietService {
@@ -101,7 +102,14 @@ class DietService {
             throw new ErrorHandler("Diet plan not found", 404);
         }
 
-        const member = await memberRepository.findById(memberId);
+        let member = await memberRepository.findById(memberId);
+        if (!member) {
+            member = await prisma.member.findFirst({
+                where: {
+                    user: { username: memberId },
+                },
+            });
+        }
         if (!member || member.trainerId !== trainer.id) {
             throw new ErrorHandler("Member not found or not assigned to you", 404);
         }
