@@ -1,14 +1,19 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Search, Filter, UserPlus, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useMembers, useMember } from '@/hooks/useMembers';
-import { Badge, Avatar, Card, Sheet, Button } from '@/components/ui';
+import { useQueryClient } from '@tanstack/react-query';
+import { Search, Filter, UserPlus, ChevronLeft, ChevronRight, Edit3, Trash2, UserCheck, ShieldOff, Play } from 'lucide-react';
+import { useMembers, useMember, useUpdateMember, useDeleteMember } from '@/hooks/useMembers';
+import { useTrainers, useAssignTrainer, useRemoveTrainerFromMember, useUnfreezeMembership } from '@/hooks/useAdmin';
+import { registerUser } from '@/services/authService';
+import { queryKeys } from '@/lib/queryKeys';
+import { Badge, Avatar, Card, Sheet, Button, Modal } from '@/components/ui';
 import { SkeletonTable } from '@/components/ui';
-import { formatPhone, formatDate, getInitials, formatCurrency } from '@/utils/formatters';
+import toast from 'react-hot-toast';
+import { formatPhone, formatDate, formatCurrency } from '@/utils/formatters';
 import { cn } from '@/utils/cn';
 
 /**
  * MembersPage — Admin members management matching members.png mockup.
- * Features: search, filter by membership status, paginated table, member detail sheet.
+ * Features: search, filter by membership status, paginated table, member detail sheet with trainer assignment, profile editing, member deletion, and unfreeze.
  */
 
 const STATUS_OPTIONS = [
@@ -29,17 +34,15 @@ const STATUS_BADGE_MAP = {
 };
 
 export default function MembersPage() {
-  // ── Local filter state ──
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [membershipStatus, setMembershipStatus] = useState('');
   const [page, setPage] = useState(1);
   const limit = 10;
 
-  // ── Selected member for detail sheet ──
   const [selectedMemberId, setSelectedMemberId] = useState(null);
+  const [addMemberModal, setAddMemberModal] = useState(false);
 
-  // ── Debounce search ──
   const debounceTimerRef = useState(null);
   const handleSearchChange = useCallback((e) => {
     const value = e.target.value;
@@ -52,7 +55,6 @@ export default function MembersPage() {
     }, 400);
   }, [debounceTimerRef]);
 
-  // ── Query params ──
   const params = useMemo(() => {
     const p = { page, limit };
     if (debouncedSearch) p.search = debouncedSearch;
@@ -60,38 +62,31 @@ export default function MembersPage() {
     return p;
   }, [page, limit, debouncedSearch, membershipStatus]);
 
-  // ── Fetch members ──
   const { data, isLoading, isError } = useMembers(params);
   const members = data?.members ?? [];
   const pagination = data?.pagination ?? { page: 1, total: 0, totalPages: 1 };
 
-  // ── Fetch selected member detail ──
   const { data: memberDetail, isLoading: detailLoading } = useMember(selectedMemberId);
 
-  // ── Pagination helpers ──
   const startItem = (pagination.page - 1) * limit + 1;
   const endItem = Math.min(pagination.page * limit, pagination.total);
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Members</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Members Management</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Manage facility members, memberships, and status.
+            Manage facility members, memberships, assigned trainers, and profiles.
           </p>
         </div>
-        <Button className="gap-2">
-          <UserPlus className="w-4 h-4" />
+        <Button onClick={() => setAddMemberModal(true)} icon={UserPlus}>
           Add Member
         </Button>
       </div>
 
-      {/* Filter Bar */}
       <Card className="!p-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Search */}
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -105,7 +100,6 @@ export default function MembersPage() {
             />
           </div>
 
-          {/* Status filter */}
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-slate-400 hidden sm:block" />
             <select
@@ -128,7 +122,6 @@ export default function MembersPage() {
         </div>
       </Card>
 
-      {/* Members Table */}
       <Card className="!p-0 overflow-hidden">
         {isLoading ? (
           <div className="p-4">
@@ -144,7 +137,6 @@ export default function MembersPage() {
           </div>
         ) : (
           <>
-            {/* Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -181,7 +173,6 @@ export default function MembersPage() {
                           selectedMemberId === member.id && 'bg-emerald-50/50'
                         )}
                       >
-                        {/* Member name + ID */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-3">
                             <Avatar
@@ -200,17 +191,14 @@ export default function MembersPage() {
                           </div>
                         </td>
 
-                        {/* Contact */}
                         <td className="py-3.5 px-4 text-slate-600">
                           {formatPhone(member.phone)}
                         </td>
 
-                        {/* Membership plan */}
                         <td className="py-3.5 px-4 text-slate-700 font-medium">
                           {membershipPlan}
                         </td>
 
-                        {/* Assigned trainer */}
                         <td className="py-3.5 px-4 text-slate-600">
                           {member.trainer
                             ? `${member.trainer.firstName} ${member.trainer.lastName?.[0] ?? ''}.`
@@ -218,7 +206,6 @@ export default function MembersPage() {
                           }
                         </td>
 
-                        {/* Status badge */}
                         <td className="py-3.5 px-4">
                           <Badge variant={STATUS_BADGE_MAP[membershipStatus] || 'neutral'}>
                             {membershipStatus}
@@ -231,7 +218,6 @@ export default function MembersPage() {
               </table>
             </div>
 
-            {/* Pagination Footer */}
             <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50/30">
               <p className="text-xs text-slate-500 font-medium">
                 Showing {startItem}–{endItem} of {pagination.total} members
@@ -260,11 +246,10 @@ export default function MembersPage() {
         )}
       </Card>
 
-      {/* ── Member Detail Sheet ── */}
       <Sheet
         open={!!selectedMemberId}
         onClose={() => setSelectedMemberId(null)}
-        title="Member Profile"
+        title="Member Profile & Controls"
         size="md"
       >
         {detailLoading ? (
@@ -274,28 +259,165 @@ export default function MembersPage() {
             ))}
           </div>
         ) : memberDetail ? (
-          <MemberDetailPanel member={memberDetail} />
+          <MemberDetailPanel
+            member={memberDetail}
+            onCloseSheet={() => setSelectedMemberId(null)}
+          />
         ) : (
           <p className="text-sm text-slate-400 text-center py-8">
             Select a member to view details.
           </p>
         )}
       </Sheet>
+
+      {addMemberModal && (
+        <AddMemberModal open={addMemberModal} onClose={() => setAddMemberModal(false)} />
+      )}
     </div>
   );
 }
 
-// ── Member Detail Panel (shown in Sheet) ─────────────────────────────────────
+function AddMemberModal({ open, onClose }) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
+  const [loading, setLoading] = useState(false);
 
-function MemberDetailPanel({ member }) {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (form.password !== form.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await registerUser(form);
+      toast.success(res.message || 'Member registered successfully');
+      queryClient.invalidateQueries({ queryKey: queryKeys.members.all });
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Failed to register member');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Register New Member">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">Username</label>
+          <input
+            type="text"
+            value={form.username}
+            onChange={(e) => setForm({ ...form, username: e.target.value })}
+            className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+          <input
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
+            required
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Confirm Password</label>
+            <input
+              type="password"
+              value={form.confirmPassword}
+              onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+              className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
+              required
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" loading={loading} icon={UserPlus}>Create Member Account</Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function MemberDetailPanel({ member, onCloseSheet }) {
+  const [editModal, setEditModal] = useState(false);
+  const [assignTrainerModal, setAssignTrainerModal] = useState(false);
+  const [selectedTrainerId, setSelectedTrainerId] = useState(member.trainerId || '');
+
+  const [editForm, setEditForm] = useState({
+    firstName: member.firstName || '',
+    lastName: member.lastName || '',
+    phone: member.phone || '',
+    address: member.address || '',
+  });
+
+  const { data: trainers = [] } = useTrainers();
+  const updateMemberMutation = useUpdateMember();
+  const deleteMemberMutation = useDeleteMember();
+  const assignTrainerMutation = useAssignTrainer();
+  const removeTrainerMutation = useRemoveTrainerFromMember();
+  const unfreezeMutation = useUnfreezeMembership();
+
   const activeMembership = member.memberships?.[0];
   const trainerName = member.trainer
     ? `${member.trainer.firstName} ${member.trainer.lastName}`
     : null;
 
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    updateMemberMutation.mutate(
+      { id: member.id, data: editForm },
+      { onSuccess: () => setEditModal(false) }
+    );
+  };
+
+  const handleAssignTrainerSubmit = (e) => {
+    e.preventDefault();
+    if (!selectedTrainerId) return;
+    assignTrainerMutation.mutate(
+      { memberId: member.id, trainerId: selectedTrainerId },
+      { onSuccess: () => setAssignTrainerModal(false) }
+    );
+  };
+
+  const handleRemoveTrainer = () => {
+    if (confirm('Remove assigned trainer from this member?')) {
+      removeTrainerMutation.mutate(member.id);
+    }
+  };
+
+  const handleUnfreeze = () => {
+    if (activeMembership && confirm('Unfreeze this member\'s subscription?')) {
+      unfreezeMutation.mutate(activeMembership.id);
+    }
+  };
+
+  const handleDeleteMember = () => {
+    if (confirm(`Permanently delete member record for ${member.firstName} ${member.lastName}?`)) {
+      deleteMemberMutation.mutate(member.id, {
+        onSuccess: () => onCloseSheet(),
+      });
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-6 text-sm">
       <div className="flex items-center gap-4">
         <Avatar firstName={member.firstName} lastName={member.lastName} size="lg" />
         <div>
@@ -313,12 +435,11 @@ function MemberDetailPanel({ member }) {
         </div>
       </div>
 
-      {/* Membership Info */}
       {activeMembership && (
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
             <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-              Membership
+              Membership Plan
             </p>
             <p className="text-sm font-bold text-slate-900 mt-1">
               {activeMembership.plan?.name ?? '—'}
@@ -326,7 +447,7 @@ function MemberDetailPanel({ member }) {
           </div>
           <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
             <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-              Next Billing
+              Expiry Date
             </p>
             <p className="text-sm font-bold text-slate-900 mt-1">
               {formatDate(activeMembership.endDate)}
@@ -335,93 +456,161 @@ function MemberDetailPanel({ member }) {
         </div>
       )}
 
-      {/* Contact Information */}
+      {activeMembership?.status === 'FROZEN' && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between">
+          <span className="text-xs text-amber-800 font-medium">Membership is currently frozen</span>
+          <Button
+            size="sm"
+            onClick={handleUnfreeze}
+            loading={unfreezeMutation.isPending}
+            icon={Play}
+            className="!py-1 !px-2.5 text-xs"
+          >
+            Unfreeze
+          </Button>
+        </div>
+      )}
+
       <div className="space-y-2">
         <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-          Contact Information
+          Contact Details
         </h4>
-        <div className="space-y-2">
-          {member.phone && (
-            <div className="flex items-center gap-2 text-sm text-slate-700">
-              <span className="text-slate-400">📞</span>
-              {formatPhone(member.phone)}
-            </div>
-          )}
-          {member.user?.email && (
-            <div className="flex items-center gap-2 text-sm text-slate-700">
-              <span className="text-slate-400">✉️</span>
-              {member.user.email}
-            </div>
-          )}
+        <div className="space-y-1 text-slate-700">
+          <p><strong>Phone:</strong> {formatPhone(member.phone)}</p>
+          <p><strong>Email:</strong> {member.user?.email || '—'}</p>
+          <p><strong>Address:</strong> {member.address || '—'}</p>
         </div>
       </div>
 
-      {/* Assigned Trainer */}
-      {trainerName && (
-        <div className="space-y-2">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
           <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
             Assigned Trainer
           </h4>
-          <div className="flex items-center gap-3 bg-slate-50 rounded-lg p-3 border border-slate-200">
-            <Avatar
-              firstName={member.trainer.firstName}
-              lastName={member.trainer.lastName}
-              size="sm"
-            />
-            <div>
-              <p className="text-sm font-medium text-slate-900">{trainerName}</p>
-              {member.trainer.specialization && (
+          {member.trainerId ? (
+            <button
+              onClick={handleRemoveTrainer}
+              className="text-xs text-rose-600 hover:underline font-medium"
+            >
+              Remove Trainer
+            </button>
+          ) : (
+            <button
+              onClick={() => setAssignTrainerModal(true)}
+              className="text-xs text-emerald-700 hover:underline font-medium"
+            >
+              Assign Trainer
+            </button>
+          )}
+        </div>
+        {trainerName ? (
+          <div className="flex items-center justify-between bg-slate-50 rounded-lg p-3 border border-slate-200">
+            <div className="flex items-center gap-3">
+              <Avatar firstName={member.trainer.firstName} lastName={member.trainer.lastName} size="sm" />
+              <div>
+                <p className="text-sm font-medium text-slate-900">{trainerName}</p>
                 <p className="text-xs text-slate-500">{member.trainer.specialization}</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Recent Payments */}
-      {member.payments?.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-            Recent Payments
-          </h4>
-          <div className="space-y-1.5">
-            {member.payments.slice(0, 3).map((payment) => (
-              <div
-                key={payment.id}
-                className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 border border-slate-200"
-              >
-                <div>
-                  <p className="text-sm font-medium text-slate-900">
-                    {formatCurrency(payment.amount)}
-                  </p>
-                  <p className="text-xs text-slate-400">{formatDate(payment.paidAt)}</p>
-                </div>
-                <Badge
-                  variant={
-                    payment.status === 'SUCCESS'
-                      ? 'success'
-                      : payment.status === 'PENDING'
-                      ? 'warning'
-                      : 'danger'
-                  }
-                >
-                  {payment.status}
-                </Badge>
               </div>
-            ))}
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setAssignTrainerModal(true)}>
+              Change
+            </Button>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-400 text-center">
+            No trainer assigned to this member.
+          </div>
+        )}
+      </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-3 pt-2 border-t border-slate-100">
-        <Button variant="outline" className="flex-1">
-          Message
-        </Button>
-        <Button className="flex-1">
+      <div className="flex gap-2 pt-4 border-t border-slate-100">
+        <Button variant="outline" onClick={() => setEditModal(true)} className="flex-1" icon={Edit3}>
           Edit Profile
         </Button>
+        <Button variant="danger" onClick={handleDeleteMember} loading={deleteMemberMutation.isPending} className="flex-1" icon={Trash2}>
+          Delete Member
+        </Button>
       </div>
+
+      {editModal && (
+        <Modal open={editModal} onClose={() => setEditModal(null)} title="Edit Member Profile">
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">First Name</label>
+                <input
+                  type="text"
+                  value={editForm.firstName}
+                  onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                  className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Last Name</label>
+                <input
+                  type="text"
+                  value={editForm.lastName}
+                  onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                  className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Phone</label>
+              <input
+                type="text"
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Address</label>
+              <input
+                type="text"
+                value={editForm.address}
+                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditModal(false)}>Cancel</Button>
+              <Button type="submit" loading={updateMemberMutation.isPending}>Save Changes</Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {assignTrainerModal && (
+        <Modal open={assignTrainerModal} onClose={() => setAssignTrainerModal(false)} title="Assign Trainer to Member">
+          <form onSubmit={handleAssignTrainerSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Select Trainer</label>
+              <select
+                value={selectedTrainerId}
+                onChange={(e) => setSelectedTrainerId(e.target.value)}
+                className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
+                required
+              >
+                <option value="">Select Trainer...</option>
+                {trainers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.firstName} {t.lastName} ({t.specialization})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setAssignTrainerModal(false)}>Cancel</Button>
+              <Button type="submit" loading={assignTrainerMutation.isPending} icon={UserCheck}>
+                Confirm Assignment
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }

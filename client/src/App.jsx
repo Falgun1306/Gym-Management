@@ -21,6 +21,17 @@ import RoleGuard from '@/components/auth/RoleGuard';
 import DashboardHome from '@/pages/dashboard/DashboardHome';
 import MembersPage from '@/pages/dashboard/MembersPage';
 
+// ── Admin pages ──
+import TrainerApplicationsPage from '@/pages/admin/TrainerApplicationsPage';
+import TrainersPage from '@/pages/admin/TrainersPage';
+import MembershipPlansPage from '@/pages/admin/MembershipPlansPage';
+import GymClassesPage from '@/pages/admin/GymClassesPage';
+import PaymentsPage from '@/pages/admin/PaymentsPage';
+import EquipmentPage from '@/pages/admin/EquipmentPage';
+import ComplaintsPage from '@/pages/admin/ComplaintsPage';
+import ReportsPage from '@/pages/admin/ReportsPage';
+import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
+
 // ── Dev tools ──
 import ComponentShowcase from '@/pages/ComponentShowcase';
 
@@ -80,11 +91,15 @@ export default function App() {
         {/* Phase 4+ placeholder routes — will be replaced with real pages */}
         {/* Admin-only routes */}
         <Route path="members" element={<RoleGuard allowedRoles={['ADMIN']}><MembersPage /></RoleGuard>} />
-        <Route path="trainers" element={<PlaceholderPage title="Staff / Trainers" />} />
-        <Route path="reports" element={<PlaceholderPage title="Reports & Analytics" />} />
-
-        {/* Shared routes */}
-        <Route path="classes" element={<PlaceholderPage title="Gym Classes" />} />
+        <Route path="trainers" element={<RoleGuard allowedRoles={['ADMIN']}><TrainersPage /></RoleGuard>} />
+        <Route path="trainer-applications" element={<RoleGuard allowedRoles={['ADMIN']}><TrainerApplicationsPage /></RoleGuard>} />
+        <Route path="membership-plans" element={<RoleGuard allowedRoles={['ADMIN']}><MembershipPlansPage /></RoleGuard>} />
+        <Route path="classes" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER', 'MEMBER']}><GymClassesPage /></RoleGuard>} />
+        <Route path="payments" element={<RoleGuard allowedRoles={['ADMIN']}><PaymentsPage /></RoleGuard>} />
+        <Route path="equipment" element={<RoleGuard allowedRoles={['ADMIN']}><EquipmentPage /></RoleGuard>} />
+        <Route path="complaints" element={<RoleGuard allowedRoles={['ADMIN']}><ComplaintsPage /></RoleGuard>} />
+        <Route path="reports" element={<RoleGuard allowedRoles={['ADMIN']}><ReportsPage /></RoleGuard>} />
+        <Route path="settings" element={<RoleGuard allowedRoles={['ADMIN']}><AdminSettingsPage /></RoleGuard>} />
         <Route path="workout-plans" element={<PlaceholderPage title="Workout Plans" />} />
         <Route path="diet-plans" element={<PlaceholderPage title="Diet Plans" />} />
 

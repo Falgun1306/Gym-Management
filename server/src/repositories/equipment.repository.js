@@ -9,7 +9,7 @@ class EquipmentRepository {
         return prisma.equipment.findUnique({ where: { name } });
     }
 
-    async findMany(where = {}, skip = 0, take = 20, orderBy = { createdAt: "desc" }) {
+    async findMany(where = {}, skip = 0, take = 20, orderBy = { name: "asc" }) {
         const [data, total] = await Promise.all([
             prisma.equipment.findMany({ where, skip, take, orderBy }),
             prisma.equipment.count({ where }),

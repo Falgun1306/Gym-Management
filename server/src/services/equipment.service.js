@@ -3,19 +3,26 @@ import ErrorHandler from "../utility/ErrorHandler.utility.js";
 
 class EquipmentService {
     async createEquipment(data) {
-        const existing = await equipmentRepository.findByName(data.name);
-        if (existing) {
-            throw new ErrorHandler("An equipment with this name already exists", 409);
+        const { name, category, quantity, status, purchaseDate, maintenanceDate, lastMaintenanceDate, lastMaintenance } = data;
+        if (!name || !quantity) {
+            throw new ErrorHandler("name and quantity are required", 400);
         }
 
+        const existing = await equipmentRepository.findByName(name);
+        if (existing) {
+            throw new ErrorHandler("An equipment item with this name already exists", 409);
+        }
+
+        const itemStatus = (status === 'OPERATIONAL') ? 'AVAILABLE' : (status || 'AVAILABLE');
+        const mDate = maintenanceDate || lastMaintenanceDate || lastMaintenance;
+
         return equipmentRepository.create({
-            name: data.name,
-            category: data.category,
-            quantity: parseInt(data.quantity),
-            status: data.status || "AVAILABLE",
-            purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : null,
-            lastMaintenance: data.lastMaintenance ? new Date(data.lastMaintenance) : null,
-            nextMaintenance: data.nextMaintenance ? new Date(data.nextMaintenance) : null,
+            name,
+            category: category || "General",
+            quantity: parseInt(quantity),
+            status: itemStatus,
+            purchaseDate: purchaseDate ? new Date(purchaseDate) : null,
+            maintenanceDate: mDate ? new Date(mDate) : null,
         });
     }
 
@@ -75,12 +82,15 @@ class EquipmentService {
             updateData.name = body.name;
         }
 
-        if (body.category !== undefined) updateData.category = body.category;
+        if (body.category !== undefined) updateData.category = body.category || "General";
         if (body.quantity !== undefined) updateData.quantity = parseInt(body.quantity);
-        if (body.status !== undefined) updateData.status = body.status;
+        if (body.status !== undefined) updateData.status = (body.status === 'OPERATIONAL') ? 'AVAILABLE' : body.status;
         if (body.purchaseDate !== undefined) updateData.purchaseDate = body.purchaseDate ? new Date(body.purchaseDate) : null;
-        if (body.lastMaintenance !== undefined) updateData.lastMaintenance = body.lastMaintenance ? new Date(body.lastMaintenance) : null;
-        if (body.nextMaintenance !== undefined) updateData.nextMaintenance = body.nextMaintenance ? new Date(body.nextMaintenance) : null;
+        
+        const mDate = body.maintenanceDate || body.lastMaintenanceDate || body.lastMaintenance;
+        if (mDate !== undefined) {
+            updateData.maintenanceDate = mDate ? new Date(mDate) : null;
+        }
 
         if (Object.keys(updateData).length === 0) {
             throw new ErrorHandler("No valid fields provided to update", 400);
@@ -95,7 +105,8 @@ class EquipmentService {
             throw new ErrorHandler("Equipment not found", 404);
         }
 
-        return equipmentRepository.update(id, { status });
+        const itemStatus = (status === 'OPERATIONAL') ? 'AVAILABLE' : status;
+        return equipmentRepository.update(id, { status: itemStatus });
     }
 
     async deleteEquipment(id) {

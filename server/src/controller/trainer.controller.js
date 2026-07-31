@@ -47,7 +47,7 @@ const updateMyProfile = asyncHandler(async (req, res) => {
 });
 
 const listTrainers = asyncHandler(async (req, res) => {
-    const trainers = await trainerService.listTrainers();
+    const trainers = await trainerService.listTrainers(req.query);
     res.status(200).json(new ApiResponse(200, trainers));
 });
 

@@ -5,7 +5,7 @@ import ErrorHandler from "../utility/ErrorHandler.utility.js";
 
 const EDITABLE_FIELDS = ["bio", "profilePhoto", "certifications"];
 
-export const createTrainerFromMember = async (tx, { userId, specialization, experience, bio, certifications, salary, joiningDate }) => {
+export const createTrainerFromMember = async (tx, { userId, specialization, specializations, experience, bio, certifications, salary, joiningDate }) => {
     const member = await tx.member.findUnique({ where: { userId } });
     if (!member) {
         throw new ErrorHandler("Member profile not found for this user. A Member profile is required before promotion.", 400);
@@ -25,6 +25,18 @@ export const createTrainerFromMember = async (tx, { userId, specialization, expe
         throw new ErrorHandler("Trainer profile already exists for this user", 409);
     }
 
+    let specs = [];
+    if (specializations && Array.isArray(specializations) && specializations.length > 0) {
+        specs = specializations.map((s) => s.toUpperCase().replace(/\s+/g, '_'));
+    } else if (specialization) {
+        const arr = Array.isArray(specialization) ? specialization : [specialization];
+        specs = arr.map((s) => s.toUpperCase().replace(/\s+/g, '_'));
+    } else {
+        specs = ['GENERAL_FITNESS'];
+    }
+
+    const primarySpec = specs[0] || 'GENERAL_FITNESS';
+
     const trainer = await tx.trainer.create({
         data: {
             userId,
@@ -32,7 +44,8 @@ export const createTrainerFromMember = async (tx, { userId, specialization, expe
             lastName: member.lastName,
             phone: member.phone,
             gender: member.gender,
-            specialization,
+            specialization: primarySpec,
+            specializations: specs,
             experience: experience ? parseInt(experience) : null,
             bio: bio || null,
             certifications: certifications || [],
@@ -108,18 +121,24 @@ class TrainerService {
         return trainerRepository.update(trainer.id, updateData);
     }
 
-    async listTrainers() {
-        const res = await trainerRepository.findMany({}, 0, 100, { averageRating: "desc" }, {
-            id: true,
-            firstName: true,
-            lastName: true,
-            specialization: true,
-            experience: true,
-            bio: true,
-            profilePhoto: true,
-            certifications: true,
-            averageRating: true,
-            totalReviews: true,
+    async listTrainers(query = {}) {
+        const { search } = query;
+        const where = {};
+        if (search) {
+            where.OR = [
+                { firstName: { contains: search, mode: "insensitive" } },
+                { lastName: { contains: search, mode: "insensitive" } },
+            ];
+        }
+
+        const res = await trainerRepository.findMany(where, 0, 100, { averageRating: "desc" }, {
+            user: {
+                select: {
+                    username: true,
+                    email: true,
+                    role: true,
+                },
+            },
         });
 
         return res.data ? res.data : res;
@@ -127,16 +146,13 @@ class TrainerService {
 
     async getTrainerById(id) {
         const trainer = await trainerRepository.findById(id, {
-            id: true,
-            firstName: true,
-            lastName: true,
-            specialization: true,
-            experience: true,
-            bio: true,
-            profilePhoto: true,
-            certifications: true,
-            averageRating: true,
-            totalReviews: true,
+            user: {
+                select: {
+                    username: true,
+                    email: true,
+                    role: true,
+                },
+            },
         });
 
         if (!trainer) {

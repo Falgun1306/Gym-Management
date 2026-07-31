@@ -218,19 +218,32 @@ class AdminService {
     }
 
     async directPromoteToTrainer(body) {
-        const { userId, specialization, experience, salary, joiningDate, bio, certifications } = body;
+        let { userId, username, specialization, specializations, experience, salary, joiningDate, bio, certifications } = body;
+
+        if (!userId && username) {
+            const user = await userRepository.findByUsername(username);
+            if (!user) {
+                throw new ErrorHandler(`User with username '${username}' not found`, 404);
+            }
+            userId = user.id;
+        }
 
         if (!userId) {
-            throw new ErrorHandler("userId is required", 400);
+            throw new ErrorHandler("username or userId is required", 400);
         }
-        if (!specialization) {
+        if (!specialization && (!specializations || !Array.isArray(specializations) || specializations.length === 0)) {
             throw new ErrorHandler("specialization is required", 400);
         }
+
+        const specs = (specializations && Array.isArray(specializations) && specializations.length > 0)
+            ? specializations
+            : (specialization ? (Array.isArray(specialization) ? specialization : [specialization]) : ['GENERAL_FITNESS']);
 
         return prisma.$transaction(async (tx) => {
             return this.createTrainerFromMember(tx, {
                 userId,
-                specialization,
+                specialization: specs[0] || 'GENERAL_FITNESS',
+                specializations: specs,
                 experience: experience || null,
                 bio: bio || null,
                 certifications: certifications || [],
@@ -251,6 +264,17 @@ class AdminService {
             if (body[field] !== undefined) {
                 updateData[field] = body[field];
             }
+        }
+
+        if (body.specializations && Array.isArray(body.specializations) && body.specializations.length > 0) {
+            const formatted = body.specializations.map(s => s.toUpperCase().replace(/\s+/g, '_'));
+            updateData.specializations = formatted;
+            updateData.specialization = formatted[0] || 'GENERAL_FITNESS';
+        } else if (body.specialization) {
+            const arr = Array.isArray(body.specialization) ? body.specialization : [body.specialization];
+            const formatted = arr.map(s => s.toUpperCase().replace(/\s+/g, '_'));
+            updateData.specializations = formatted;
+            updateData.specialization = formatted[0] || 'GENERAL_FITNESS';
         }
 
         if (updateData.salary !== undefined) {
@@ -291,7 +315,9 @@ class AdminService {
         const limitNum = Math.max(1, Math.min(100, parseInt(limit)));
         const skip = (pageNum - 1) * limitNum;
 
-        const where = {};
+        const where = {
+            user: { role: "MEMBER" },
+        };
         if (search) {
             where.OR = [
                 { firstName: { contains: search, mode: "insensitive" } },
@@ -410,8 +436,10 @@ class AdminService {
     }
 
     async createMembershipPlan(body) {
-        const { name, durationMonths, price, description } = body;
-        if (!name || !durationMonths || !price) {
+        const { name, durationMonths, durationInDays, price, description } = body;
+        const months = durationMonths ? parseInt(durationMonths) : (durationInDays ? Math.max(1, Math.round(parseInt(durationInDays) / 30)) : null);
+
+        if (!name || !months || !price) {
             throw new ErrorHandler("name, durationMonths, and price are required", 400);
         }
 
@@ -422,7 +450,7 @@ class AdminService {
 
         return membershipRepository.createPlan({
             name,
-            durationMonths: parseInt(durationMonths),
+            durationMonths: months,
             price: parseFloat(price),
             description: description || null,
         });
@@ -448,7 +476,11 @@ class AdminService {
             }
             updateData.name = body.name;
         }
-        if (body.durationMonths !== undefined) updateData.durationMonths = parseInt(body.durationMonths);
+        if (body.durationMonths !== undefined) {
+            updateData.durationMonths = parseInt(body.durationMonths);
+        } else if (body.durationInDays !== undefined) {
+            updateData.durationMonths = Math.max(1, Math.round(parseInt(body.durationInDays) / 30));
+        }
         if (body.price !== undefined) updateData.price = parseFloat(body.price);
         if (body.description !== undefined) updateData.description = body.description;
         if (body.isActive !== undefined) updateData.isActive = body.isActive;

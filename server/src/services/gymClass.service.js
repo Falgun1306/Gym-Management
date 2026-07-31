@@ -5,7 +5,15 @@ import ErrorHandler from "../utility/ErrorHandler.utility.js";
 
 class GymClassService {
     async createGymClass(body) {
-        const { trainerId, title, description, capacity, startTime, endTime } = body;
+        const { trainerId, title, name, description, capacity, startTime, endTime } = body;
+        const classTitle = title || name;
+
+        if (!classTitle) {
+            throw new ErrorHandler("Class title is required", 400);
+        }
+        if (!trainerId) {
+            throw new ErrorHandler("Trainer ID is required for a gym class", 400);
+        }
 
         const trainer = await trainerRepository.findById(trainerId);
         if (!trainer) {
@@ -25,7 +33,7 @@ class GymClassService {
         return gymClassRepository.create(
             {
                 trainerId,
-                title,
+                title: classTitle,
                 description: description || null,
                 capacity: parseInt(capacity),
                 startTime: new Date(startTime),
@@ -119,7 +127,9 @@ class GymClassService {
         }
 
         const updateData = {};
-        if (body.title !== undefined) updateData.title = body.title;
+        if (body.title !== undefined || body.name !== undefined) {
+            updateData.title = body.title || body.name;
+        }
         if (body.description !== undefined) updateData.description = body.description;
         if (body.capacity !== undefined) updateData.capacity = parseInt(body.capacity);
         if (body.startTime !== undefined) updateData.startTime = new Date(body.startTime);
