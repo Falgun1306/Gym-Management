@@ -19,6 +19,7 @@ import RoleGuard from '@/components/auth/RoleGuard';
 
 // ── Dashboard pages ──
 import DashboardHome from '@/pages/dashboard/DashboardHome';
+import MembersPage from '@/pages/dashboard/MembersPage';
 
 // ── Dev tools ──
 import ComponentShowcase from '@/pages/ComponentShowcase';
@@ -78,7 +79,7 @@ export default function App() {
 
         {/* Phase 4+ placeholder routes — will be replaced with real pages */}
         {/* Admin-only routes */}
-        <Route path="members" element={<PlaceholderPage title="Members Management" />} />
+        <Route path="members" element={<RoleGuard allowedRoles={['ADMIN']}><MembersPage /></RoleGuard>} />
         <Route path="trainers" element={<PlaceholderPage title="Staff / Trainers" />} />
         <Route path="reports" element={<PlaceholderPage title="Reports & Analytics" />} />
 
