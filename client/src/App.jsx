@@ -21,15 +21,15 @@ import RoleGuard from '@/components/auth/RoleGuard';
 import DashboardHome from '@/pages/dashboard/DashboardHome';
 import MembersPage from '@/pages/dashboard/MembersPage';
 
-// ── Trainer feature pages ──
-import TrainerDashboard from '@/features/trainer/TrainerDashboard';
-import TrainerProfilePage from '@/features/trainer/TrainerProfilePage';
-import MyMembersPage from '@/features/trainer/MyMembersPage';
-import ExercisesPage from '@/features/trainer/ExercisesPage';
-import WorkoutPlansPage from '@/features/trainer/WorkoutPlansPage';
-import DietPlansPage from '@/features/trainer/DietPlansPage';
-import MemberAttendancePage from '@/features/trainer/MemberAttendancePage';
-import ClassBookingsPage from '@/features/trainer/ClassBookingsPage';
+// ── Trainer pages ──
+import TrainerDashboard from '@/pages/trainers/TrainerDashboard';
+import TrainerProfilePage from '@/pages/trainers/TrainerProfilePage';
+import MyMembersPage from '@/pages/trainers/MyMembersPage';
+import ExercisesPage from '@/pages/trainers/ExercisesPage';
+import WorkoutPlansPage from '@/pages/trainers/WorkoutPlansPage';
+import DietPlansPage from '@/pages/trainers/DietPlansPage';
+import MemberAttendancePage from '@/pages/trainers/MemberAttendancePage';
+import ClassBookingsPage from '@/pages/trainers/ClassBookingsPage';
 
 // ── Dev tools ──
 import ComponentShowcase from '@/pages/ComponentShowcase';

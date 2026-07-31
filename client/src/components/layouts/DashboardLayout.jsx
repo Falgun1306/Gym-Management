@@ -195,14 +195,14 @@ export default function DashboardLayout() {
         </div>
 
         {/* New Check-in button */}
-        {!sidebarCollapsed && (
+        {/* {!sidebarCollapsed && (
           <div className="px-4 pt-4">
             <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-colors">
               <Plus className="w-4 h-4" />
               New Check-in
             </button>
           </div>
-        )}
+        )} */}
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
