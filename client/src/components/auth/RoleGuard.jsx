@@ -1,22 +1,23 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 
 /**
  * RoleGuard — restricts access to specific user roles.
  *
- * @param {Object} props
- * @param {('ADMIN' | 'TRAINER' | 'MEMBER')[]} props.allowedRoles - Roles permitted to access children
- * @param {React.ReactNode} props.children
+ * Can be used in two ways:
+ *  1. Wrapping children:    <RoleGuard allowedRoles={['ADMIN']}><Page /></RoleGuard>
+ *  2. As a layout route:    <Route element={<RoleGuard allowed={['TRAINER']} />}>
  *
- * If the user's role is not in allowedRoles, redirect to their own dashboard.
+ * If the user's role is not permitted, redirect to their own dashboard.
  */
-export default function RoleGuard({ allowedRoles = [], children }) {
+export default function RoleGuard({ allowedRoles, allowed, children }) {
   const role = useAuthStore((s) => s.getRole());
+  const roles = allowedRoles || allowed || [];
 
-  if (!role || !allowedRoles.includes(role)) {
-    // Redirect to the user's own dashboard root
+  if (!role || !roles.includes(role)) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return children;
+  // If used as a layout route (no children), render Outlet
+  return children || <Outlet />;
 }

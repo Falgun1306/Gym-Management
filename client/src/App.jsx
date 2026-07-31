@@ -20,6 +20,16 @@ import RoleGuard from '@/components/auth/RoleGuard';
 // ── Dashboard pages ──
 import DashboardHome from '@/pages/dashboard/DashboardHome';
 
+// ── Trainer feature pages ──
+import TrainerDashboard from '@/features/trainer/TrainerDashboard';
+import TrainerProfilePage from '@/features/trainer/TrainerProfilePage';
+import MyMembersPage from '@/features/trainer/MyMembersPage';
+import ExercisesPage from '@/features/trainer/ExercisesPage';
+import WorkoutPlansPage from '@/features/trainer/WorkoutPlansPage';
+import DietPlansPage from '@/features/trainer/DietPlansPage';
+import MemberAttendancePage from '@/features/trainer/MemberAttendancePage';
+import ClassBookingsPage from '@/features/trainer/ClassBookingsPage';
+
 // ── Dev tools ──
 import ComponentShowcase from '@/pages/ComponentShowcase';
 
@@ -30,6 +40,16 @@ function GuestRoute({ children }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
   return children;
+}
+
+/**
+ * TrainerDashboardRouter — shows trainer-specific dashboard for TRAINER role,
+ * falls back to the generic DashboardHome for other roles.
+ */
+function DashboardRouter() {
+  const role = useAuthStore((s) => s.user?.role);
+  if (role === 'TRAINER') return <TrainerDashboard />;
+  return <DashboardHome />;
 }
 
 export default function App() {
@@ -73,26 +93,30 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        {/* Dashboard home (all roles) */}
-        <Route index element={<DashboardHome />} />
+        {/* Dashboard home — role-aware */}
+        <Route index element={<DashboardRouter />} />
 
-        {/* Phase 4+ placeholder routes — will be replaced with real pages */}
-        {/* Admin-only routes */}
+        {/* ── Trainer-only routes ── */}
+        <Route element={<RoleGuard allowed={['TRAINER']} />}>
+          <Route path="my-members" element={<MyMembersPage />} />
+          <Route path="workout-plans" element={<WorkoutPlansPage />} />
+          <Route path="diet-plans" element={<DietPlansPage />} />
+          <Route path="exercises" element={<ExercisesPage />} />
+          <Route path="my-schedule" element={<TrainerProfilePage />} />
+          <Route path="attendance" element={<MemberAttendancePage />} />
+          <Route path="class-bookings" element={<ClassBookingsPage />} />
+          <Route path="profile" element={<TrainerProfilePage />} />
+        </Route>
+
+        {/* ── Admin-only routes (Phase 5+ placeholders) ── */}
         <Route path="members" element={<PlaceholderPage title="Members Management" />} />
         <Route path="trainers" element={<PlaceholderPage title="Staff / Trainers" />} />
         <Route path="reports" element={<PlaceholderPage title="Reports & Analytics" />} />
 
-        {/* Shared routes */}
+        {/* ── Shared routes ── */}
         <Route path="classes" element={<PlaceholderPage title="Gym Classes" />} />
-        <Route path="workout-plans" element={<PlaceholderPage title="Workout Plans" />} />
-        <Route path="diet-plans" element={<PlaceholderPage title="Diet Plans" />} />
 
-        {/* Trainer routes */}
-        <Route path="my-members" element={<PlaceholderPage title="My Members" />} />
-        <Route path="my-schedule" element={<PlaceholderPage title="My Schedule" />} />
-        <Route path="progress" element={<PlaceholderPage title="Progress Tracking" />} />
-
-        {/* Member routes */}
+        {/* ── Member routes (Phase 7+ placeholders) ── */}
         <Route path="my-membership" element={<PlaceholderPage title="My Membership" />} />
         <Route path="my-attendance" element={<PlaceholderPage title="My Attendance" />} />
         <Route path="my-workout" element={<PlaceholderPage title="My Workout Plan" />} />
@@ -129,3 +153,4 @@ function PlaceholderPage({ title }) {
     </div>
   );
 }
+
