@@ -43,11 +43,16 @@ class GymClassService {
         );
     }
 
-    async listGymClasses(query) {
-        const { page = 1, limit = 20 } = query;
+    async listGymClasses(query = {}) {
+        const { page = 1, limit = 100, trainerId } = query;
         const pageNum = Math.max(1, parseInt(page));
         const limitNum = Math.max(1, Math.min(100, parseInt(limit)));
         const skip = (pageNum - 1) * limitNum;
+
+        const where = {};
+        if (trainerId) {
+            where.trainerId = trainerId;
+        }
 
         const include = {
             trainer: {
@@ -58,15 +63,41 @@ class GymClassService {
                     specialization: true,
                 },
             },
+            bookings: {
+                where: {
+                    status: { not: "CANCELLED" },
+                },
+                include: {
+                    member: {
+                        select: {
+                            id: true,
+                            firstName: true,
+                            lastName: true,
+                            phone: true,
+                            user: {
+                                select: {
+                                    username: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
+                },
+                orderBy: { bookedAt: "desc" },
+            },
             _count: {
                 select: {
-                    bookings: true,
+                    bookings: {
+                        where: {
+                            status: { not: "CANCELLED" },
+                        },
+                    },
                 },
             },
         };
 
         const { data, total } = await gymClassRepository.findMany(
-            {},
+            where,
             skip,
             limitNum,
             { startTime: "asc" },
@@ -96,19 +127,34 @@ class GymClassService {
                 },
             },
             bookings: {
+                where: {
+                    status: { not: "CANCELLED" },
+                },
                 include: {
                     member: {
                         select: {
                             id: true,
                             firstName: true,
                             lastName: true,
+                            phone: true,
+                            user: {
+                                select: {
+                                    username: true,
+                                    email: true,
+                                },
+                            },
                         },
                     },
                 },
+                orderBy: { bookedAt: "desc" },
             },
             _count: {
                 select: {
-                    bookings: true,
+                    bookings: {
+                        where: {
+                            status: { not: "CANCELLED" },
+                        },
+                    },
                 },
             },
         };
@@ -176,7 +222,13 @@ class GymClassService {
         }
 
         const gymClass = await gymClassRepository.findById(classId, {
-            _count: { select: { bookings: true } },
+            _count: {
+                select: {
+                    bookings: {
+                        where: { status: { not: "CANCELLED" } },
+                    },
+                },
+            },
         });
 
         if (!gymClass) {
@@ -188,8 +240,12 @@ class GymClassService {
         }
 
         const existingBooking = await gymClassRepository.findBooking(gymClass.id, member.id);
-        if (existingBooking) {
+        if (existingBooking && existingBooking.status !== "CANCELLED") {
             throw new ErrorHandler("You are already booked for this class", 409);
+        }
+
+        if (existingBooking && existingBooking.status === "CANCELLED") {
+            return gymClassRepository.updateBooking(existingBooking.id, { status: "BOOKED" });
         }
 
         return gymClassRepository.createBooking({
@@ -220,51 +276,84 @@ class GymClassService {
         return gymClassRepository.updateBooking(bookingId, { status: "CANCELLED" });
     }
 
-    async getClassBookings(userId, query) {
+    async getClassBookings(userId, query = {}) {
         const trainer = await trainerRepository.findByUserId(userId);
         const { memberId, classId } = query;
-        const where = {};
 
-        if (memberId && trainer) {
-            const member = await memberRepository.findById(memberId);
-            if (!member || member.trainerId !== trainer.id) {
-                throw new ErrorHandler("Member not found or not assigned to you", 404);
-            }
-            where.memberId = memberId;
+        const classWhere = {};
+        if (trainer) {
+            classWhere.trainerId = trainer.id;
+        }
+        if (classId) {
+            classWhere.id = classId;
         }
 
-        if (classId && trainer) {
-            const gymClass = await gymClassRepository.findById(classId);
-            if (!gymClass || gymClass.trainerId !== trainer.id) {
-                throw new ErrorHandler("Gym class not found or not assigned to you", 404);
-            }
-            where.classId = classId;
-        }
-
-        if (!memberId && !classId && trainer) {
-            where.gymClass = { trainerId: trainer.id };
-        }
-
-        const include = {
-            member: {
+        const classInclude = {
+            trainer: {
                 select: {
                     id: true,
                     firstName: true,
                     lastName: true,
-                    phone: true,
+                    specialization: true,
                 },
             },
-            gymClass: {
+            bookings: {
+                where: {
+                    status: { not: "CANCELLED" },
+                    ...(memberId && { memberId }),
+                },
+                include: {
+                    member: {
+                        select: {
+                            id: true,
+                            firstName: true,
+                            lastName: true,
+                            phone: true,
+                            user: {
+                                select: {
+                                    username: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
+                },
+                orderBy: { bookedAt: "desc" },
+            },
+            _count: {
                 select: {
-                    id: true,
-                    title: true,
-                    startTime: true,
-                    endTime: true,
+                    bookings: {
+                        where: {
+                            status: { not: "CANCELLED" },
+                        },
+                    },
                 },
             },
         };
 
-        return gymClassRepository.findBookings(where, { bookedAt: "desc" }, include);
+        let res = await gymClassRepository.findMany(
+            classWhere,
+            0,
+            100,
+            { startTime: "asc" },
+            classInclude
+        );
+
+        let gymClasses = res.data || [];
+
+        // Fallback: If no trainer-specific classes found, return all gym classes created by admin
+        if (gymClasses.length === 0 && trainer) {
+            res = await gymClassRepository.findMany(
+                {},
+                0,
+                100,
+                { startTime: "asc" },
+                classInclude
+            );
+            gymClasses = res.data || [];
+        }
+
+        return gymClasses;
     }
 }
 

@@ -1,13 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { queryKeys } from '@/lib/queryKeys';
 import * as adminService from '@/services/adminService';
-import toast from 'react-hot-toast';
+
+// ── Admin Dashboard Hook ──
+
+export function useAdminDashboard() {
+  return useQuery({
+    queryKey: queryKeys.dashboard.admin(),
+    queryFn: () => adminService.getAdminDashboard(),
+    select: (res) => res.data,
+  });
+}
 
 // ── Admin Profile Hooks ──
 
 export function useAdminProfile() {
   return useQuery({
-    queryKey: queryKeys.auth.me(),
+    queryKey: queryKeys.admin.me(),
     queryFn: () => adminService.getAdminProfile(),
     select: (res) => res.data,
   });
@@ -19,57 +29,62 @@ export function useUpdateAdminProfile() {
     mutationFn: (data) => adminService.updateAdminProfile(data),
     onSuccess: (res) => {
       toast.success(res.message || 'Profile updated successfully');
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.me() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.me() });
     },
-    onError: (err) => toast.error(err.message || 'Profile update failed'),
+    onError: (err) => toast.error(err.message || 'Update failed'),
   });
 }
 
-// ── Trainer Applications Hooks ──
+// ── Member Management Hooks ──
 
-export function useTrainerApplications(params = {}) {
+export function useMembers(params = {}) {
   return useQuery({
-    queryKey: queryKeys.trainerApplications.list(params),
-    queryFn: () => adminService.listTrainerApplications(params),
+    queryKey: queryKeys.members.list(params),
+    queryFn: () => adminService.listMembers(params),
     keepPreviousData: true,
-    staleTime: 10_000,
-    select: (res) => ({ applications: res.data, pagination: res.pagination }),
+    select: (res) => ({ members: res.data, pagination: res.pagination }),
   });
 }
 
-export function useApproveTrainerApp() {
+export function useMemberDetail(id) {
+  return useQuery({
+    queryKey: queryKeys.members.detail(id),
+    queryFn: () => adminService.getMemberById(id),
+    enabled: !!id,
+    select: (res) => res.data,
+  });
+}
+
+export function useUpdateMember() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }) => adminService.approveTrainerApplication(id, data),
+    mutationFn: ({ id, data }) => adminService.updateMember(id, data),
     onSuccess: (res) => {
-      toast.success(res.message || 'Application approved!');
-      queryClient.invalidateQueries({ queryKey: queryKeys.trainerApplications.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.trainers.all });
+      toast.success(res.message || 'Member updated');
+      queryClient.invalidateQueries({ queryKey: queryKeys.members.all });
     },
-    onError: (err) => toast.error(err.message || 'Approval failed'),
+    onError: (err) => toast.error(err.message || 'Update failed'),
   });
 }
 
-export function useRejectTrainerApp() {
+export function useDeleteMember() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, rejectionReason }) => adminService.rejectTrainerApplication(id, rejectionReason),
+    mutationFn: (id) => adminService.deleteMember(id),
     onSuccess: (res) => {
-      toast.success(res.message || 'Application rejected');
-      queryClient.invalidateQueries({ queryKey: queryKeys.trainerApplications.all });
+      toast.success(res.message || 'Member deleted');
+      queryClient.invalidateQueries({ queryKey: queryKeys.members.all });
     },
-    onError: (err) => toast.error(err.message || 'Rejection failed'),
+    onError: (err) => toast.error(err.message || 'Deletion failed'),
   });
 }
 
-// ── Trainers Management Hooks ──
+// ── Trainer Management Hooks ──
 
 export function useTrainers(params = {}) {
   return useQuery({
     queryKey: queryKeys.trainers.list(params),
     queryFn: () => adminService.listTrainers(params),
-    keepPreviousData: true,
-    staleTime: 10_000,
     select: (res) => res.data,
   });
 }
@@ -83,12 +98,12 @@ export function useTrainerDetail(id) {
   });
 }
 
-export function usePromoteTrainer() {
+export function useDirectPromoteTrainer() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data) => adminService.promoteMemberToTrainer(data),
+    mutationFn: (data) => adminService.directPromoteToTrainer(data),
     onSuccess: (res) => {
-      toast.success(res.message || 'Member promoted to Trainer');
+      toast.success(res.message || 'Member promoted to trainer successfully');
       queryClient.invalidateQueries({ queryKey: queryKeys.trainers.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.members.all });
     },
@@ -96,13 +111,14 @@ export function usePromoteTrainer() {
   });
 }
 
+export const usePromoteTrainer = useDirectPromoteTrainer;
+
 export function useUpdateTrainer() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }) => adminService.updateTrainer(id, data),
-    onSuccess: (res, { id }) => {
+    onSuccess: (res) => {
       toast.success(res.message || 'Trainer updated');
-      queryClient.invalidateQueries({ queryKey: queryKeys.trainers.detail(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.trainers.all });
     },
     onError: (err) => toast.error(err.message || 'Update failed'),
@@ -116,7 +132,6 @@ export function useRemoveTrainer() {
     onSuccess: (res) => {
       toast.success(res.message || 'Trainer removed');
       queryClient.invalidateQueries({ queryKey: queryKeys.trainers.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.members.all });
     },
     onError: (err) => toast.error(err.message || 'Removal failed'),
   });
@@ -221,7 +236,7 @@ export function useUnfreezeMembership() {
   return useMutation({
     mutationFn: (id) => adminService.unfreezeMembership(id),
     onSuccess: (res) => {
-      toast.success(res.message || 'Membership unfrozen');
+      toast.success(res.message || 'Membership resumed');
       queryClient.invalidateQueries({ queryKey: queryKeys.memberships.all });
     },
     onError: (err) => toast.error(err.message || 'Unfreeze failed'),
@@ -274,6 +289,30 @@ export function useDeleteGymClass() {
   });
 }
 
+export function useBookClass() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (classId) => adminService.bookClass(classId),
+    onSuccess: (res) => {
+      toast.success(res.message || 'Class booked successfully');
+      queryClient.invalidateQueries({ queryKey: queryKeys.gymClasses.all });
+    },
+    onError: (err) => toast.error(err.message || 'Booking failed'),
+  });
+}
+
+export function useCancelBooking() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (bookingId) => adminService.cancelBooking(bookingId),
+    onSuccess: (res) => {
+      toast.success(res.message || 'Booking cancelled');
+      queryClient.invalidateQueries({ queryKey: queryKeys.gymClasses.all });
+    },
+    onError: (err) => toast.error(err.message || 'Cancellation failed'),
+  });
+}
+
 // ── Payments & Invoices Hooks ──
 
 export function useAdminPayments(params = {}) {
@@ -299,15 +338,14 @@ export function useCreateAdminPayment() {
   return useMutation({
     mutationFn: (data) => adminService.createAdminPayment(data),
     onSuccess: (res) => {
-      toast.success(res.message || 'Payment recorded successfully');
+      toast.success(res.message || 'Payment created');
       queryClient.invalidateQueries({ queryKey: queryKeys.payments.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
-    onError: (err) => toast.error(err.message || 'Payment recording failed'),
+    onError: (err) => toast.error(err.message || 'Payment creation failed'),
   });
 }
 
-// ── Equipment Inventory Hooks ──
+// ── Equipment Hooks ──
 
 export function useEquipment(params = {}) {
   return useQuery({
@@ -325,7 +363,7 @@ export function useCreateEquipment() {
       toast.success(res.message || 'Equipment added');
       queryClient.invalidateQueries({ queryKey: queryKeys.equipment.all });
     },
-    onError: (err) => toast.error(err.message || 'Addition failed'),
+    onError: (err) => toast.error(err.message || 'Creation failed'),
   });
 }
 
@@ -353,6 +391,35 @@ export function useDeleteEquipment() {
   });
 }
 
+// ── Attendance Hooks ──
+
+export function useAdminAttendance(params = {}) {
+  return useQuery({
+    queryKey: queryKeys.attendance.list(params),
+    queryFn: () => adminService.listAdminAttendance(params),
+    keepPreviousData: true,
+    select: (res) => ({ attendance: res.data, pagination: res.pagination }),
+  });
+}
+
+// ── Reports Hooks ──
+
+export function useAttendanceReport(params = {}) {
+  return useQuery({
+    queryKey: ['reports', 'attendance', params],
+    queryFn: () => adminService.getAttendanceReport(params),
+    select: (res) => res.data,
+  });
+}
+
+export function useRevenueReport(params = {}) {
+  return useQuery({
+    queryKey: ['reports', 'revenue', params],
+    queryFn: () => adminService.getRevenueReport(params),
+    select: (res) => res.data,
+  });
+}
+
 // ── Complaints Hooks ──
 
 export function useAdminComplaints(params = {}) {
@@ -366,7 +433,7 @@ export function useAdminComplaints(params = {}) {
 export function useResolveComplaint() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, resolution }) => adminService.resolveComplaint(id, { resolution }),
+    mutationFn: ({ id, resolution }) => adminService.resolveComplaint(id, resolution),
     onSuccess: (res) => {
       toast.success(res.message || 'Complaint resolved');
       queryClient.invalidateQueries({ queryKey: queryKeys.complaints.all });
@@ -375,20 +442,41 @@ export function useResolveComplaint() {
   });
 }
 
-// ── Reports Hooks ──
+// ── Trainer Applications Hooks ──
 
-export function useAttendanceReport(params = {}) {
+export function useTrainerApplications(params = {}) {
   return useQuery({
-    queryKey: queryKeys.reports.attendance(params),
-    queryFn: () => adminService.getAttendanceReport(params),
+    queryKey: queryKeys.trainerApplications.list(params),
+    queryFn: () => adminService.listTrainerApplications(params),
     select: (res) => res.data,
   });
 }
 
-export function useRevenueReport(params = {}) {
-  return useQuery({
-    queryKey: queryKeys.reports.revenue(params),
-    queryFn: () => adminService.getRevenueReport(params),
-    select: (res) => res.data,
+export function useApproveTrainerApplication() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }) => adminService.approveTrainerApplication(id, data),
+    onSuccess: (res) => {
+      toast.success(res.message || 'Application approved');
+      queryClient.invalidateQueries({ queryKey: queryKeys.trainerApplications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.trainers.all });
+    },
+    onError: (err) => toast.error(err.message || 'Approval failed'),
   });
 }
+
+export const useApproveTrainerApp = useApproveTrainerApplication;
+
+export function useRejectTrainerApplication() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }) => adminService.rejectTrainerApplication(id, reason),
+    onSuccess: (res) => {
+      toast.success(res.message || 'Application rejected');
+      queryClient.invalidateQueries({ queryKey: queryKeys.trainerApplications.all });
+    },
+    onError: (err) => toast.error(err.message || 'Rejection failed'),
+  });
+}
+
+export const useRejectTrainerApp = useRejectTrainerApplication;

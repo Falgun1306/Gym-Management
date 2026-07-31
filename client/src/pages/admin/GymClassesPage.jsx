@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { useGymClasses, useCreateGymClass, useUpdateGymClass, useDeleteGymClass, useTrainers } from '@/hooks/useAdmin';
+import { useGymClasses, useCreateGymClass, useUpdateGymClass, useDeleteGymClass, useTrainers, useBookClass, useCancelBooking } from '@/hooks/useAdmin';
+import { useAuthStore } from '@/store/useAuthStore';
 import { Card, Badge, Button, Modal, SkeletonCard, Sheet } from '@/components/ui';
-import { Plus, Calendar, Clock, Users, Trash2, Edit2, Filter } from 'lucide-react';
+import { Plus, Calendar, Clock, Users, Trash2, Edit2, CheckCircle2, XCircle } from 'lucide-react';
 import { formatDate } from '@/utils/formatters';
+import toast from 'react-hot-toast';
 
 const SPECIALIZATIONS = [
   { value: 'ALL', label: 'All Specializations / Categories' },
@@ -18,6 +20,9 @@ const SPECIALIZATIONS = [
 ];
 
 export default function GymClassesPage() {
+  const user = useAuthStore((s) => s.user);
+  const role = user?.role || 'MEMBER';
+
   const [createModal, setCreateModal] = useState(false);
   const [editClass, setEditClass] = useState(null);
   const [selectedClassBookings, setSelectedClassBookings] = useState(null);
@@ -39,6 +44,9 @@ export default function GymClassesPage() {
   const updateMutation = useUpdateGymClass();
   const deleteMutation = useDeleteGymClass();
 
+  const bookMutation = useBookClass();
+  const cancelMutation = useCancelBooking();
+
   // Filter trainers based on selected class specialization
   const filteredTrainers = trainers.filter((t) => {
     if (!form.specialization || form.specialization === 'ALL') return true;
@@ -51,7 +59,6 @@ export default function GymClassesPage() {
   });
 
   const handleSpecializationChange = (spec) => {
-    // If selected trainer doesn't have the new specialization, clear trainer selection
     const isTrainerValid = filteredTrainers.some((t) => t.id === form.trainerId);
     setForm((prev) => ({
       ...prev,
@@ -116,11 +123,19 @@ export default function GymClassesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Gym Classes & Schedules</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage group fitness sessions, schedules, and enrollments.</p>
+          <p className="text-sm text-slate-500 mt-1">
+            {role === 'ADMIN'
+              ? 'Schedule group fitness sessions, manage trainers, and view enrollments.'
+              : role === 'TRAINER'
+              ? 'View scheduled gym classes and enrolled attendees.'
+              : 'Explore scheduled fitness classes and book your sessions.'}
+          </p>
         </div>
-        <Button onClick={() => setCreateModal(true)} icon={Plus}>
-          Schedule New Class
-        </Button>
+        {role === 'ADMIN' && (
+          <Button onClick={() => setCreateModal(true)} icon={Plus}>
+            Schedule New Class
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -129,13 +144,20 @@ export default function GymClassesPage() {
         </div>
       ) : classes.length === 0 ? (
         <Card className="p-12 text-center text-slate-400 text-sm">
-          No scheduled gym classes found. Click "Schedule New Class" to create one.
+          No scheduled gym classes found.
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {classes.map((cls) => {
-            const bookedCount = cls.bookings?.length || 0;
+            const bookingsList = cls.bookings || [];
+            const bookedCount = cls._count?.bookings ?? bookingsList.length ?? 0;
             const isFull = bookedCount >= cls.capacity;
+
+            // Check if logged in user has an active booking for this class
+            const userBooking = bookingsList.find(
+              (b) => b.member?.user?.username === user?.username || b.member?.userId === user?.id
+            );
+            const isBookedByMe = !!userBooking;
 
             return (
               <Card key={cls.id} className="relative p-6 flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow">
@@ -147,8 +169,8 @@ export default function GymClassesPage() {
                         Trainer: {cls.trainer ? `${cls.trainer.firstName} ${cls.trainer.lastName}` : 'Unassigned'}
                       </p>
                     </div>
-                    <Badge variant={isFull ? 'danger' : 'success'}>
-                      {isFull ? 'FULL' : `${cls.capacity - bookedCount} slots left`}
+                    <Badge variant={isBookedByMe ? 'success' : isFull ? 'danger' : 'info'}>
+                      {isBookedByMe ? 'BOOKED' : isFull ? 'FULL' : `${cls.capacity - bookedCount} slots left`}
                     </Badge>
                   </div>
 
@@ -184,32 +206,66 @@ export default function GymClassesPage() {
                   >
                     View Bookings ({bookedCount})
                   </Button>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setEditClass(cls);
-                        const classTitle = cls.title || cls.name || '';
-                        setForm({
-                          title: classTitle,
-                          name: classTitle,
-                          specialization: 'ALL',
-                          description: cls.description || '',
-                          trainerId: cls.trainerId || '',
-                          capacity: cls.capacity,
-                          startTime: cls.startTime ? new Date(cls.startTime).toISOString().slice(0, 16) : '',
-                          endTime: cls.endTime ? new Date(cls.endTime).toISOString().slice(0, 16) : '',
-                        });
-                      }}
-                      className="!p-1.5"
-                    >
-                      <Edit2 className="w-4 h-4 text-slate-600" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(cls.id)} className="!p-1.5 hover:bg-rose-50">
-                      <Trash2 className="w-4 h-4 text-rose-600" />
-                    </Button>
-                  </div>
+
+                  {/* Member Action: Book or Cancel */}
+                  {role === 'MEMBER' && (
+                    <div>
+                      {isBookedByMe ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => cancelMutation.mutate(userBooking.id)}
+                          loading={cancelMutation.isPending}
+                          className="text-xs text-rose-600 hover:bg-rose-50"
+                          icon={XCircle}
+                        >
+                          Cancel Booking
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          disabled={isFull}
+                          onClick={() => bookMutation.mutate(cls.id)}
+                          loading={bookMutation.isPending}
+                          className="text-xs"
+                          icon={CheckCircle2}
+                        >
+                          {isFull ? 'Class Full' : 'Book Class'}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Admin Actions: Edit or Delete */}
+                  {role === 'ADMIN' && (
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditClass(cls);
+                          const classTitle = cls.title || cls.name || '';
+                          setForm({
+                            title: classTitle,
+                            name: classTitle,
+                            specialization: 'ALL',
+                            description: cls.description || '',
+                            trainerId: cls.trainerId || '',
+                            capacity: cls.capacity,
+                            startTime: cls.startTime ? new Date(cls.startTime).toISOString().slice(0, 16) : '',
+                            endTime: cls.endTime ? new Date(cls.endTime).toISOString().slice(0, 16) : '',
+                          });
+                        }}
+                        className="!p-1.5"
+                      >
+                        <Edit2 className="w-4 h-4 text-slate-600" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(cls.id)} className="!p-1.5 hover:bg-rose-50">
+                        <Trash2 className="w-4 h-4 text-rose-600" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </Card>
             );
@@ -348,12 +404,18 @@ export default function GymClassesPage() {
             ) : (
               <div className="space-y-2">
                 {selectedClassBookings.bookings.map((b) => (
-                  <div key={b.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+                  <div key={b.id || b.memberId} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs">
                     <div>
-                      <p className="font-semibold text-slate-900">{b.member?.firstName} {b.member?.lastName}</p>
-                      <p className="text-slate-400">Booked: {formatDate(b.createdAt)}</p>
+                      <p className="font-semibold text-slate-900">
+                        {b.member?.firstName
+                          ? `${b.member.firstName} ${b.member.lastName || ''}`.trim()
+                          : b.member?.user?.username || 'Member'}
+                      </p>
+                      <p className="text-slate-400">Booked: {b.createdAt ? formatDate(b.createdAt) : 'Enrolled'}</p>
                     </div>
-                    <Badge variant={b.status === 'CONFIRMED' ? 'success' : 'danger'}>{b.status}</Badge>
+                    <Badge variant={b.status === 'CANCELLED' ? 'danger' : 'success'}>
+                      {b.status || 'ENROLLED'}
+                    </Badge>
                   </div>
                 ))}
               </div>

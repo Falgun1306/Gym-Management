@@ -3,7 +3,7 @@ import memberRepository from "../repositories/member.repository.js";
 import prisma from "../config/prisma.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
 
-const EDITABLE_FIELDS = ["bio", "profilePhoto", "certifications"];
+const EDITABLE_FIELDS = ["bio", "profilePhoto", "certifications", "gender"];
 
 export const createTrainerFromMember = async (tx, { userId, specialization, specializations, experience, bio, certifications, salary, joiningDate }) => {
     const member = await tx.member.findUnique({ where: { userId } });

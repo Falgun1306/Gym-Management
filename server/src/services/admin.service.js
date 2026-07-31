@@ -9,7 +9,7 @@ import { createTrainerFromMember } from "./trainer.service.js";
 import couponService from "./coupon.service.js";
 
 const ADMIN_EDITABLE_FIELDS = ["username", "email"];
-const TRAINER_EDITABLE_FIELDS = ["salary", "experience", "specialization"];
+const TRAINER_EDITABLE_FIELDS = ["salary", "experience", "specialization", "gender", "firstName", "lastName", "phone", "bio"];
 const MEMBER_EDITABLE_FIELDS = [
     "firstName",
     "lastName",

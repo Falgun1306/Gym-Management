@@ -1,13 +1,14 @@
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import userRepository from "../repositories/user.repository.js";
+import prisma from "../config/prisma.js";
 import generateToken from "../utility/generateToken.utility.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
 import { sendWelcomeEmail, sendPasswordResetEmail } from "./email.service.js";
 
 class AuthService {
     async register(body) {
-        const { username, password, confirmPassword, confirmpassword, email } = body;
+        const { username, password, confirmPassword, confirmpassword, email, gender, firstName, lastName, phone } = body;
         const passConfirm = confirmPassword || confirmpassword;
 
         if (!username || !email || !password) {
@@ -35,6 +36,36 @@ class AuthService {
             email,
             password: hashedPassword,
         });
+
+        // Auto-create initial Member profile with gender
+        const validGender = gender && ["MALE", "FEMALE", "OTHER"].includes(gender.toUpperCase())
+            ? gender.toUpperCase()
+            : "MALE";
+
+        const memberFirstName = firstName || username;
+        const memberLastName = lastName || "";
+        const memberPhone = phone || `+1${Date.now().toString().slice(-10)}`;
+
+        try {
+            if (prisma.member && typeof prisma.member.create === 'function') {
+                const res = prisma.member.create({
+                    data: {
+                        userId: newUser.id,
+                        firstName: memberFirstName,
+                        lastName: memberLastName,
+                        phone: memberPhone,
+                        gender: validGender,
+                    },
+                });
+                if (res && typeof res.catch === 'function') {
+                    await res.catch((err) => {
+                        console.error("⚠️ Member profile creation deferred:", err.message || err);
+                    });
+                }
+            }
+        } catch (err) {
+            console.error("⚠️ Member profile auto-creation skipped:", err.message || err);
+        }
 
         const token = generateToken({
             id: newUser.id,

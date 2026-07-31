@@ -16,8 +16,15 @@ const SPECIALIZATIONS = [
   { value: 'FUNCTIONAL', label: 'Functional Training' },
 ];
 
+const GENDER_OPTIONS = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+  { value: 'OTHER', label: 'Other' },
+];
+
 const EMPTY_PROMOTE = {
   username: '',
+  gender: 'MALE',
   specializations: ['GENERAL_FITNESS'],
   salary: 40000,
   experience: 2,
@@ -35,7 +42,7 @@ export default function TrainersPage() {
   const [promoteModal, setPromoteModal] = useState(false);
 
   const [promoteForm, setPromoteForm] = useState(EMPTY_PROMOTE);
-  const [editForm, setEditForm] = useState({ specializations: ['GENERAL_FITNESS'], salary: '', experience: '' });
+  const [editForm, setEditForm] = useState({ specializations: ['GENERAL_FITNESS'], salary: '', experience: '', gender: 'MALE' });
 
   const { data: trainers = [], isLoading } = useTrainers({ search });
   const promoteMutation = usePromoteTrainer();
@@ -74,6 +81,7 @@ export default function TrainersPage() {
     e.preventDefault();
     const payload = {
       username: promoteForm.username.trim(),
+      gender: promoteForm.gender,
       specializations: promoteForm.specializations,
       specialization: promoteForm.specializations[0] || 'GENERAL_FITNESS',
       salary: parseFloat(promoteForm.salary) || 0,
@@ -99,6 +107,7 @@ export default function TrainersPage() {
       {
         id: editTrainer.id,
         data: {
+          gender: editForm.gender,
           specializations: editForm.specializations,
           specialization: editForm.specializations[0] || 'GENERAL_FITNESS',
           salary: parseFloat(editForm.salary) || 0,
@@ -119,11 +128,10 @@ export default function TrainersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Trainer Management</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage facility fitness trainers and multi-specializations.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Trainers Management</h1>
+          <p className="text-sm text-slate-500 mt-1">View trainer profiles, set salaries, update specializations, and manage team members.</p>
         </div>
         <Button onClick={() => setPromoteModal(true)} icon={Plus}>
           Promote Member to Trainer
@@ -138,64 +146,68 @@ export default function TrainersPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search trainers by name or specialization…"
-            className="w-full text-sm pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            placeholder="Search trainers by name, username, or specialization..."
+            className="w-full pl-10 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
           />
         </div>
       </Card>
 
-      {/* Table */}
+      {/* Trainers Table */}
       <Card className="!p-0 overflow-hidden">
         {isLoading ? (
-          <div className="p-4"><SkeletonTable rows={5} columns={5} /></div>
+          <div className="p-4">
+            <SkeletonTable rows={5} columns={6} />
+          </div>
         ) : trainers.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-sm">No trainers found.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Trainer</th>
-                  <th className="py-3 px-4">Specializations</th>
-                  <th className="py-3 px-4">Experience</th>
-                  <th className="py-3 px-4">Monthly Salary</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/50">
+                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Trainer</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Gender</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Specializations</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Experience</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Monthly Salary</th>
+                  <th className="text-right py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {trainers.map((t) => {
                   const specs = t.specializations?.length
                     ? t.specializations
-                    : t.specialization
-                    ? [t.specialization]
-                    : ['GENERAL_FITNESS'];
+                    : [t.specialization || 'GENERAL_FITNESS'];
+                  const formattedGender = t.gender ? t.gender.charAt(0) + t.gender.slice(1).toLowerCase() : '—';
 
                   return (
-                    <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3.5 px-4">
+                    <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <Avatar firstName={t.firstName} lastName={t.lastName} size="sm" />
                           <div>
                             <p className="font-semibold text-slate-900">{t.firstName} {t.lastName}</p>
-                            <p className="text-xs text-slate-400">{t.user?.email || t.phone || '—'}</p>
+                            <p className="text-xs text-slate-400 font-mono">@{t.user?.username || 'trainer'}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex flex-wrap gap-1">
-                          {specs.map((s, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-block px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full"
-                            >
+                      <td className="py-3 px-4 text-slate-600 capitalize">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
+                          {formattedGender}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex flex-wrap gap-1 max-w-xs">
+                          {specs.map((s, i) => (
+                            <span key={i} className="inline-block px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
                               {s.replace(/_/g, ' ')}
                             </span>
                           ))}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-slate-600">{t.experience ?? 1} yrs</td>
-                      <td className="py-3.5 px-4 font-semibold text-emerald-700">{formatCurrency(t.salary ?? 0)}</td>
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-3 px-4 text-slate-600">{t.experience ?? 1} yrs</td>
+                      <td className="py-3 px-4 font-semibold text-emerald-700">{formatCurrency(t.salary ?? 0)}</td>
+                      <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button variant="ghost" size="sm" onClick={() => setSelectedTrainer(t)} className="!p-1.5" title="View Details">
                             <Eye className="w-4 h-4 text-slate-600" />
@@ -207,16 +219,17 @@ export default function TrainersPage() {
                               setEditTrainer(t);
                               setEditForm({
                                 specializations: specs,
-                                salary: t.salary || '',
-                                experience: t.experience || '',
+                                salary: t.salary || 0,
+                                experience: t.experience || 1,
+                                gender: t.gender || 'MALE',
                               });
                             }}
                             className="!p-1.5"
-                            title="Edit"
+                            title="Edit Trainer"
                           >
                             <Edit className="w-4 h-4 text-slate-600" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleRemove(t.id)} className="!p-1.5 hover:bg-rose-50" title="Remove">
+                          <Button variant="ghost" size="sm" onClick={() => handleRemove(t.id)} className="!p-1.5 hover:bg-rose-50" title="Remove Trainer">
                             <Trash2 className="w-4 h-4 text-rose-600" />
                           </Button>
                         </div>
@@ -253,6 +266,7 @@ export default function TrainersPage() {
             <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-2 text-xs">
               <p><strong>Username:</strong> {selectedTrainer.user?.username || '—'}</p>
               <p><strong>Email:</strong> {selectedTrainer.user?.email || '—'}</p>
+              <p><strong>Gender:</strong> <span className="capitalize">{selectedTrainer.gender ? selectedTrainer.gender.charAt(0) + selectedTrainer.gender.slice(1).toLowerCase() : '—'}</span></p>
               <p><strong>Experience:</strong> {selectedTrainer.experience ?? 1} years</p>
               <p><strong>Monthly Salary:</strong> <span className="font-semibold text-emerald-700">{formatCurrency(selectedTrainer.salary ?? 0)}</span></p>
               <p><strong>Rating:</strong> ⭐ {selectedTrainer.averageRating ?? 5.0} / 5</p>
@@ -298,7 +312,20 @@ export default function TrainersPage() {
                 })}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Gender *</label>
+                <select
+                  value={editForm.gender}
+                  onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                  className={inputCls}
+                  required
+                >
+                  {GENDER_OPTIONS.map((g) => (
+                    <option key={g.value} value={g.value}>{g.label}</option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Monthly Salary (₹)</label>
                 <input type="number" value={editForm.salary} onChange={(e) => setEditForm({ ...editForm, salary: e.target.value })} className={inputCls} required />
@@ -320,19 +347,35 @@ export default function TrainersPage() {
       {promoteModal && (
         <Modal open onClose={() => { setPromoteModal(false); setPromoteForm(EMPTY_PROMOTE); }} title="Promote Member to Trainer">
           <form onSubmit={handlePromoteSubmit} className="space-y-4">
-            {/* Username */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Account Username <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={promoteForm.username}
-                onChange={(e) => setP('username', e.target.value)}
-                placeholder="e.g. john_doe"
-                className={inputCls}
-                required
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Account Username <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={promoteForm.username}
+                  onChange={(e) => setP('username', e.target.value)}
+                  placeholder="e.g. john_doe"
+                  className={inputCls}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Gender <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={promoteForm.gender}
+                  onChange={(e) => setP('gender', e.target.value)}
+                  className={inputCls}
+                  required
+                >
+                  {GENDER_OPTIONS.map((g) => (
+                    <option key={g.value} value={g.value}>{g.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Specializations Multi-Select */}

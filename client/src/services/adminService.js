@@ -2,14 +2,15 @@ import api from '@/lib/axios';
 
 /**
  * Admin API service layer.
- * Maps directly to Express routes in:
- * - server/src/routes/admin.router.js (/api/v1/admins)
- * - server/src/routes/equipment.router.js (/api/v1/equipment)
- * - server/src/routes/report.router.js (/api/v1/reports)
- * - server/src/routes/complaint.router.js (/api/v1/complaints)
+ * Maps 1:1 to backend routes in server/src/routes/admin.router.js & server/src/routes/gymClass.router.js
  */
 
-// ── Profile & Dashboard ──
+// ── Dashboard ──
+export async function getAdminDashboard() {
+  return api.get('/admins/dashboard');
+}
+
+// ── Profile ──
 export async function getAdminProfile() {
   return api.get('/admins/me');
 }
@@ -18,8 +19,50 @@ export async function updateAdminProfile(data) {
   return api.patch('/admins/me', data);
 }
 
-export async function getAdminDashboardStats() {
-  return api.get('/admins/dashboard');
+// ── Members ──
+export async function listMembers(params = {}) {
+  return api.get('/admins/members', { params });
+}
+
+export async function getMemberById(id) {
+  return api.get(`/admins/members/${id}`);
+}
+
+export async function updateMember(id, data) {
+  return api.patch(`/admins/members/${id}`, data);
+}
+
+export async function deleteMember(id) {
+  return api.delete(`/admins/members/${id}`);
+}
+
+export async function assignTrainerToMember(memberId, trainerId) {
+  return api.patch(`/admins/members/${memberId}/assign-trainer`, { trainerId });
+}
+
+export async function removeTrainerFromMember(memberId) {
+  return api.patch(`/admins/members/${memberId}/remove-trainer`);
+}
+
+// ── Trainers ──
+export async function listTrainers(params = {}) {
+  return api.get('/admins/trainers', { params });
+}
+
+export async function getTrainerById(id) {
+  return api.get(`/admins/trainers/${id}`);
+}
+
+export async function directPromoteToTrainer(data) {
+  return api.post('/admins/trainers/promote', data);
+}
+
+export async function updateTrainer(id, data) {
+  return api.patch(`/admins/trainers/${id}`, data);
+}
+
+export async function removeTrainer(id) {
+  return api.delete(`/admins/trainers/${id}`);
 }
 
 // ── Trainer Applications ──
@@ -35,42 +78,13 @@ export async function approveTrainerApplication(id, data = {}) {
   return api.patch(`/admins/trainer-applications/${id}/approve`, data);
 }
 
-export async function rejectTrainerApplication(id, rejectionReason) {
-  return api.patch(`/admins/trainer-applications/${id}/reject`, { rejectionReason });
-}
-
-// ── Trainers Management ──
-export async function listTrainers(params = {}) {
-  return api.get('/admins/trainers', { params });
-}
-
-export async function getTrainerById(id) {
-  return api.get(`/admins/trainers/${id}`);
-}
-
-export async function promoteMemberToTrainer(data) {
-  return api.post('/admins/trainers/promote', data);
-}
-
-export async function updateTrainer(id, data) {
-  return api.patch(`/admins/trainers/${id}`, data);
-}
-
-export async function removeTrainer(id) {
-  return api.delete(`/admins/trainers/${id}`);
-}
-
-export async function assignTrainerToMember(memberId, trainerId) {
-  return api.patch(`/admins/members/${memberId}/assign-trainer`, { trainerId });
-}
-
-export async function removeTrainerFromMember(memberId) {
-  return api.patch(`/admins/members/${memberId}/remove-trainer`);
+export async function rejectTrainerApplication(id, reason = '') {
+  return api.patch(`/admins/trainer-applications/${id}/reject`, { reason });
 }
 
 // ── Membership Plans ──
-export async function listMembershipPlans() {
-  return api.get('/admins/membership-plans');
+export async function listMembershipPlans(params = {}) {
+  return api.get('/admins/membership-plans', { params });
 }
 
 export async function createMembershipPlan(data) {
@@ -85,13 +99,9 @@ export async function deleteMembershipPlan(id) {
   return api.delete(`/admins/membership-plans/${id}`);
 }
 
-// ── Memberships & Subscriptions ──
+// ── Individual Memberships ──
 export async function listMemberships(params = {}) {
   return api.get('/admins/memberships', { params });
-}
-
-export async function getMembershipById(id) {
-  return api.get(`/admins/memberships/${id}`);
 }
 
 export async function assignMembership(data) {
@@ -119,6 +129,14 @@ export async function deleteGymClass(id) {
   return api.delete(`/admins/gym-classes/${id}`);
 }
 
+export async function bookClass(classId) {
+  return api.post(`/gym-classes/${classId}/book`);
+}
+
+export async function cancelBooking(bookingId) {
+  return api.patch(`/gym-classes/bookings/${bookingId}/cancel`);
+}
+
 // ── Payments & Billing ──
 export async function listAdminPayments(params = {}) {
   return api.get('/admins/payments', { params });
@@ -129,7 +147,7 @@ export async function getAdminPaymentById(id) {
 }
 
 export async function createAdminPayment(data) {
-  return api.post('/payments/create', data);
+  return api.post('/admins/payments', data);
 }
 
 // ── Attendance ──
@@ -137,7 +155,16 @@ export async function listAdminAttendance(params = {}) {
   return api.get('/admins/attendance', { params });
 }
 
-// ── Equipment Inventory ──
+// ── Complaints ──
+export async function listAdminComplaints(params = {}) {
+  return api.get('/admins/complaints', { params });
+}
+
+export async function resolveComplaint(id, resolution) {
+  return api.patch(`/admins/complaints/${id}`, { resolution });
+}
+
+// ── Equipment ──
 export async function listEquipment(params = {}) {
   return api.get('/equipment', { params });
 }
@@ -154,18 +181,9 @@ export async function deleteEquipment(id) {
   return api.delete(`/equipment/${id}`);
 }
 
-// ── Complaints & Ticketing ──
-export async function listAdminComplaints(params = {}) {
-  return api.get('/admins/complaints', { params });
-}
-
-export async function resolveComplaint(id, data) {
-  return api.patch(`/admins/complaints/${id}`, data);
-}
-
-// ── Reports & Analytics ──
+// ── Reports ──
 export async function getAttendanceReport(params = {}) {
-  return api.get('/reports/attendance', { params });
+  return api.get('/admins/attendance/report', { params });
 }
 
 export async function getRevenueReport(params = {}) {

@@ -105,7 +105,7 @@ export default function TrainerApplicationsPage() {
       <Card className="!p-0 overflow-hidden">
         {isLoading ? (
           <div className="p-4">
-            <SkeletonTable rows={5} columns={4} />
+            <SkeletonTable rows={4} columns={5} />
           </div>
         ) : applications.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-sm">
@@ -113,40 +113,48 @@ export default function TrainerApplicationsPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Applicant</th>
-                  <th className="py-3 px-4">Specializations</th>
-                  <th className="py-3 px-4">Submitted</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/50">
+                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Applicant</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Specialization(s)</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Applied On</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Status</th>
+                  <th className="text-right py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {applications.map((app) => {
+                  const mUser = app.user || {};
+                  const member = mUser.member || {};
                   const specs = app.specializations?.length
                     ? app.specializations
-                    : app.specialization
-                    ? [app.specialization]
-                    : ['GENERAL_FITNESS'];
+                    : [app.specialization || 'GENERAL_FITNESS'];
 
                   return (
-                    <tr key={app.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={app.id} className="hover:bg-slate-50 transition-colors">
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <Avatar firstName={app.user?.username?.[0] || 'T'} size="sm" />
+                          <Avatar
+                            firstName={member.firstName || mUser.username?.split(' ')[0]}
+                            lastName={member.lastName || mUser.username?.split(' ')[1]}
+                            size="sm"
+                          />
                           <div>
-                            <p className="font-semibold text-slate-900">{app.user?.username}</p>
-                            <p className="text-xs text-slate-400">{app.user?.email}</p>
+                            <p className="font-semibold text-slate-900">
+                              {member.firstName
+                                ? `${member.firstName} ${member.lastName || ''}`.trim()
+                                : mUser.username}
+                            </p>
+                            <p className="text-xs text-slate-400 font-mono">{mUser.email}</p>
                           </div>
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="flex flex-wrap gap-1">
-                          {specs.map((s, idx) => (
+                        <div className="flex flex-wrap gap-1 max-w-xs">
+                          {specs.map((s, i) => (
                             <span
-                              key={idx}
+                              key={i}
                               className="inline-block px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full"
                             >
                               {s.replace(/_/g, ' ')}
@@ -218,9 +226,17 @@ export default function TrainerApplicationsPage() {
       {selectedApp && (
         <Modal open={!!selectedApp} onClose={() => setSelectedApp(null)} title="Application Details">
           <div className="space-y-4 text-sm">
-            <div className="bg-slate-50 p-4 rounded-lg space-y-2 border border-slate-200">
+            <div className="bg-slate-50 p-4 rounded-lg space-y-2 border border-slate-200 text-xs">
               <p><strong>Username:</strong> {selectedApp.user?.username}</p>
               <p><strong>Email:</strong> {selectedApp.user?.email}</p>
+              <p>
+                <strong>Gender:</strong>{' '}
+                <span className="capitalize">
+                  {selectedApp.user?.member?.gender
+                    ? selectedApp.user.member.gender.charAt(0) + selectedApp.user.member.gender.slice(1).toLowerCase()
+                    : '—'}
+                </span>
+              </p>
               <p>
                 <strong>Specializations:</strong>{' '}
                 {(selectedApp.specializations?.length
@@ -270,16 +286,30 @@ export default function TrainerApplicationsPage() {
                 })}
               </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Base Monthly Salary (₹)</label>
-              <input
-                type="number"
-                value={approveForm.salary}
-                onChange={(e) => setApproveForm({ ...approveForm, salary: e.target.value })}
-                className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
-                required
-              />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Starting Salary (₹)</label>
+                <input
+                  type="number"
+                  value={approveForm.salary}
+                  onChange={(e) => setApproveForm({ ...approveForm, salary: e.target.value })}
+                  className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Experience (Years)</label>
+                <input
+                  type="number"
+                  value={approveForm.experience}
+                  onChange={(e) => setApproveForm({ ...approveForm, experience: e.target.value })}
+                  className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
+                  required
+                />
+              </div>
             </div>
+
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setApproveModalApp(null)}>Cancel</Button>
               <Button type="submit" loading={approveMutation.isPending} icon={CheckCircle}>Confirm Approval</Button>
@@ -290,21 +320,26 @@ export default function TrainerApplicationsPage() {
 
       {/* Reject Modal */}
       {rejectModalApp && (
-        <Modal open={!!rejectModalApp} onClose={() => setRejectModalApp(null)} title="Reject Trainer Application">
+        <Modal open={!!rejectModalApp} onClose={() => setRejectModalApp(null)} title="Reject Application">
           <form onSubmit={handleRejectSubmit} className="space-y-4">
+            <p className="text-xs text-slate-500">
+              Rejecting application for <strong>{rejectModalApp.user?.username}</strong>. Please provide a reason.
+            </p>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Reason for Rejection</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Rejection Reason *</label>
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Explain rejection reason..."
-                className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-rose-500/20 h-24"
+                placeholder="Reason for rejecting..."
+                className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20 h-24"
                 required
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setRejectModalApp(null)}>Cancel</Button>
-              <Button type="submit" variant="danger" loading={rejectMutation.isPending} icon={XCircle}>Reject Application</Button>
+              <Button type="submit" variant="danger" loading={rejectMutation.isPending} icon={XCircle}>
+                Confirm Rejection
+              </Button>
             </div>
           </form>
         </Modal>

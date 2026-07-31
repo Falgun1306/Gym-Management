@@ -17,11 +17,17 @@ import {
   Briefcase,
 } from 'lucide-react';
 
+const GENDER_OPTIONS = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+  { value: 'OTHER', label: 'Other' },
+];
+
 /**
  * TrainerProfilePage — Profile management and weekly schedule editor.
  *
  * Two sections:
- *  1. Profile info (bio, specialization, certifications, phone)
+ *  1. Profile info (bio, gender, specialization, certifications, phone)
  *  2. Weekly schedule grid (available time slots per day)
  */
 export default function TrainerProfilePage() {
@@ -54,6 +60,7 @@ export default function TrainerProfilePage() {
   const startProfileEdit = () => {
     setProfileForm({
       bio: profile?.bio || '',
+      gender: profile?.gender || 'MALE',
       specialization: profile?.specialization || '',
       certifications: Array.isArray(profile?.certifications)
         ? profile.certifications.join(', ')
@@ -110,6 +117,7 @@ export default function TrainerProfilePage() {
 
     profileMutation.mutate({
       bio: profileForm.bio,
+      gender: profileForm.gender,
       profilePhoto: profile?.profilePhoto || null,
       certifications: certsArray,
     });
@@ -172,19 +180,27 @@ export default function TrainerProfilePage() {
 
         {editing ? (
           <form onSubmit={handleProfileSave} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Gender"
+                options={GENDER_OPTIONS}
+                value={profileForm.gender}
+                onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}
+              />
+              <Input
+                label="Certifications (comma separated)"
+                icon={Award}
+                value={profileForm.certifications}
+                onChange={(e) => setProfileForm({ ...profileForm, certifications: e.target.value })}
+                placeholder="NASM, ACE, ISSA..."
+              />
+            </div>
             <Textarea
               label="Bio"
               value={profileForm.bio}
               onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
               placeholder="Tell your clients about yourself, your training philosophy, and experience..."
               rows={4}
-            />
-            <Input
-              label="Certifications (comma separated)"
-              icon={Award}
-              value={profileForm.certifications}
-              onChange={(e) => setProfileForm({ ...profileForm, certifications: e.target.value })}
-              placeholder="NASM, ACE, ISSA..."
             />
             <div className="flex items-center gap-2 pt-2">
               <Button type="submit" loading={profileMutation.isPending} icon={Save}>
@@ -199,6 +215,7 @@ export default function TrainerProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <InfoRow icon={User} label="Name" value={`${profile?.firstName || ''} ${profile?.lastName || ''}`.trim() || profile?.user?.username || '—'} />
+              <InfoRow icon={User} label="Gender" value={profile?.gender ? profile.gender.charAt(0) + profile.gender.slice(1).toLowerCase() : '—'} />
               <InfoRow icon={Mail} label="Email" value={profile?.user?.email || '—'} />
               <InfoRow icon={Phone} label="Phone" value={profile?.phone || '—'} />
               <InfoRow icon={Briefcase} label="Experience" value={profile?.experience ? `${profile.experience} years` : '—'} />
@@ -248,44 +265,45 @@ export default function TrainerProfilePage() {
                     checked={slot.isAvailable}
                     onChange={(e) => {
                       const updated = [...scheduleForm];
-                      updated[idx] = { ...updated[idx], isAvailable: e.target.checked };
+                      updated[idx].isAvailable = e.target.checked;
                       setScheduleForm(updated);
                     }}
                     className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                   />
                   <span className="text-sm font-medium text-slate-700">{slot.dayName}</span>
                 </label>
-                {slot.isAvailable && (
-                  <div className="flex items-center gap-2">
-                    <input
+
+                {slot.isAvailable ? (
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Input
                       type="time"
-                      value={slot.startTime || '09:00'}
+                      value={slot.startTime}
                       onChange={(e) => {
                         const updated = [...scheduleForm];
-                        updated[idx] = { ...updated[idx], startTime: e.target.value };
+                        updated[idx].startTime = e.target.value;
                         setScheduleForm(updated);
                       }}
-                      className="px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                      className="!py-1 !px-2 text-xs"
                     />
-                    <span className="text-slate-400 text-sm">to</span>
-                    <input
+                    <span>to</span>
+                    <Input
                       type="time"
-                      value={slot.endTime || '17:00'}
+                      value={slot.endTime}
                       onChange={(e) => {
                         const updated = [...scheduleForm];
-                        updated[idx] = { ...updated[idx], endTime: e.target.value };
+                        updated[idx].endTime = e.target.value;
                         setScheduleForm(updated);
                       }}
-                      className="px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                      className="!py-1 !px-2 text-xs"
                     />
                   </div>
-                )}
-                {!slot.isAvailable && (
-                  <span className="text-xs text-slate-400 italic">Day off</span>
+                ) : (
+                  <span className="text-xs text-slate-400 italic">Unavailable</span>
                 )}
               </div>
             ))}
-            <div className="flex items-center gap-2 pt-2">
+
+            <div className="flex items-center gap-2 pt-3">
               <Button type="submit" loading={scheduleMutation.isPending} icon={Save}>
                 Save Schedule
               </Button>
@@ -295,23 +313,26 @@ export default function TrainerProfilePage() {
             </div>
           </form>
         ) : (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
             {scheduleDisplay.map((slot) => (
               <div
                 key={slot.dayOfWeek}
-                className="flex items-center justify-between p-3 rounded-lg border border-slate-100"
+                className={`p-3 rounded-xl border text-center transition-colors ${
+                  slot.isAvailable
+                    ? 'bg-emerald-50/50 border-emerald-200'
+                    : 'bg-slate-50 border-slate-200 opacity-60'
+                }`}
               >
-                <span className="text-sm font-medium text-slate-700 min-w-[100px]">{slot.dayName}</span>
+                <p className="text-xs font-bold text-slate-900 mb-1">{slot.dayName}</p>
                 {slot.isAvailable ? (
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                    <span className="text-sm text-slate-600">
-                      {slot.startTime || '09:00'} – {slot.endTime || '17:00'}
-                    </span>
-                    <Badge variant="active" size="sm" dot={false}>Available</Badge>
+                  <div className="space-y-0.5">
+                    <Badge variant="success" size="sm">Available</Badge>
+                    <p className="text-[11px] text-slate-600 font-medium mt-1">
+                      {slot.startTime} - {slot.endTime}
+                    </p>
                   </div>
                 ) : (
-                  <Badge variant="cancelled" size="sm" dot={false}>Day Off</Badge>
+                  <p className="text-xs text-slate-400 font-medium">Off</p>
                 )}
               </div>
             ))}
@@ -322,16 +343,16 @@ export default function TrainerProfilePage() {
   );
 }
 
-/** Small helper row for read-only profile info */
+// Helper row component
 function InfoRow({ icon: Icon, label, value }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 mt-0.5">
-        <Icon className="w-4 h-4 text-slate-500" />
+    <div className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+        <Icon className="w-4 h-4 text-slate-600" />
       </div>
       <div>
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
-        <p className="text-sm font-medium text-slate-800 mt-0.5">{value}</p>
+        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
+        <p className="text-sm font-medium text-slate-900">{value}</p>
       </div>
     </div>
   );
