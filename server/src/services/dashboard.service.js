@@ -84,6 +84,13 @@ class DashboardService {
                     lastName: true,
                     specialization: true,
                     phone: true,
+                    experience: true,
+                    bio: true,
+                    user: {
+                        select: {
+                            email: true
+                        }
+                    }
                 },
             },
         });
@@ -92,12 +99,21 @@ class DashboardService {
             throw new ErrorHandler("Member profile not found", 404);
         }
 
-        const [activeMembership, workoutAssignmentsCount, dietAssignmentsCount, totalVisits, unreadNotificationsCount] = await Promise.all([
-            prisma.membership.findFirst({
-                where: { memberId: member.id, status: "ACTIVE" },
+        let activeMembership = await prisma.membership.findFirst({
+            where: { memberId: member.id, status: { in: ["ACTIVE", "SUSPENDED", "PENDING"] } },
+            include: { plan: true },
+            orderBy: { endDate: "desc" },
+        });
+
+        if (activeMembership && activeMembership.status === "PENDING") {
+            activeMembership = await prisma.membership.update({
+                where: { id: activeMembership.id },
+                data: { status: "ACTIVE" },
                 include: { plan: true },
-                orderBy: { endDate: "desc" },
-            }),
+            });
+        }
+
+        const [workoutAssignmentsCount, dietAssignmentsCount, totalVisits, unreadNotificationsCount] = await Promise.all([
             prisma.workoutAssignment.count({ where: { memberId: member.id } }),
             prisma.dietAssignment.count({ where: { memberId: member.id } }),
             attendanceRepository.count({ memberId: member.id }),

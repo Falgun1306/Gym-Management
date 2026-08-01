@@ -42,6 +42,15 @@ import DietPlansPage from '@/pages/trainers/DietPlansPage';
 import MemberAttendancePage from '@/pages/trainers/MemberAttendancePage';
 import ClassBookingsPage from '@/pages/trainers/ClassBookingsPage';
 
+// ── Member Portal pages ──
+import MemberDashboard from '@/pages/members/MemberDashboard';
+import MyMembershipPage from '@/pages/members/MyMembershipPage';
+import MyAttendancePage from '@/pages/members/MyAttendancePage';
+import MyWorkoutPage from '@/pages/members/MyWorkoutPage';
+import MyDietPage from '@/pages/members/MyDietPage';
+import MemberClassesPage from '@/pages/members/MemberClassesPage';
+import MemberSupportPage from '@/pages/members/MemberSupportPage';
+
 // ── Dev tools ──
 import ComponentShowcase from '@/pages/ComponentShowcase';
 
@@ -55,12 +64,13 @@ function GuestRoute({ children }) {
 }
 
 /**
- * DashboardRouter — shows trainer-specific dashboard for TRAINER role,
- * falls back to the generic DashboardHome for other roles.
+ * DashboardRouter — shows role-specific dashboard for TRAINER or MEMBER roles,
+ * falls back to Admin DashboardHome for ADMIN role.
  */
 function DashboardRouter() {
   const role = useAuthStore((s) => s.user?.role);
   if (role === 'TRAINER') return <TrainerDashboard />;
+  if (role === 'MEMBER') return <MemberDashboard />;
   return <DashboardHome />;
 }
 
@@ -113,12 +123,11 @@ export default function App() {
         <Route path="trainers" element={<RoleGuard allowedRoles={['ADMIN']}><TrainersPage /></RoleGuard>} />
         <Route path="trainer-applications" element={<RoleGuard allowedRoles={['ADMIN']}><TrainerApplicationsPage /></RoleGuard>} />
         <Route path="membership-plans" element={<RoleGuard allowedRoles={['ADMIN']}><MembershipPlansPage /></RoleGuard>} />
-        <Route path="classes" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER', 'MEMBER']}><GymClassesPage /></RoleGuard>} />
         <Route path="payments" element={<RoleGuard allowedRoles={['ADMIN']}><PaymentsPage /></RoleGuard>} />
         <Route path="equipment" element={<RoleGuard allowedRoles={['ADMIN']}><EquipmentPage /></RoleGuard>} />
         <Route path="complaints" element={<RoleGuard allowedRoles={['ADMIN']}><ComplaintsPage /></RoleGuard>} />
         <Route path="reports" element={<RoleGuard allowedRoles={['ADMIN']}><ReportsPage /></RoleGuard>} />
-        <Route path="settings" element={<RoleGuard allowedRoles={['ADMIN']}><AdminSettingsPage /></RoleGuard>} />
+        <Route path="settings" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER', 'MEMBER']}><AdminSettingsPage /></RoleGuard>} />
 
         {/* ── Trainer-only routes ── */}
         <Route path="my-members" element={<RoleGuard allowedRoles={['TRAINER']}><MyMembersPage /></RoleGuard>} />
@@ -128,13 +137,15 @@ export default function App() {
         <Route path="my-schedule" element={<RoleGuard allowedRoles={['TRAINER']}><TrainerProfilePage /></RoleGuard>} />
         <Route path="attendance" element={<RoleGuard allowedRoles={['TRAINER']}><MemberAttendancePage /></RoleGuard>} />
         <Route path="class-bookings" element={<RoleGuard allowedRoles={['TRAINER']}><ClassBookingsPage /></RoleGuard>} />
-        <Route path="profile" element={<RoleGuard allowedRoles={['TRAINER']}><TrainerProfilePage /></RoleGuard>} />
+        <Route path="profile" element={<RoleGuard allowedRoles={['TRAINER', 'MEMBER']}><TrainerProfilePage /></RoleGuard>} />
 
-        {/* ── Member routes (Placeholders for member portal views) ── */}
-        <Route path="my-membership" element={<PlaceholderPage title="My Membership" />} />
-        <Route path="my-attendance" element={<PlaceholderPage title="My Attendance" />} />
-        <Route path="my-workout" element={<PlaceholderPage title="My Workout Plan" />} />
-        <Route path="my-diet" element={<PlaceholderPage title="My Diet Plan" />} />
+        {/* ── Member Portal routes ── */}
+        <Route path="my-membership" element={<RoleGuard allowedRoles={['MEMBER']}><MyMembershipPage /></RoleGuard>} />
+        <Route path="my-attendance" element={<RoleGuard allowedRoles={['MEMBER']}><MyAttendancePage /></RoleGuard>} />
+        <Route path="my-workout" element={<RoleGuard allowedRoles={['MEMBER']}><MyWorkoutPage /></RoleGuard>} />
+        <Route path="my-diet" element={<RoleGuard allowedRoles={['MEMBER']}><MyDietPage /></RoleGuard>} />
+        <Route path="classes" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER', 'MEMBER']}><MemberClassesPage /></RoleGuard>} />
+        <Route path="my-support" element={<RoleGuard allowedRoles={['MEMBER']}><MemberSupportPage /></RoleGuard>} />
       </Route>
 
       {/* ── Dev Tools ── */}
@@ -149,21 +160,5 @@ export default function App() {
       {/* ── 404 Catch-all ── */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
-  );
-}
-
-/**
- * Temporary placeholder for routes that will be built in future phases.
- */
-function PlaceholderPage({ title }) {
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
-        <p className="text-slate-400 text-sm">
-          This page will be implemented in a future phase.
-        </p>
-      </div>
-    </div>
   );
 }

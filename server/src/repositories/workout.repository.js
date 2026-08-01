@@ -42,7 +42,7 @@ class WorkoutRepository {
                     },
                 },
             },
-            orderBy: { assignedAt: "desc" },
+            orderBy: { assignedDate: "desc" },
         });
     }
 
