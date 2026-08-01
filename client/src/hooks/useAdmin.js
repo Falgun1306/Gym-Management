@@ -470,7 +470,7 @@ export const useApproveTrainerApp = useApproveTrainerApplication;
 export function useRejectTrainerApplication() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, reason }) => adminService.rejectTrainerApplication(id, reason),
+    mutationFn: ({ id, reason, rejectionReason }) => adminService.rejectTrainerApplication(id, rejectionReason || reason),
     onSuccess: (res) => {
       toast.success(res.message || 'Application rejected');
       queryClient.invalidateQueries({ queryKey: queryKeys.trainerApplications.all });

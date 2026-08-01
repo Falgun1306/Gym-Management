@@ -34,7 +34,8 @@ const approveTrainerApplication = asyncHandler(async (req, res) => {
 });
 
 const rejectTrainerApplication = asyncHandler(async (req, res) => {
-    const updatedApplication = await adminService.rejectTrainerApplication(req.user.id, req.params.id, req.body.rejectionReason);
+    const reason = req.body.rejectionReason || req.body.reason;
+    const updatedApplication = await adminService.rejectTrainerApplication(req.user.id, req.params.id, reason);
     res.status(200).json(new ApiResponse(200, updatedApplication, "Application rejected"));
 });
 

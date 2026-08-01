@@ -78,8 +78,12 @@ export async function approveTrainerApplication(id, data = {}) {
   return api.patch(`/admins/trainer-applications/${id}/approve`, data);
 }
 
-export async function rejectTrainerApplication(id, reason = '') {
-  return api.patch(`/admins/trainer-applications/${id}/reject`, { reason });
+export async function rejectTrainerApplication(id, payload = '') {
+  const reasonText = typeof payload === 'string' ? payload : (payload?.rejectionReason || payload?.reason || '');
+  return api.patch(`/admins/trainer-applications/${id}/reject`, {
+    rejectionReason: reasonText,
+    reason: reasonText,
+  });
 }
 
 // ── Membership Plans ──

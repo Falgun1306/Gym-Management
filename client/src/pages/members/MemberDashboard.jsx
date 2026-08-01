@@ -85,13 +85,21 @@ export default function MemberDashboard() {
     );
   }
 
-  // Profile is incomplete ONLY when:
-  // 1. The query succeeded but returned null (404 was caught and returned null)
-  // 2. The query succeeded but member has no firstName (auto-created empty shell)
-  const needsProfileSetup =
-    isProfileSuccess && (memberProfile === null || !memberProfile?.firstName);
+  // Member profile is COMPLETED if:
+  // 1. Profile data exists
+  // 2. Both firstName and lastName are provided and non-empty
+  // 3. Phone number is provided and is a real number (not auto-generated '+1' dummy)
+  const isProfileCompleted = Boolean(
+    isProfileSuccess &&
+      memberProfile &&
+      memberProfile.firstName &&
+      memberProfile.lastName &&
+      memberProfile.lastName.trim() !== '' &&
+      memberProfile.phone &&
+      !memberProfile.phone.startsWith('+1')
+  );
 
-  if (needsProfileSetup) {
+  if (isProfileSuccess && !isProfileCompleted) {
     return (
       <CompleteProfileForm
         existingProfile={memberProfile}
@@ -103,7 +111,7 @@ export default function MemberDashboard() {
     );
   }
 
-  if (isDashboardError && !needsProfileSetup) {
+  if (isDashboardError && isProfileCompleted) {
     return (
       <div className="p-8 text-center bg-white rounded-xl border border-slate-200">
         <AlertCircle className="w-10 h-10 text-rose-500 mx-auto mb-2" />
