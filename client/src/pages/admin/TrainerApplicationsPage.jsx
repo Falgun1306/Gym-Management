@@ -29,7 +29,7 @@ export default function TrainerApplicationsPage() {
   const approveMutation = useApproveTrainerApp();
   const rejectMutation = useRejectTrainerApp();
 
-  const applications = data?.applications || [];
+  const applications = Array.isArray(data) ? data : (data?.applications || []);
 
   const toggleApproveSpec = (val) => {
     setApproveForm((prev) => {
@@ -68,7 +68,7 @@ export default function TrainerApplicationsPage() {
     e.preventDefault();
     if (!rejectModalApp) return;
     rejectMutation.mutate(
-      { id: rejectModalApp.id, rejectionReason: rejectReason },
+      { id: rejectModalApp.id, rejectionReason: rejectReason, reason: rejectReason },
       {
         onSuccess: () => {
           setRejectModalApp(null);
@@ -193,7 +193,7 @@ export default function TrainerApplicationsPage() {
                                   setApproveModalApp(app);
                                   setApproveForm({
                                     salary: '45000',
-                                    experience: app.experienceYears || 2,
+                                    experience: (app.experience != null ? app.experience : app.experienceYears) || 2,
                                     specializations: specs,
                                   });
                                 }}
@@ -246,8 +246,12 @@ export default function TrainerApplicationsPage() {
                   .map((s) => s.replace(/_/g, ' '))
                   .join(', ')}
               </p>
-              <p><strong>Experience:</strong> {selectedApp.experienceYears} years</p>
+              <p><strong>Experience:</strong> {(selectedApp.experience != null ? selectedApp.experience : selectedApp.experienceYears) ?? 0} years</p>
+              <p><strong>Certifications:</strong> {selectedApp.certifications?.length ? selectedApp.certifications.join(', ') : 'None listed'}</p>
               <p><strong>Bio / Experience Notes:</strong> {selectedApp.bio || 'None provided'}</p>
+              {selectedApp.coverNote && (
+                <p><strong>Cover Note / Message:</strong> {selectedApp.coverNote}</p>
+              )}
             </div>
           </div>
         </Modal>

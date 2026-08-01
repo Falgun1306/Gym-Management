@@ -451,18 +451,33 @@ class MemberService {
             throw new ErrorHandler("You already have a pending trainer application. Please wait for admin review.", 409);
         }
 
-        const { specialization, experience, bio, certifications, coverNote } = body;
-        if (!specialization) {
+        const { specialization, specializations, experience, experienceYears, bio, certifications, coverNote } = body;
+        if (!specialization && (!Array.isArray(specializations) || specializations.length === 0)) {
             throw new ErrorHandler("specialization is required", 400);
         }
+        const primarySpec = specialization || specializations[0];
+        const specList = Array.isArray(specializations) && specializations.length > 0 ? specializations : [primarySpec];
+
+        const parsedExp = experience !== undefined && experience !== null && experience !== ""
+            ? parseInt(experience)
+            : experienceYears !== undefined && experienceYears !== null && experienceYears !== ""
+                ? parseInt(experienceYears)
+                : null;
+
+        const certList = Array.isArray(certifications)
+            ? certifications
+            : typeof certifications === "string"
+                ? certifications.split(",").map((s) => s.trim()).filter(Boolean)
+                : [];
 
         return prisma.trainerApplication.create({
             data: {
                 userId: user.id,
-                specialization,
-                experience: experience ? parseInt(experience) : null,
+                specialization: primarySpec,
+                specializations: specList,
+                experience: parsedExp,
                 bio: bio || null,
-                certifications: certifications || [],
+                certifications: certList,
                 coverNote: coverNote || null,
             },
         });

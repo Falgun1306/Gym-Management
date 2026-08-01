@@ -102,6 +102,13 @@ class AdminService {
                             username: true,
                             email: true,
                             role: true,
+                            member: {
+                                select: {
+                                    firstName: true,
+                                    lastName: true,
+                                    phone: true,
+                                },
+                            },
                         },
                     },
                 },
