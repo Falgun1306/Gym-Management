@@ -53,12 +53,28 @@ export const createTransporter = async () => {
         }
     }
 
-    // Fallback to standard SMTP transport configuration
+    // Fallback to standard SMTP transport configuration (App Password or EMAIL_PASS)
+    const pass = process.env.GMAIL_APP_PASSWORD || process.env.EMAIL_PASS;
+
+    if (!user || !pass) {
+        console.warn("⚠️ Email credentials not configured. Set GMAIL_APP_PASSWORD (or EMAIL_PASS) + GMAIL_USER in .env. Emails will be skipped.");
+        // Return a no-op transporter that logs instead of sending
+        return {
+            sendMail: async (mailOptions) => {
+                console.log(`📧 [EMAIL SKIPPED] To: ${mailOptions.to} | Subject: ${mailOptions.subject}`);
+                return { messageId: "skipped-no-credentials" };
+            },
+        };
+    }
+
     return nodemailer.createTransport({
         host: host,
         port: port,
         secure: port === 465,
-        auth: user ? { user } : undefined,
+        auth: {
+            user,
+            pass,
+        },
     });
 };
 
