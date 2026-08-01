@@ -52,6 +52,9 @@ class QrCheckinService {
 
         return {
             qrCodeDataUrl,
+            qrCodeUrl: qrCodeDataUrl,
+            token: qrToken,
+            qrToken,
             expiresAt,
             memberName: `${member.firstName} ${member.lastName}`,
         };
@@ -151,13 +154,19 @@ class QrCheckinService {
         const { data } = await membershipRepository.findMemberships(
             {
                 memberId,
-                status: "ACTIVE",
+                status: { in: ["ACTIVE", "PENDING", "SUSPENDED"] },
                 endDate: { gte: new Date() },
             },
             0,
             1
         );
-        return data.length > 0 ? data[0] : null;
+        if (data.length > 0) {
+            if (data[0].status === "PENDING") {
+                return membershipRepository.update(data[0].id, { status: "ACTIVE" });
+            }
+            return data[0];
+        }
+        return null;
     }
 }
 

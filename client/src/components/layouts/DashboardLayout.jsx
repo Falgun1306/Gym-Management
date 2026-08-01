@@ -73,6 +73,7 @@ const memberNav = [
   { to: '/dashboard/my-workout', icon: Dumbbell, label: 'My Workout' },
   { to: '/dashboard/my-diet', icon: UtensilsCrossed, label: 'My Diet' },
   { to: '/dashboard/classes', icon: CalendarDays, label: 'Classes' },
+  { to: '/dashboard/my-support', icon: MessageSquare, label: 'Support & Apply' },
 ];
 
 function getNavItems(role) {

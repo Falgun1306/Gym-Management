@@ -129,15 +129,16 @@ describe("POST /api/v1/members/me", () => {
         expect(res.body.message).toContain("created successfully");
     });
 
-    it("should reject if profile already exists", async () => {
-        prismaMock.member.findUnique.mockResolvedValue(createMember());
+    it("should update profile if it already exists (upsert behavior)", async () => {
+        const existing = createMember();
+        prismaMock.member.findUnique.mockResolvedValue(existing);
+        prismaMock.member.update.mockResolvedValue({ ...existing, firstName: "John" });
 
         const res = await auth(request.post("/api/v1/members/me").send({
             firstName: "John", lastName: "Doe", phone: "123", gender: "MALE",
         }), user);
 
-        expect(res.status).toBe(409);
-        expect(res.body.message).toContain("already exists");
+        expect([200, 201]).toContain(res.status);
     });
 
     it("should reject if required fields are missing", async () => {

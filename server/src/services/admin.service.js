@@ -609,15 +609,31 @@ class AdminService {
     }
 
     async assignMembership(body) {
-        const { memberId, planId, startDate, status, couponCode } = body;
-        if (!memberId || !planId) {
-            throw new ErrorHandler("memberId and planId are required", 400);
+        const { memberId, username, planId, startDate, status, couponCode } = body;
+        const memberIdentifier = memberId || username;
+
+        if (!memberIdentifier || !planId) {
+            throw new ErrorHandler("Member (ID or username) and planId are required", 400);
         }
 
-        const member = await memberRepository.findById(memberId);
+        let member = await memberRepository.findById(memberIdentifier);
         if (!member) {
-            throw new ErrorHandler("Member not found", 404);
+            member = await prisma.member.findFirst({
+                where: {
+                    OR: [
+                        { user: { username: memberIdentifier } },
+                        { user: { email: memberIdentifier } },
+                        { id: memberIdentifier },
+                    ],
+                },
+            });
         }
+
+        if (!member) {
+            throw new ErrorHandler(`Member not found with username or ID "${memberIdentifier}"`, 404);
+        }
+
+        const resolvedMemberId = member.id;
 
         const plan = await membershipRepository.findPlanById(planId);
         if (!plan) {
@@ -636,18 +652,18 @@ class AdminService {
         let couponPreview = null;
         if (couponCode) {
             // validateCoupon throws if invalid, so errors surface cleanly
-            couponPreview = await couponService.validateCoupon(couponCode, memberId, parseFloat(plan.price));
+            couponPreview = await couponService.validateCoupon(couponCode, resolvedMemberId, parseFloat(plan.price));
         }
 
         // ── Atomically create membership + apply coupon ──────────────────
         return prisma.$transaction(async (tx) => {
             const membership = await tx.membership.create({
                 data: {
-                    memberId,
+                    memberId: resolvedMemberId,
                     planId,
                     startDate: start,
                     endDate: end,
-                    status: status || "PENDING",
+                    status: status || "ACTIVE",
                     couponId: couponPreview?.couponId || null,
                 },
                 include: { plan: true, member: true },

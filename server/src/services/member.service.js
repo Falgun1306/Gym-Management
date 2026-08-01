@@ -37,10 +37,18 @@ class MemberService {
                         firstName: true,
                         lastName: true,
                         specialization: true,
+                        phone: true,
+                        experience: true,
+                        bio: true,
+                        user: {
+                            select: {
+                                email: true,
+                            },
+                        },
                     },
                 },
                 memberships: {
-                    where: { status: "ACTIVE" },
+                    where: { status: { in: ["ACTIVE", "PENDING", "SUSPENDED"] } },
                     include: {
                         plan: true,
                     },
@@ -60,7 +68,9 @@ class MemberService {
     async createMyProfile(userId, body) {
         const existingMember = await memberRepository.findByUserId(userId);
         if (existingMember) {
-            throw new ErrorHandler("Member profile already exists. Use PATCH to update.", 409);
+            // Profile already exists (e.g. auto-created during registration).
+            // Update it instead of rejecting — this handles the skeleton-profile case.
+            return this.updateMyProfile(userId, body);
         }
 
         const { firstName, lastName, phone, gender, dob, address, height, weight, medicalNotes, emergencyContactName, emergencyContactPhone, referralCode } = body;
