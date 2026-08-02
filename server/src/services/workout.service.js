@@ -122,6 +122,7 @@ class WorkoutService {
             memberId: member.id,
             trainerId: trainer.id,
             exerciseId: ex.exerciseId,
+            workoutPlanId: plan.id,
             sets: ex.sets,
             reps: ex.reps,
             weight: ex.weight,

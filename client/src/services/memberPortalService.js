@@ -63,6 +63,15 @@ export async function getMyDietPlans() {
   return api.get('/members/me/diet-plans');
 }
 
+// ─── Progress Tracking ────────────────────────────────────────────────────────
+export async function getMyProgress() {
+  return api.get('/members/me/progress');
+}
+
+export async function logMyProgress(data) {
+  return api.post('/members/me/progress', data);
+}
+
 // ─── Gym Classes & Bookings ──────────────────────────────────────────────────
 export async function listMemberGymClasses(params = {}) {
   return api.get('/members/gym-classes', { params });

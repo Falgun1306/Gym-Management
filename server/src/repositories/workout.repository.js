@@ -24,6 +24,27 @@ class WorkoutRepository {
                     include: { exercise: true },
                     orderBy: { orderIndex: "asc" },
                 },
+                assignments: {
+                    select: {
+                        id: true,
+                        memberId: true,
+                        assignedDate: true,
+                        member: {
+                            select: {
+                                id: true,
+                                firstName: true,
+                                lastName: true,
+                                user: {
+                                    select: {
+                                        username: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    distinct: ['memberId'],
+                    orderBy: { assignedDate: "desc" },
+                },
             },
             orderBy: { createdAt: "desc" },
         });

@@ -64,6 +64,16 @@ const unfreezeMembership = asyncHandler(async (req, res) => {
     res.status(200).json(new ApiResponse(200, membership, "Membership resumed successfully"));
 });
 
+const getMyProgress = asyncHandler(async (req, res) => {
+    const progress = await memberService.getMyProgress(req.user.id);
+    res.status(200).json(new ApiResponse(200, progress));
+});
+
+const logMyProgress = asyncHandler(async (req, res) => {
+    const log = await memberService.logMyProgress(req.user.id, req.body);
+    res.status(201).json(new ApiResponse(201, log, "Progress log added successfully"));
+});
+
 export {
     getMyProfile,
     createMyProfile,
@@ -75,6 +85,8 @@ export {
     getMySubscriptions,
     getMyWorkoutPlans,
     getMyDietPlans,
+    getMyProgress,
+    logMyProgress,
     listGymClasses,
     bookGymClass,
     cancelGymClass,

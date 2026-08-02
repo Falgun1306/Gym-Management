@@ -78,6 +78,55 @@ export default function WorkoutPlansPage() {
       ),
     },
     {
+      key: 'assignedTo',
+      label: 'Assigned To',
+      render: (row) => {
+        // Deduplicate members from assignments
+        const memberMap = new Map();
+        (row.assignments || []).forEach((a) => {
+          if (a.member && !memberMap.has(a.member.id)) {
+            memberMap.set(a.member.id, a.member);
+          }
+        });
+        const assignedMembers = Array.from(memberMap.values());
+
+        if (assignedMembers.length === 0) {
+          return (
+            <span className="text-xs text-slate-400 italic">Not assigned</span>
+          );
+        }
+
+        const displayLimit = 3;
+        const shown = assignedMembers.slice(0, displayLimit);
+        const remaining = assignedMembers.length - displayLimit;
+
+        return (
+          <div className="flex flex-wrap gap-1 items-center">
+            {shown.map((m) => {
+              const name = m.firstName && m.lastName
+                ? `${m.firstName} ${m.lastName}`
+                : m.user?.username || 'Member';
+              return (
+                <Badge
+                  key={m.id}
+                  variant="info"
+                  className="text-xs"
+                  title={`@${m.user?.username || ''}`}
+                >
+                  {name}
+                </Badge>
+              );
+            })}
+            {remaining > 0 && (
+              <span className="text-xs text-slate-500 font-medium ml-0.5">
+                +{remaining} more
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: 'actions',
       label: 'Actions',
       render: (row) => (

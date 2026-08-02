@@ -36,6 +36,7 @@ export const queryKeys = {
     subscriptions: (id) => ['members', id, 'subscriptions'],
     workoutPlans: (id) => ['members', id, 'workout-plans'],
     dietPlans: (id) => ['members', id, 'diet-plans'],
+    progress: (id) => ['members', id, 'progress'],
     notifications: (params) => ['members', 'notifications', params],
     applications: () => ['members', 'applications'],
   },

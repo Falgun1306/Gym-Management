@@ -2,74 +2,29 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { queryKeys } from '@/lib/queryKeys';
-import { getMyProfile, updateMyProfile, getMySchedule, updateMySchedule } from '@/services/trainerService';
-import { Card, CardHeader, Button, Input, Textarea, Select, Badge } from '@/components/ui';
+import { getMySchedule, updateMySchedule } from '@/services/trainerService';
+import { Card, CardHeader, Button, Input, Badge } from '@/components/ui';
 import { SkeletonCard } from '@/components/ui/Skeleton';
-import { TRAINER_SPECIALIZATION, DAYS_OF_WEEK } from '@/utils/constants';
-import {
-  User,
-  Save,
-  Phone,
-  Mail,
-  Award,
-  Clock,
-  Calendar,
-  Briefcase,
-} from 'lucide-react';
-
-const GENDER_OPTIONS = [
-  { value: 'MALE', label: 'Male' },
-  { value: 'FEMALE', label: 'Female' },
-  { value: 'OTHER', label: 'Other' },
-];
+import { DAYS_OF_WEEK } from '@/utils/constants';
+import { Save, Calendar, CalendarClock } from 'lucide-react';
 
 /**
- * TrainerProfilePage — Profile management and weekly schedule editor.
- *
- * Two sections:
- *  1. Profile info (bio, gender, specialization, certifications, phone)
- *  2. Weekly schedule grid (available time slots per day)
+ * TrainerSchedulePage (formerly TrainerProfilePage) — Weekly schedule availability editor.
  */
-export default function TrainerProfilePage() {
+export default function TrainerSchedulePage() {
   const queryClient = useQueryClient();
 
-  // ── Profile data ──
-  const { data: profileRes, isLoading: profileLoading } = useQuery({
-    queryKey: queryKeys.trainers.detail('me'),
-    queryFn: getMyProfile,
-  });
-
   // ── Schedule data ──
-  const { data: scheduleRes, isLoading: scheduleLoading } = useQuery({
+  const { data: scheduleRes, isLoading } = useQuery({
     queryKey: queryKeys.trainers.schedule(),
     queryFn: getMySchedule,
   });
 
-  const profile = profileRes?.data;
   const schedule = scheduleRes?.data;
-
-  // ── Profile edit state ──
-  const [editing, setEditing] = useState(false);
-  const [profileForm, setProfileForm] = useState(null);
 
   // ── Schedule edit state ──
   const [editingSchedule, setEditingSchedule] = useState(false);
   const [scheduleForm, setScheduleForm] = useState(null);
-
-  // Start editing profile
-  const startProfileEdit = () => {
-    setProfileForm({
-      bio: profile?.bio || '',
-      gender: profile?.gender || 'MALE',
-      specialization: profile?.specialization || '',
-      certifications: Array.isArray(profile?.certifications)
-        ? profile.certifications.join(', ')
-        : profile?.certifications || '',
-      phone: profile?.phone || profile?.user?.phone || '',
-      experience: profile?.experience || '',
-    });
-    setEditing(true);
-  };
 
   // Start editing schedule
   const startScheduleEdit = () => {
@@ -88,17 +43,6 @@ export default function TrainerProfilePage() {
     setEditingSchedule(true);
   };
 
-  // ── Mutations ──
-  const profileMutation = useMutation({
-    mutationFn: (data) => updateMyProfile(data),
-    onSuccess: () => {
-      toast.success('Profile updated successfully');
-      queryClient.invalidateQueries({ queryKey: queryKeys.trainers.detail('me') });
-      setEditing(false);
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
   const scheduleMutation = useMutation({
     mutationFn: (data) => updateMySchedule(data),
     onSuccess: () => {
@@ -106,22 +50,8 @@ export default function TrainerProfilePage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.trainers.schedule() });
       setEditingSchedule(false);
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message || 'Failed to update schedule'),
   });
-
-  const handleProfileSave = (e) => {
-    e.preventDefault();
-    const certsArray = typeof profileForm.certifications === 'string'
-      ? profileForm.certifications.split(',').map((c) => c.trim()).filter(Boolean)
-      : profileForm.certifications;
-
-    profileMutation.mutate({
-      bio: profileForm.bio,
-      gender: profileForm.gender,
-      profilePhoto: profile?.profilePhoto || null,
-      certifications: certsArray,
-    });
-  };
 
   const handleScheduleSave = (e) => {
     e.preventDefault();
@@ -134,10 +64,9 @@ export default function TrainerProfilePage() {
     scheduleMutation.mutate({ slots: slotsPayload });
   };
 
-  if (profileLoading || scheduleLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
-        <SkeletonCard />
         <SkeletonCard />
       </div>
     );
@@ -156,93 +85,23 @@ export default function TrainerProfilePage() {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       {/* ── Page Header ── */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Profile & Availability</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Manage your bio, certifications, and weekly working hours.
+        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <CalendarClock className="w-7 h-7 text-emerald-600" />
+          My Weekly Schedule & Availability
+        </h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Configure your available working hours for training sessions, member appointments, and gym classes.
         </p>
       </div>
 
-      {/* ── Profile Section ── */}
-      <Card>
-        <CardHeader
-          title="Personal Information"
-          action={
-            !editing ? (
-              <Button variant="outline" size="sm" onClick={startProfileEdit}>
-                Edit Profile
-              </Button>
-            ) : null
-          }
-        />
-
-        {editing ? (
-          <form onSubmit={handleProfileSave} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Gender"
-                options={GENDER_OPTIONS}
-                value={profileForm.gender}
-                onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}
-              />
-              <Input
-                label="Certifications (comma separated)"
-                icon={Award}
-                value={profileForm.certifications}
-                onChange={(e) => setProfileForm({ ...profileForm, certifications: e.target.value })}
-                placeholder="NASM, ACE, ISSA..."
-              />
-            </div>
-            <Textarea
-              label="Bio"
-              value={profileForm.bio}
-              onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
-              placeholder="Tell your clients about yourself, your training philosophy, and experience..."
-              rows={4}
-            />
-            <div className="flex items-center gap-2 pt-2">
-              <Button type="submit" loading={profileMutation.isPending} icon={Save}>
-                Save Changes
-              </Button>
-              <Button variant="outline" onClick={() => setEditing(false)}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <InfoRow icon={User} label="Name" value={`${profile?.firstName || ''} ${profile?.lastName || ''}`.trim() || profile?.user?.username || '—'} />
-              <InfoRow icon={User} label="Gender" value={profile?.gender ? profile.gender.charAt(0) + profile.gender.slice(1).toLowerCase() : '—'} />
-              <InfoRow icon={Mail} label="Email" value={profile?.user?.email || '—'} />
-              <InfoRow icon={Phone} label="Phone" value={profile?.phone || '—'} />
-              <InfoRow icon={Briefcase} label="Experience" value={profile?.experience ? `${profile.experience} years` : '—'} />
-            </div>
-            <div className="space-y-4">
-              <InfoRow icon={Award} label="Specialization" value={profile?.specialization ? TRAINER_SPECIALIZATION[profile.specialization] || profile.specialization : '—'} />
-              <InfoRow
-                icon={Award}
-                label="Certifications"
-                value={Array.isArray(profile?.certifications) ? profile.certifications.join(', ') || '—' : profile?.certifications || '—'}
-              />
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Bio</p>
-                <p className="text-sm text-slate-700 leading-relaxed">
-                  {profile?.bio || 'No bio added yet.'}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </Card>
-
       {/* ── Schedule Section ── */}
-      <Card>
+      <Card className="shadow-md border-slate-200/80">
         <CardHeader
-          title="Weekly Schedule"
-          subtitle="Set your available working hours for each day."
+          title="Working Hours Grid"
+          subtitle="Set your active working windows for each day of the week."
           action={
             !editingSchedule ? (
               <Button variant="outline" size="sm" onClick={startScheduleEdit} icon={Calendar}>
@@ -252,108 +111,101 @@ export default function TrainerProfilePage() {
           }
         />
 
-        {editingSchedule ? (
-          <form onSubmit={handleScheduleSave} className="space-y-3">
-            {(scheduleForm || []).map((slot, idx) => (
-              <div
-                key={slot.dayOfWeek}
-                className="flex items-center gap-4 p-3 rounded-lg border border-slate-100 bg-slate-50/50"
-              >
-                <label className="flex items-center gap-2 min-w-[120px] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={slot.isAvailable}
-                    onChange={(e) => {
-                      const updated = [...scheduleForm];
-                      updated[idx].isAvailable = e.target.checked;
-                      setScheduleForm(updated);
-                    }}
-                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span className="text-sm font-medium text-slate-700">{slot.dayName}</span>
-                </label>
+        <div className="p-6 pt-2">
+          {editingSchedule ? (
+            <form onSubmit={handleScheduleSave} className="space-y-3">
+              {(scheduleForm || []).map((slot, idx) => (
+                <div
+                  key={slot.dayOfWeek}
+                  className="flex flex-wrap items-center justify-between gap-4 p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition-colors"
+                >
+                  <label className="flex items-center gap-3 min-w-[140px] cursor-pointer font-bold text-slate-800">
+                    <input
+                      type="checkbox"
+                      checked={slot.isAvailable}
+                      onChange={(e) => {
+                        const updated = [...scheduleForm];
+                        updated[idx].isAvailable = e.target.checked;
+                        setScheduleForm(updated);
+                      }}
+                      className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span>{slot.dayName}</span>
+                  </label>
 
-                {slot.isAvailable ? (
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <Input
-                      type="time"
-                      value={slot.startTime}
-                      onChange={(e) => {
-                        const updated = [...scheduleForm];
-                        updated[idx].startTime = e.target.value;
-                        setScheduleForm(updated);
-                      }}
-                      className="!py-1 !px-2 text-xs"
-                    />
-                    <span>to</span>
-                    <Input
-                      type="time"
-                      value={slot.endTime}
-                      onChange={(e) => {
-                        const updated = [...scheduleForm];
-                        updated[idx].endTime = e.target.value;
-                        setScheduleForm(updated);
-                      }}
-                      className="!py-1 !px-2 text-xs"
-                    />
-                  </div>
-                ) : (
-                  <span className="text-xs text-slate-400 italic">Unavailable</span>
-                )}
+                  {slot.isAvailable ? (
+                    <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
+                      <Input
+                        type="time"
+                        value={slot.startTime}
+                        onChange={(e) => {
+                          const updated = [...scheduleForm];
+                          updated[idx].startTime = e.target.value;
+                          setScheduleForm(updated);
+                        }}
+                        className="!py-1.5 !px-2.5 text-xs font-semibold !w-32 bg-white shadow-sm"
+                      />
+                      <span className="text-slate-400 font-bold">to</span>
+                      <Input
+                        type="time"
+                        value={slot.endTime}
+                        onChange={(e) => {
+                          const updated = [...scheduleForm];
+                          updated[idx].endTime = e.target.value;
+                          setScheduleForm(updated);
+                        }}
+                        className="!py-1.5 !px-2.5 text-xs font-semibold !w-32 bg-white shadow-sm"
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-400 font-semibold italic bg-slate-100 px-3 py-1 rounded-full">
+                      Unavailable / Off
+                    </span>
+                  )}
+                </div>
+              ))}
+
+              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+                <Button variant="outline" type="button" onClick={() => setEditingSchedule(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" loading={scheduleMutation.isPending} icon={Save} className="!bg-emerald-600 !text-white hover:!bg-emerald-700 shadow-md">
+                  Save Schedule
+                </Button>
               </div>
-            ))}
-
-            <div className="flex items-center gap-2 pt-3">
-              <Button type="submit" loading={scheduleMutation.isPending} icon={Save}>
-                Save Schedule
-              </Button>
-              <Button variant="outline" onClick={() => setEditingSchedule(false)}>
-                Cancel
-              </Button>
+            </form>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
+              {scheduleDisplay.map((slot) => (
+                <div
+                  key={slot.dayOfWeek}
+                  className={`p-4 rounded-2xl border text-center transition-all ${
+                    slot.isAvailable
+                      ? 'bg-gradient-to-b from-emerald-50/60 to-white border-emerald-200/80 shadow-sm'
+                      : 'bg-slate-50/60 border-slate-200/60 opacity-60'
+                  }`}
+                >
+                  <p className="text-xs font-extrabold text-slate-900 mb-2">{slot.dayName}</p>
+                  {slot.isAvailable ? (
+                    <div className="space-y-1.5">
+                      <Badge variant="success" size="sm" className="font-bold px-2.5 py-0.5 shadow-xs">
+                        Available
+                      </Badge>
+                      <p className="text-[11px] text-slate-700 font-bold tracking-tight bg-white py-1 px-1.5 rounded-lg border border-slate-100 shadow-xs mt-2">
+                        {slot.startTime} - {slot.endTime}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="py-3">
+                      <p className="text-xs text-slate-400 font-bold">Off</p>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          </form>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
-            {scheduleDisplay.map((slot) => (
-              <div
-                key={slot.dayOfWeek}
-                className={`p-3 rounded-xl border text-center transition-colors ${
-                  slot.isAvailable
-                    ? 'bg-emerald-50/50 border-emerald-200'
-                    : 'bg-slate-50 border-slate-200 opacity-60'
-                }`}
-              >
-                <p className="text-xs font-bold text-slate-900 mb-1">{slot.dayName}</p>
-                {slot.isAvailable ? (
-                  <div className="space-y-0.5">
-                    <Badge variant="success" size="sm">Available</Badge>
-                    <p className="text-[11px] text-slate-600 font-medium mt-1">
-                      {slot.startTime} - {slot.endTime}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-400 font-medium">Off</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+          )}
+        </div>
       </Card>
-    </div>
-  );
-}
-
-// Helper row component
-function InfoRow({ icon: Icon, label, value }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-        <Icon className="w-4 h-4 text-slate-600" />
-      </div>
-      <div>
-        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
-        <p className="text-sm font-medium text-slate-900">{value}</p>
-      </div>
     </div>
   );
 }
