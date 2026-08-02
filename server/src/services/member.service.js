@@ -489,6 +489,38 @@ class MemberService {
             orderBy: { createdAt: "desc" },
         });
     }
+
+    async getMyProgress(userId) {
+        const member = await memberRepository.findByUserId(userId);
+        if (!member) {
+            throw new ErrorHandler("Member profile not found", 404);
+        }
+        return prisma.progressLog.findMany({
+            where: { memberId: member.id },
+            orderBy: { recordedAt: "desc" },
+        });
+    }
+
+    async logMyProgress(userId, body) {
+        const member = await memberRepository.findByUserId(userId);
+        if (!member) {
+            throw new ErrorHandler("Member profile not found", 404);
+        }
+        const { weight, bodyFat, chest, waist, arms, thigh, notes, recordedAt } = body;
+        return prisma.progressLog.create({
+            data: {
+                memberId: member.id,
+                weight: weight !== undefined && weight !== null && weight !== "" ? parseFloat(weight) : null,
+                bodyFat: bodyFat !== undefined && bodyFat !== null && bodyFat !== "" ? parseFloat(bodyFat) : null,
+                chest: chest !== undefined && chest !== null && chest !== "" ? parseFloat(chest) : null,
+                waist: waist !== undefined && waist !== null && waist !== "" ? parseFloat(waist) : null,
+                arms: arms !== undefined && arms !== null && arms !== "" ? parseFloat(arms) : null,
+                thigh: thigh !== undefined && thigh !== null && thigh !== "" ? parseFloat(thigh) : null,
+                notes: notes || null,
+                ...(recordedAt ? { recordedAt: new Date(recordedAt) } : {}),
+            },
+        });
+    }
 }
 
 export default new MemberService();

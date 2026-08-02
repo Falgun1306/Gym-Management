@@ -22,6 +22,8 @@ import {
     getMyApplications,
     freezeMembership,
     unfreezeMembership,
+    getMyProgress,
+    logMyProgress,
 } from "../controller/member.controller.js";
 
 const router = express.Router();
@@ -36,6 +38,8 @@ router.get("/me/payments", auth, getMyPayments);
 router.get("/me/subscriptions", auth, getMySubscriptions);
 router.get("/me/workout-plans", auth, getMyWorkoutPlans);
 router.get("/me/diet-plans", auth, getMyDietPlans);
+router.get("/me/progress", auth, getMyProgress);
+router.post("/me/progress", auth, logMyProgress);
 router.get("/me/notifications", auth, getMyNotifications);
 router.patch("/me/notifications/:id", auth, markNotificationRead);
 

@@ -293,19 +293,21 @@ model Exercise {
 }
 
 model WorkoutAssignment {
-  id           String   @id @default(cuid())
-  memberId     String
-  trainerId    String
-  exerciseId   String
-  sets         Int
-  reps         Int
-  weight       Float?
-  restSeconds  Int?
-  assignedDate DateTime @default(now())
+  id             String   @id @default(cuid())
+  memberId       String
+  trainerId      String
+  exerciseId     String
+  workoutPlanId  String?
+  sets           Int
+  reps           Int
+  weight         Float?
+  restSeconds    Int?
+  assignedDate   DateTime @default(now())
 
-  member   Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  trainer  Trainer  @relation(fields: [trainerId], references: [id], onDelete: Cascade)
-  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  trainer      Trainer      @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  exercise     Exercise     @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  workoutPlan  WorkoutPlan? @relation(fields: [workoutPlanId], references: [id], onDelete: SetNull)
 }
 
 model DietPlan {
@@ -421,8 +423,9 @@ model WorkoutPlan {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  trainer   Trainer              @relation(fields: [trainerId], references: [id], onDelete: Cascade)
-  exercises WorkoutPlanExercise[]
+  trainer     Trainer              @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  exercises   WorkoutPlanExercise[]
+  assignments WorkoutAssignment[]
 }
 
 model WorkoutPlanExercise {

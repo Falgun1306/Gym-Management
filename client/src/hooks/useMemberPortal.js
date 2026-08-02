@@ -14,6 +14,8 @@ import {
   memberCheckOut,
   getMyWorkoutPlans,
   getMyDietPlans,
+  getMyProgress,
+  logMyProgress,
   listMemberGymClasses,
   bookGymClass,
   cancelGymClass,
@@ -187,6 +189,29 @@ export function useMemberDietPlans() {
     queryFn: getMyDietPlans,
     staleTime: 30_000,
     select: (res) => res.data,
+  });
+}
+
+// ─── Progress Tracking Hooks ──────────────────────────────────────────────────
+export function useMemberProgress() {
+  return useQuery({
+    queryKey: queryKeys.members.progress('me'),
+    queryFn: getMyProgress,
+    staleTime: 15_000,
+    select: (res) => res.data,
+  });
+}
+
+export function useLogMemberProgress() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data) => logMyProgress(data),
+    onSuccess: (res) => {
+      toast.success(res.message || 'Progress logged successfully!');
+      queryClient.invalidateQueries({ queryKey: queryKeys.members.progress('me') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.member() });
+    },
+    onError: (err) => toast.error(err.message || 'Failed to log progress'),
   });
 }
 

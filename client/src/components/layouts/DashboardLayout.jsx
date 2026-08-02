@@ -63,7 +63,6 @@ const trainerNav = [
   { to: '/dashboard/my-schedule', icon: CalendarClock, label: 'My Schedule' },
   { to: '/dashboard/attendance', icon: UserCheck, label: 'Attendance' },
   { to: '/dashboard/class-bookings', icon: CalendarDays, label: 'Class Bookings' },
-  { to: '/dashboard/profile', icon: User, label: 'Profile' },
 ];
 
 const memberNav = [
@@ -72,6 +71,7 @@ const memberNav = [
   { to: '/dashboard/my-attendance', icon: UserCheck, label: 'My Attendance' },
   { to: '/dashboard/my-workout', icon: Dumbbell, label: 'My Workout' },
   { to: '/dashboard/my-diet', icon: UtensilsCrossed, label: 'My Diet' },
+  { to: '/dashboard/my-progress', icon: TrendingUp, label: 'My Progress' },
   { to: '/dashboard/classes', icon: CalendarDays, label: 'Classes' },
   { to: '/dashboard/my-support', icon: MessageSquare, label: 'Support & Apply' },
 ];
@@ -236,6 +236,19 @@ export default function DashboardLayout() {
         {/* Bottom section */}
         <div className={cn('border-t border-slate-800 p-3 space-y-1', sidebarCollapsed && 'px-2')}>
           <NavLink
+            to="/dashboard/profile"
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full',
+                isActive ? 'bg-emerald-700/20 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-slate-800',
+                sidebarCollapsed && 'justify-center px-2'
+              )
+            }
+          >
+            <User className="w-[18px] h-[18px]" />
+            {!sidebarCollapsed && <span>My Profile</span>}
+          </NavLink>
+          <NavLink
             to="/dashboard/settings"
             className={({ isActive }) =>
               cn(
@@ -326,12 +339,14 @@ export default function DashboardLayout() {
             </button>
 
             {/* User avatar */}
-            <Avatar
-              firstName={user?.username?.[0]}
-              lastName=""
-              size="sm"
-              className="cursor-pointer"
-            />
+            <Link to="/dashboard/profile" title="View Profile">
+              <Avatar
+                firstName={user?.username?.[0]}
+                lastName=""
+                size="sm"
+                className="cursor-pointer hover:ring-2 hover:ring-emerald-500 transition-all"
+              />
+            </Link>
           </div>
         </header>
 

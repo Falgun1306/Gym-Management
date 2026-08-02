@@ -35,6 +35,7 @@ import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
 // ── Trainer pages ──
 import TrainerDashboard from '@/pages/trainers/TrainerDashboard';
 import TrainerProfilePage from '@/pages/trainers/TrainerProfilePage';
+import ProfilePage from '@/pages/ProfilePage';
 import MyMembersPage from '@/pages/trainers/MyMembersPage';
 import ExercisesPage from '@/pages/trainers/ExercisesPage';
 import WorkoutPlansPage from '@/pages/trainers/WorkoutPlansPage';
@@ -48,6 +49,7 @@ import MyMembershipPage from '@/pages/members/MyMembershipPage';
 import MyAttendancePage from '@/pages/members/MyAttendancePage';
 import MyWorkoutPage from '@/pages/members/MyWorkoutPage';
 import MyDietPage from '@/pages/members/MyDietPage';
+import MyProgressPage from '@/pages/members/MyProgressPage';
 import MemberClassesPage from '@/pages/members/MemberClassesPage';
 import MemberSupportPage from '@/pages/members/MemberSupportPage';
 
@@ -137,13 +139,14 @@ export default function App() {
         <Route path="my-schedule" element={<RoleGuard allowedRoles={['TRAINER']}><TrainerProfilePage /></RoleGuard>} />
         <Route path="attendance" element={<RoleGuard allowedRoles={['TRAINER']}><MemberAttendancePage /></RoleGuard>} />
         <Route path="class-bookings" element={<RoleGuard allowedRoles={['TRAINER']}><ClassBookingsPage /></RoleGuard>} />
-        <Route path="profile" element={<RoleGuard allowedRoles={['TRAINER', 'MEMBER']}><TrainerProfilePage /></RoleGuard>} />
+        <Route path="profile" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER', 'MEMBER']}><ProfilePage /></RoleGuard>} />
 
         {/* ── Member Portal routes ── */}
         <Route path="my-membership" element={<RoleGuard allowedRoles={['MEMBER']}><MyMembershipPage /></RoleGuard>} />
         <Route path="my-attendance" element={<RoleGuard allowedRoles={['MEMBER']}><MyAttendancePage /></RoleGuard>} />
         <Route path="my-workout" element={<RoleGuard allowedRoles={['MEMBER']}><MyWorkoutPage /></RoleGuard>} />
         <Route path="my-diet" element={<RoleGuard allowedRoles={['MEMBER']}><MyDietPage /></RoleGuard>} />
+        <Route path="my-progress" element={<RoleGuard allowedRoles={['MEMBER']}><MyProgressPage /></RoleGuard>} />
         <Route path="classes" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER', 'MEMBER']}><MemberClassesPage /></RoleGuard>} />
         <Route path="my-support" element={<RoleGuard allowedRoles={['MEMBER']}><MemberSupportPage /></RoleGuard>} />
       </Route>
