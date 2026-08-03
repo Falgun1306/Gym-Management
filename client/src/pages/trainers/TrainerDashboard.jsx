@@ -107,15 +107,15 @@ export default function TrainerDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Assigned Members"
-            value={stats?.assignedMembers ?? '—'}
+            value={stats?.assignedMembersCount ?? '—'}
             icon={Users}
             iconBg="bg-slate-100 text-slate-700"
             trend={stats?.membersTrend}
             trendLabel="this month"
           />
           <StatCard
-            title="Today's Workouts"
-            value={stats?.todaysWorkouts ?? '—'}
+            title="Active Workout Plans"
+            value={stats?.workoutPlansCount ?? '—'}
             icon={Dumbbell}
             iconBg="bg-emerald-50 text-emerald-700"
             trend={stats?.workoutsTrend}
@@ -123,14 +123,14 @@ export default function TrainerDashboard() {
           />
           <StatCard
             title="Active Diet Plans"
-            value={stats?.activeDietPlans ?? '—'}
+            value={stats?.dietPlansCount ?? '—'}
             icon={UtensilsCrossed}
             iconBg="bg-red-50 text-red-700"
             trend={stats?.dietTrend}
           />
           <StatCard
-            title="Today's Classes"
-            value={stats?.todaysClasses ?? '—'}
+            title="Assigned Classes"
+            value={stats?.gymClassesCount ?? '—'}
             icon={CalendarDays}
             iconBg="bg-indigo-50 text-indigo-700"
           />
@@ -288,8 +288,8 @@ export default function TrainerDashboard() {
                         : '—'}
                     </td>
                     <td className="px-6 py-3">
-                      <Badge status={member.progressStatus || 'ACTIVE'} size="sm">
-                        {member.progressStatus === 'ON_TRACK' ? 'On Track' : member.progressStatus || 'Active'}
+                      <Badge status={member.progressStatus === 'ON_TRACK' ? 'SUCCESS' : member.progressStatus === 'NEEDS_UPDATE' ? 'WARNING' : 'ACTIVE'} size="sm">
+                        {member.progressStatus === 'ON_TRACK' ? 'On Track' : member.progressStatus === 'NEEDS_UPDATE' ? 'Needs Update' : 'Active'}
                       </Badge>
                     </td>
                   </tr>

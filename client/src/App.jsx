@@ -36,6 +36,7 @@ import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
 import TrainerDashboard from '@/pages/trainers/TrainerDashboard';
 import TrainerProfilePage from '@/pages/trainers/TrainerProfilePage';
 import ProfilePage from '@/pages/ProfilePage';
+import NotificationsPage from '@/pages/shared/NotificationsPage';
 import MyMembersPage from '@/pages/trainers/MyMembersPage';
 import ExercisesPage from '@/pages/trainers/ExercisesPage';
 import WorkoutPlansPage from '@/pages/trainers/WorkoutPlansPage';
@@ -140,6 +141,7 @@ export default function App() {
         <Route path="attendance" element={<RoleGuard allowedRoles={['TRAINER']}><MemberAttendancePage /></RoleGuard>} />
         <Route path="class-bookings" element={<RoleGuard allowedRoles={['TRAINER']}><ClassBookingsPage /></RoleGuard>} />
         <Route path="profile" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER', 'MEMBER']}><ProfilePage /></RoleGuard>} />
+        <Route path="notifications" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER', 'MEMBER']}><NotificationsPage /></RoleGuard>} />
 
         {/* ── Member Portal routes ── */}
         <Route path="my-membership" element={<RoleGuard allowedRoles={['MEMBER']}><MyMembershipPage /></RoleGuard>} />

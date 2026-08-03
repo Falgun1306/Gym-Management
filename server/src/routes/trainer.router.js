@@ -20,6 +20,9 @@ import {
     updateDietPlan,
     deleteDietPlan,
     assignDietPlan,
+    getTimeOffs,
+    createTimeOff,
+    deleteTimeOff,
     getMySchedule,
     updateMySchedule,
     logMemberProgress,
@@ -49,6 +52,10 @@ router.get("/me/members/:memberId", auth, authorize("TRAINER"), getMyMemberById)
 
 router.get("/me/schedule", auth, authorize("TRAINER"), getMySchedule);
 router.patch("/me/schedule", auth, authorize("TRAINER"), updateMySchedule);
+
+router.get("/me/time-off", auth, authorize("TRAINER"), getTimeOffs);
+router.post("/me/time-off", auth, authorize("TRAINER"), createTimeOff);
+router.delete("/me/time-off/:timeOffId", auth, authorize("TRAINER"), deleteTimeOff);
 
 // ─── Workout Plans CRUD ──────────────────────────────────────────────────────
 

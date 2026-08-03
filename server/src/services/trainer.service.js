@@ -165,7 +165,7 @@ class TrainerService {
     async getMyMembers(userId) {
         const trainer = await this.getTrainerRecord(userId);
 
-        return memberRepository.findMany({ trainerId: trainer.id }, 0, 100, { joinedAt: "desc" }, {
+        const members = await memberRepository.findMany({ trainerId: trainer.id }, 0, 100, { joinedAt: "desc" }, {
             user: {
                 select: {
                     username: true,
@@ -178,7 +178,22 @@ class TrainerService {
                 orderBy: { startDate: "desc" },
                 take: 1,
             },
+            progressLogs: {
+                orderBy: { recordedAt: "desc" },
+                take: 1,
+            }
         }).then(res => res.data);
+
+        return members.map(member => {
+            const latestLog = member.progressLogs?.[0];
+            return {
+                ...member,
+                goal: member.medicalNotes ? "Health/Recovery" : "General Fitness",
+                latestMetric: latestLog?.weight ? `${latestLog.weight} kg` : null,
+                lastProgressDate: latestLog?.recordedAt || null,
+                progressStatus: latestLog ? "ON_TRACK" : "NEEDS_UPDATE",
+            };
+        });
     }
 
     async getMyMemberById(userId, memberId) {
@@ -244,30 +259,82 @@ class TrainerService {
             }
         }
 
-        return prisma.$transaction(
-            slots.map((slot) =>
-                prisma.trainerSchedule.upsert({
-                    where: {
-                        trainerId_dayOfWeek: {
-                            trainerId: trainer.id,
-                            dayOfWeek: slot.dayOfWeek,
-                        },
-                    },
-                    update: {
-                        startTime: slot.startTime,
-                        endTime: slot.endTime,
-                        isAvailable: slot.isAvailable ?? true,
-                    },
-                    create: {
-                        trainerId: trainer.id,
-                        dayOfWeek: slot.dayOfWeek,
-                        startTime: slot.startTime,
-                        endTime: slot.endTime,
-                        isAvailable: slot.isAvailable ?? true,
-                    },
-                })
-            )
-        );
+        // Drop old recurring schedule and insert new split shifts
+        return prisma.$transaction(async (tx) => {
+            await tx.trainerSchedule.deleteMany({
+                where: { trainerId: trainer.id },
+            });
+
+            await tx.trainerSchedule.createMany({
+                data: slots.map((slot) => ({
+                    trainerId: trainer.id,
+                    dayOfWeek: slot.dayOfWeek,
+                    startTime: slot.startTime,
+                    endTime: slot.endTime,
+                    isAvailable: slot.isAvailable ?? true,
+                })),
+            });
+
+            return tx.trainerSchedule.findMany({
+                where: { trainerId: trainer.id },
+                orderBy: [
+                    { dayOfWeek: "asc" },
+                    { startTime: "asc" }
+                ],
+            });
+        });
+    }
+
+    // ─── Time Off / Exceptions ───────────────────────────────────────────────
+
+    async getTimeOffs(userId) {
+        const trainer = await this.getTrainerRecord(userId);
+
+        return prisma.trainerTimeOff.findMany({
+            where: { trainerId: trainer.id },
+            orderBy: { startDate: "asc" },
+        });
+    }
+
+    async createTimeOff(userId, body) {
+        const trainer = await this.getTrainerRecord(userId);
+        const { startDate, endDate, reason, isFullDay } = body;
+
+        if (!startDate || !endDate) {
+            throw new ErrorHandler("startDate and endDate are required", 400);
+        }
+
+        if (new Date(startDate) > new Date(endDate)) {
+            throw new ErrorHandler("startDate cannot be after endDate", 400);
+        }
+
+        return prisma.trainerTimeOff.create({
+            data: {
+                trainerId: trainer.id,
+                startDate: new Date(startDate),
+                endDate: new Date(endDate),
+                reason,
+                isFullDay: isFullDay ?? true,
+            },
+        });
+    }
+
+    async deleteTimeOff(userId, timeOffId) {
+        const trainer = await this.getTrainerRecord(userId);
+
+        const timeOff = await prisma.trainerTimeOff.findUnique({
+            where: { id: timeOffId },
+        });
+
+        if (!timeOff || timeOff.trainerId !== trainer.id) {
+            throw new ErrorHandler("Time off record not found", 404);
+        }
+
+        await prisma.trainerTimeOff.delete({
+            where: { id: timeOffId },
+        });
+
+        return { message: "Time off deleted successfully" };
     }
 
     async logMemberProgress(userId, memberId, body) {

@@ -207,6 +207,7 @@ model Trainer {
   dietPlans          DietPlan[]
   gymClasses         GymClass[]
   schedules          TrainerSchedule[]
+  timeOffs           TrainerTimeOff[]
 }
 
 model TrainerApplication {
@@ -453,8 +454,19 @@ model TrainerSchedule {
   isAvailable Boolean @default(true)
 
   trainer Trainer @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+}
 
-  @@unique([trainerId, dayOfWeek])
+model TrainerTimeOff {
+  id          String   @id @default(cuid())
+  trainerId   String
+  startDate   DateTime
+  endDate     DateTime
+  reason      String?
+  isFullDay   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  trainer Trainer @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  @@index([trainerId, startDate, endDate])
 }
 
 // ─── Optional Models ─────────────────────────────────────────────────────────

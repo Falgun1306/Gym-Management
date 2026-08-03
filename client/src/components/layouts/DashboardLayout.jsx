@@ -33,6 +33,7 @@ import { logoutUser } from '@/services/authService';
 import { Avatar } from '@/components/ui';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
+import { NotificationDropdown } from '@/components/ui/NotificationDropdown';
 
 /**
  * DashboardLayout — Main application shell.
@@ -327,11 +328,8 @@ export default function DashboardLayout() {
               />
             </div>
 
-            {/* Notification bell */}
-            <button className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
+            {/* Notification Dropdown */}
+            <NotificationDropdown />
 
             {/* Help */}
             <button className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
