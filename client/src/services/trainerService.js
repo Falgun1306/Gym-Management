@@ -31,6 +31,15 @@ export const getMySchedule = () => api.get('/trainers/me/schedule');
 /** PATCH /api/v1/trainers/me/schedule */
 export const updateMySchedule = (data) => api.patch('/trainers/me/schedule', data);
 
+/** GET /api/v1/trainers/me/time-off */
+export const getTimeOffs = () => api.get('/trainers/me/time-off');
+
+/** POST /api/v1/trainers/me/time-off */
+export const createTimeOff = (data) => api.post('/trainers/me/time-off', data);
+
+/** DELETE /api/v1/trainers/me/time-off/:timeOffId */
+export const deleteTimeOff = (timeOffId) => api.delete(`/trainers/me/time-off/${timeOffId}`);
+
 // ─── Workout Plans CRUD ──────────────────────────────────────────────────────
 
 /** POST /api/v1/trainers/workout-plans */

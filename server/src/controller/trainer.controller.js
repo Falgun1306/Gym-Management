@@ -76,6 +76,21 @@ const updateMySchedule = asyncHandler(async (req, res) => {
     res.status(200).json(new ApiResponse(200, updatedSchedule, "Schedule updated successfully"));
 });
 
+const getTimeOffs = asyncHandler(async (req, res) => {
+    const timeOffs = await trainerService.getTimeOffs(req.user.id);
+    res.status(200).json(new ApiResponse(200, timeOffs));
+});
+
+const createTimeOff = asyncHandler(async (req, res) => {
+    const timeOff = await trainerService.createTimeOff(req.user.id, req.body);
+    res.status(201).json(new ApiResponse(201, timeOff, "Time off created successfully"));
+});
+
+const deleteTimeOff = asyncHandler(async (req, res) => {
+    await trainerService.deleteTimeOff(req.user.id, req.params.timeOffId);
+    res.status(200).json(new ApiResponse(200, null, "Time off deleted successfully"));
+});
+
 const logMemberProgress = asyncHandler(async (req, res) => {
     const progressLog = await trainerService.logMemberProgress(req.user.id, req.params.memberId, req.body);
     res.status(201).json(new ApiResponse(201, progressLog, "Progress logged successfully"));
@@ -107,6 +122,9 @@ export {
     assignDietPlan,
     getMySchedule,
     updateMySchedule,
+    getTimeOffs,
+    createTimeOff,
+    deleteTimeOff,
     logMemberProgress,
     getMemberProgress,
     getMemberAttendance,

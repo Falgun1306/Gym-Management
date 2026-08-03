@@ -30,6 +30,22 @@ class GymClassService {
             },
         };
 
+        const start = new Date(startTime);
+        const end = new Date(endTime);
+
+        // Check if trainer has time off during this period
+        const timeOffConflict = await prisma.trainerTimeOff.findFirst({
+            where: {
+                trainerId,
+                startDate: { lte: end },
+                endDate: { gte: start }
+            }
+        });
+
+        if (timeOffConflict) {
+            throw new ErrorHandler(`Trainer is on time-off during this period (Reason: ${timeOffConflict.reason || 'Not specified'})`, 409);
+        }
+
         return gymClassRepository.create(
             {
                 trainerId,
