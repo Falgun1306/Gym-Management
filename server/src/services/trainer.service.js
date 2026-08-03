@@ -2,6 +2,7 @@ import trainerRepository from "../repositories/trainer.repository.js";
 import memberRepository from "../repositories/member.repository.js";
 import prisma from "../config/prisma.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
+import notificationService from "./notification.service.js";
 
 const EDITABLE_FIELDS = ["bio", "profilePhoto", "certifications", "gender"];
 
@@ -260,7 +261,7 @@ class TrainerService {
         }
 
         // Drop old recurring schedule and insert new split shifts
-        return prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx) => {
             await tx.trainerSchedule.deleteMany({
                 where: { trainerId: trainer.id },
             });
@@ -275,14 +276,21 @@ class TrainerService {
                 })),
             });
 
-            return tx.trainerSchedule.findMany({
+            const updatedSchedule = await tx.trainerSchedule.findMany({
                 where: { trainerId: trainer.id },
                 orderBy: [
                     { dayOfWeek: "asc" },
                     { startTime: "asc" }
                 ],
             });
+            
+            return updatedSchedule;
         });
+
+        // Notify admins and members in the background
+        this._notifyScheduleChange(trainer, "Weekly Schedule Updated", `Trainer ${trainer.firstName} ${trainer.lastName} has updated their weekly availability.`);
+
+        return result;
     }
 
     // ─── Time Off / Exceptions ───────────────────────────────────────────────
@@ -308,7 +316,7 @@ class TrainerService {
             throw new ErrorHandler("startDate cannot be after endDate", 400);
         }
 
-        return prisma.trainerTimeOff.create({
+        const timeOff = await prisma.trainerTimeOff.create({
             data: {
                 trainerId: trainer.id,
                 startDate: new Date(startDate),
@@ -317,6 +325,12 @@ class TrainerService {
                 isFullDay: isFullDay ?? true,
             },
         });
+
+        const startStr = new Date(startDate).toLocaleDateString();
+        const endStr = new Date(endDate).toLocaleDateString();
+        this._notifyScheduleChange(trainer, "Time Off Scheduled", `Trainer ${trainer.firstName} ${trainer.lastName} has scheduled time off from ${startStr} to ${endStr}.`);
+
+        return timeOff;
     }
 
     async deleteTimeOff(userId, timeOffId) {
@@ -334,7 +348,40 @@ class TrainerService {
             where: { id: timeOffId },
         });
 
+        const startStr = new Date(timeOff.startDate).toLocaleDateString();
+        this._notifyScheduleChange(trainer, "Time Off Cancelled", `Trainer ${trainer.firstName} ${trainer.lastName} has cancelled their time off starting on ${startStr}.`);
+
         return { message: "Time off deleted successfully" };
+    }
+
+    async _notifyScheduleChange(trainer, title, message) {
+        try {
+            // Notify Admins
+            await notificationService.sendBulkNotification({
+                title: "Trainer Schedule Update",
+                message,
+                type: "GENERAL",
+                role: "ADMIN"
+            });
+
+            // Notify Assigned Members
+            const members = await prisma.member.findMany({
+                where: { trainerId: trainer.id },
+                select: { userId: true }
+            });
+            const memberUserIds = members.map(m => m.userId);
+
+            if (memberUserIds.length > 0) {
+                await notificationService.sendBulkNotification({
+                    title,
+                    message: `Your trainer has updated their schedule: ${message}`,
+                    type: "GENERAL",
+                    userIds: memberUserIds
+                });
+            }
+        } catch (error) {
+            console.error("Failed to send schedule notifications:", error);
+        }
     }
 
     async logMemberProgress(userId, memberId, body) {
