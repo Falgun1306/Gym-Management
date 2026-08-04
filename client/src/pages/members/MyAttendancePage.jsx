@@ -2,8 +2,6 @@ import { useState } from 'react';
 import {
   useMemberAttendance,
   useMemberQrCode,
-  useMemberCheckIn,
-  useMemberCheckOut,
 } from '@/hooks/useMemberPortal';
 import { Card, CardHeader, Badge, Button, Modal, SkeletonTable } from '@/components/ui';
 import {
@@ -11,31 +9,38 @@ import {
   Calendar,
   Clock,
   CheckCircle2,
-  LogOut as LogOutIcon,
-  LogIn as LogInIcon,
+  XCircle,
   UserCheck,
   RefreshCw,
+  ScanLine,
 } from 'lucide-react';
 import { formatDate } from '@/utils/formatters';
 
-export default function MyAttendancePage() {
-  const { data: attendanceLogs = [], isLoading } = useMemberAttendance();
-  const [qrModalOpen, setQrModalOpen] = useState(false);
 
+export default function MyAttendancePage() {
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const { data: attendanceLogs = [], isLoading } = useMemberAttendance();
   const { data: qrData, isLoading: qrLoading, error: qrError, refetch: refetchQr } = useMemberQrCode(qrModalOpen);
-  const checkInMutation = useMemberCheckIn();
-  const checkOutMutation = useMemberCheckOut();
 
   const totalVisits = attendanceLogs.length;
-  const activeCheckIn = attendanceLogs.find((a) => !a.checkOutTime && a.status === 'CHECKED_IN');
 
   const formatTime = (isoString) => {
     if (!isoString) return '—';
     return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const formatLogDate = (isoString) => {
+    if (!isoString) return '—';
+    return new Date(isoString).toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
   const calculateDuration = (checkIn, checkOut) => {
-    if (!checkIn || !checkOut) return 'In Progress';
+    if (!checkIn || !checkOut) return null;
     const diffMs = new Date(checkOut) - new Date(checkIn);
     const mins = Math.max(0, Math.floor(diffMs / 60000));
     const hrs = Math.floor(mins / 60);
@@ -50,40 +55,20 @@ export default function MyAttendancePage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">My Attendance & Pass</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Generate digital QR check-in pass and track your facility visit history.
+            Generate your digital QR check-in pass and track your gym visit history.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {activeCheckIn ? (
-            <Button
-              variant="danger"
-              onClick={() => checkOutMutation.mutate()}
-              loading={checkOutMutation.isPending}
-              icon={LogOutIcon}
-            >
-              Check Out Now
-            </Button>
-          ) : (
-            <Button
-              onClick={() => checkInMutation.mutate()}
-              loading={checkInMutation.isPending}
-              icon={LogInIcon}
-            >
-              Self Check-In
-            </Button>
-          )}
-          <Button
-            onClick={() => setQrModalOpen(true)}
-            icon={QrCode}
-            className="!bg-slate-900 !text-white hover:!bg-slate-800"
-          >
-            Digital QR Pass
-          </Button>
-        </div>
+        <Button
+          onClick={() => setQrModalOpen(true)}
+          icon={QrCode}
+          className="!bg-slate-900 !text-white hover:!bg-slate-800"
+        >
+          Digital QR Pass
+        </Button>
       </div>
 
-      {/* ── Stat Badges ── */}
+      {/* ── Stat Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="!p-4">
           <div className="flex items-center gap-3">
@@ -91,8 +76,8 @@ export default function MyAttendancePage() {
               <UserCheck className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Check-Ins</p>
-              <p className="text-xl font-extrabold text-slate-900">{totalVisits} Visits</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Visits</p>
+              <p className="text-xl font-extrabold text-slate-900">{totalVisits}</p>
             </div>
           </div>
         </Card>
@@ -101,11 +86,18 @@ export default function MyAttendancePage() {
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-xl bg-blue-50 text-blue-600">
               <Clock className="w-5 h-5" />
+
             </div>
             <div>
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Current Status</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">This Week</p>
               <p className="text-sm font-bold text-slate-900">
-                {activeCheckIn ? 'Checked In' : 'Checked Out'}
+                {attendanceLogs.filter((a) => {
+                  const d = new Date(a.checkIn);
+                  const now = new Date();
+                  const weekAgo = new Date(now);
+                  weekAgo.setDate(now.getDate() - 7);
+                  return d >= weekAgo;
+                }).length} visits
               </p>
             </div>
           </div>
@@ -119,7 +111,7 @@ export default function MyAttendancePage() {
             <div>
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Last Visit</p>
               <p className="text-sm font-bold text-slate-900">
-                {attendanceLogs[0]?.checkInTime ? formatDate(attendanceLogs[0].checkInTime) : 'No visits yet'}
+                {attendanceLogs[0]?.checkIn ? formatLogDate(attendanceLogs[0].checkIn) : 'No visits yet'}
               </p>
             </div>
           </div>
@@ -128,45 +120,66 @@ export default function MyAttendancePage() {
 
       {/* ── Attendance Log Table ── */}
       <Card>
-        <CardHeader title="Attendance Logs" subtitle="Detailed check-in/out records" />
+        <CardHeader title="Attendance Logs" subtitle="Your check-in / check-out history" />
         {isLoading ? (
           <SkeletonTable rows={5} columns={5} />
         ) : attendanceLogs.length === 0 ? (
-          <div className="py-12 text-center text-slate-400 text-sm">No attendance logs recorded yet.</div>
+          <div className="py-12 text-center text-slate-400 text-sm">
+            No attendance records yet. Check in to see your history.
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/50">
                   <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Date</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Check-In Time</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Check-Out Time</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Check-In</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Check-Out</th>
                   <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Duration</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Method</th>
                   <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {attendanceLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50 transition-colors text-xs">
-                    <td className="py-3 px-4 font-semibold text-slate-800">{formatDate(log.checkInTime)}</td>
-                    <td className="py-3 px-4 text-slate-700 font-mono">{formatTime(log.checkInTime)}</td>
-                    <td className="py-3 px-4 text-slate-700 font-mono">{formatTime(log.checkOutTime)}</td>
-                    <td className="py-3 px-4 text-slate-600 font-medium">{calculateDuration(log.checkInTime, log.checkOutTime)}</td>
-                    <td className="py-3 px-4">
-                      <Badge
-                        variant={
-                          log.status === 'CHECKED_IN'
-                            ? 'warning'
-                            : log.status === 'AUTO_CLOSED'
-                            ? 'neutral'
-                            : 'success'
-                        }
-                      >
-                        {log.status}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
+                {attendanceLogs.map((log) => {
+                  const isQr = log.checkInMethod === 'QR_CODE';
+                  const isCheckedIn = log.checkIn && !log.checkOut;
+                  const duration = calculateDuration(log.checkIn, log.checkOut);
+                  return (
+                    <tr key={log.id} className="hover:bg-slate-50 transition-colors text-xs">
+                      <td className="py-3 px-4 font-semibold text-slate-800">{formatLogDate(log.checkIn)}</td>
+                      <td className="py-3 px-4 text-slate-700 font-mono">{formatTime(log.checkIn)}</td>
+                      <td className="py-3 px-4 text-slate-700 font-mono">{formatTime(log.checkOut)}</td>
+                      <td className="py-3 px-4 text-slate-600 font-medium">
+                        {isCheckedIn ? (
+                          <span className="text-amber-600 font-semibold">In Progress</span>
+                        ) : duration ? (
+                          duration
+                        ) : '—'}
+                      </td>
+                      <td className="py-3 px-4">
+                        {isQr ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full text-[10px] font-semibold">
+                            <ScanLine className="w-3 h-3" /> QR Scan
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-semibold">
+                            Manual
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        {isCheckedIn ? (
+                          <Badge variant="warning">Checked In</Badge>
+                        ) : log.checkOut ? (
+                          <Badge variant="success">Completed</Badge>
+                        ) : (
+                          <Badge variant="neutral">—</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -178,7 +191,7 @@ export default function MyAttendancePage() {
         <Modal open={qrModalOpen} onClose={() => setQrModalOpen(false)} title="Digital Entrance QR Pass">
           <div className="text-center space-y-4 py-2">
             <p className="text-xs text-slate-500">
-              Hold this QR code up to the front desk scanner for entrance.
+              Show this QR code to your trainer to check in or out. Valid for 5 minutes.
             </p>
 
             <div className="bg-slate-900 p-6 rounded-2xl inline-block border border-slate-800">
@@ -186,22 +199,28 @@ export default function MyAttendancePage() {
                 <div className="w-48 h-48 bg-slate-800 rounded-lg animate-pulse flex items-center justify-center text-slate-500 text-xs">
                   Generating Pass...
                 </div>
-              ) : qrData?.qrCodeDataUrl || qrData?.qrCodeUrl || qrData?.token || qrData?.qrToken ? (
+              ) : qrData?.qrCodeDataUrl || qrData?.qrCodeUrl ? (
                 <img
-                  src={qrData.qrCodeDataUrl || qrData.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData.token || qrData.qrToken)}`}
+                  src={qrData.qrCodeDataUrl || qrData.qrCodeUrl}
+                  alt="Member QR Pass"
+                  className="w-48 h-48 mx-auto rounded-lg bg-white p-2 shadow"
+                />
+              ) : qrData?.token || qrData?.qrToken ? (
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData.token || qrData.qrToken)}`}
                   alt="Member QR Pass"
                   className="w-48 h-48 mx-auto rounded-lg bg-white p-2 shadow"
                 />
               ) : (
                 <div className="w-48 h-48 bg-slate-800 rounded-lg flex flex-col items-center justify-center p-4 text-slate-400 text-xs text-center">
                   <p className="font-semibold text-rose-400 mb-1">QR Generation Issue</p>
-                  <p className="text-[11px] text-slate-400">{qrError?.message || 'Failed to generate QR code'}</p>
+                  <p className="text-[11px] text-slate-400">{qrError?.message || 'You may need an active membership.'}</p>
                 </div>
               )}
             </div>
 
             <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
-              <Clock className="w-3.5 h-3.5 text-emerald-500" /> Refreshes every 60 seconds
+              <Clock className="w-3.5 h-3.5 text-emerald-500" /> Expires in 5 minutes
             </div>
 
             <div className="flex justify-center gap-2 pt-2 border-t border-slate-100">

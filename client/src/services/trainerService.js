@@ -123,3 +123,8 @@ export const deleteExercise = (id) => api.delete(`/trainers/exercises/${id}`);
 
 /** GET /api/v1/trainers/class-bookings */
 export const getClassBookings = (params) => api.get('/trainers/class-bookings', { params });
+
+// ─── QR Check-in ────────────────────────────────────────────────────────────
+
+/** POST /api/v1/attendance/qr/scan */
+export const scanQrCode = (qrToken) => api.post('/attendance/qr/scan', { qrToken });
