@@ -36,7 +36,7 @@ const mockMembers = [
   { id: '2', firstName: 'Priya', lastName: 'Sharma', email: 'priya@gym.com', status: 'PENDING', plan: 'Basic' },
   { id: '3', firstName: 'Rahul', lastName: 'Kumar', email: 'rahul@gym.com', status: 'EXPIRED', plan: 'Pro' },
   { id: '4', firstName: 'Sneha', lastName: 'Reddy', email: 'sneha@gym.com', status: 'ACTIVE', plan: 'Premium' },
-  { id: '5', firstName: 'Vikram', lastName: 'Singh', email: 'vikram@gym.com', status: 'SUSPENDED', plan: 'Basic' },
+  { id: '5', firstName: 'Vikram', lastName: 'Singh', email: 'vikram@gym.com', status: 'FROZEN', plan: 'Basic' },
   { id: '6', firstName: 'Anita', lastName: 'Gupta', email: 'anita@gym.com', status: 'ACTIVE', plan: 'Pro' },
 ];
 
@@ -132,7 +132,7 @@ export default function ComponentShowcase() {
           <div className="flex flex-wrap items-center gap-3">
             <Badge status="ACTIVE" dot>Active</Badge>
             <Badge status="CANCELLED" dot>Inactive</Badge>
-            <Badge status="SUSPENDED" dot>Suspended</Badge>
+            <Badge status="FROZEN" dot>Frozen</Badge>
             <Badge status="PENDING" dot>Pending</Badge>
             <Badge variant="frozen" dot>Frozen</Badge>
             <Badge variant="maintenance" dot>Maintenance</Badge>

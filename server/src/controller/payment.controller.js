@@ -527,7 +527,7 @@ const refundPayment = asyncHandler(async (req, res) => {
         if (payment.membershipId) {
             await tx.membership.update({
                 where: { id: payment.membershipId },
-                data: { status: "SUSPENDED" },
+                data: { status: "FROZEN" },
             });
         }
     });

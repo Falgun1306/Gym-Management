@@ -100,7 +100,7 @@ class DashboardService {
         }
 
         let activeMembership = await prisma.membership.findFirst({
-            where: { memberId: member.id, status: { in: ["ACTIVE", "SUSPENDED", "PENDING"] } },
+            where: { memberId: member.id, status: { in: ["ACTIVE", "FROZEN", "PENDING"] } },
             include: { plan: true },
             orderBy: { endDate: "desc" },
         });

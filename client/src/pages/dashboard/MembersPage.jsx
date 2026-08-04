@@ -41,7 +41,6 @@ const STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
   { value: 'EXPIRED', label: 'Expired' },
   { value: 'CANCELLED', label: 'Cancelled' },
-  { value: 'SUSPENDED', label: 'Suspended' },
   { value: 'FROZEN', label: 'Frozen' },
 ];
 
@@ -49,8 +48,7 @@ const STATUS_BADGE_MAP = {
   ACTIVE: 'success',
   EXPIRED: 'danger',
   CANCELLED: 'warning',
-  SUSPENDED: 'danger',
-  FROZEN: 'info',
+  FROZEN: 'danger',
 };
 
 const GENDER_OPTIONS = [

@@ -174,7 +174,7 @@ class TrainerService {
                 },
             },
             memberships: {
-                where: { status: "ACTIVE" },
+                where: { status: { in: ["ACTIVE", "FROZEN"] } },
                 include: { plan: true },
                 orderBy: { startDate: "desc" },
                 take: 1,
