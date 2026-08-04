@@ -154,7 +154,7 @@ class QrCheckinService {
         const { data } = await membershipRepository.findMemberships(
             {
                 memberId,
-                status: { in: ["ACTIVE", "PENDING", "SUSPENDED"] },
+                status: { in: ["ACTIVE", "PENDING", "FROZEN"] },
                 endDate: { gte: new Date() },
             },
             0,

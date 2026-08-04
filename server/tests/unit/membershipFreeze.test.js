@@ -53,7 +53,7 @@ describe("Membership Freeze / Pause Functionality", () => {
             prismaMock.membership.findUnique.mockResolvedValue(membershipMock);
             prismaMock.membership.update.mockResolvedValue({
                 ...membershipMock,
-                status: "SUSPENDED",
+                status: "FROZEN",
                 freezeCount: 1,
             });
             prismaMock.notification.create.mockResolvedValue({ id: "notif-1" });
@@ -66,7 +66,7 @@ describe("Membership Freeze / Pause Functionality", () => {
             expect(prismaMock.membership.update).toHaveBeenCalledWith({
                 where: { id: membershipId },
                 data: {
-                    status: "SUSPENDED",
+                    status: "FROZEN",
                     frozenAt: expect.any(Date),
                     freezeDurationDays: 14,
                     freezeReason: "Vacation",
@@ -81,7 +81,7 @@ describe("Membership Freeze / Pause Functionality", () => {
                     type: "MEMBERSHIP",
                 }),
             });
-            expect(result.status).toBe("SUSPENDED");
+            expect(result.status).toBe("FROZEN");
         });
 
         it("should throw 404 if member profile does not exist", async () => {
@@ -170,7 +170,7 @@ describe("Membership Freeze / Pause Functionality", () => {
     });
 
     describe("memberService.unfreezeMembership", () => {
-        it("should successfully unfreeze a SUSPENDED membership and extend endDate", async () => {
+        it("should successfully unfreeze a FROZEN membership and extend endDate", async () => {
             const userId = "u-1";
             const membershipId = "ms-1";
             const frozenAt = new Date();
@@ -183,7 +183,7 @@ describe("Membership Freeze / Pause Functionality", () => {
             const membershipMock = {
                 id: membershipId,
                 memberId: "m-1",
-                status: "SUSPENDED",
+                status: "FROZEN",
                 frozenAt,
                 endDate: initialEndDate,
                 plan: { name: "Gold Plan" },
@@ -234,7 +234,7 @@ describe("Membership Freeze / Pause Functionality", () => {
     });
 
     describe("adminService.unfreezeMembership", () => {
-        it("should allow admin to unfreeze a SUSPENDED membership", async () => {
+        it("should allow admin to unfreeze a FROZEN membership", async () => {
             const membershipId = "ms-1";
             const frozenAt = new Date();
             frozenAt.setDate(frozenAt.getDate() - 5);
@@ -242,7 +242,7 @@ describe("Membership Freeze / Pause Functionality", () => {
             const membershipMock = {
                 id: membershipId,
                 memberId: "m-1",
-                status: "SUSPENDED",
+                status: "FROZEN",
                 frozenAt,
                 endDate: new Date(),
                 plan: { name: "Platinum Plan" },

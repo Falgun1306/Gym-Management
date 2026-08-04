@@ -16,7 +16,7 @@ export const MEMBERSHIP_STATUS = {
   ACTIVE: { label: 'Active', color: 'bg-status-active text-white' },
   EXPIRED: { label: 'Expired', color: 'bg-status-expired text-white' },
   CANCELLED: { label: 'Cancelled', color: 'bg-status-cancelled text-white' },
-  SUSPENDED: { label: 'Suspended', color: 'bg-status-suspended text-white' },
+  FROZEN: { label: 'Frozen', color: 'bg-cyan-500 text-white' },
 };
 
 // ── Payment Status ──

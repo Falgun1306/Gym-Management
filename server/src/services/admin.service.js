@@ -7,6 +7,7 @@ import prisma from "../config/prisma.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
 import { createTrainerFromMember } from "./trainer.service.js";
 import couponService from "./coupon.service.js";
+import notificationService from "./notification.service.js";
 
 const ADMIN_EDITABLE_FIELDS = ["username", "email"];
 const TRAINER_EDITABLE_FIELDS = ["salary", "experience", "specialization", "gender", "firstName", "lastName", "phone", "bio"];
@@ -355,7 +356,7 @@ class AdminService {
                 },
             },
             memberships: {
-                where: { status: "ACTIVE" },
+                where: { status: { in: ["ACTIVE", "FROZEN"] } },
                 include: { plan: true },
                 orderBy: { startDate: "desc" },
                 take: 1,
@@ -439,7 +440,11 @@ class AdminService {
             throw new ErrorHandler("Member not found", 404);
         }
 
-        return memberRepository.delete(id);
+        if (member.userId) {
+            return userRepository.delete(member.userId);
+        } else {
+            return memberRepository.delete(id);
+        }
     }
 
     async createMembershipPlan(body) {
@@ -590,7 +595,7 @@ class AdminService {
             throw new ErrorHandler("Trainer not found", 404);
         }
 
-        return memberRepository.update(memberId, { trainerId }, {
+        const updatedMember = await memberRepository.update(memberId, { trainerId }, {
             trainer: {
                 select: {
                     id: true,
@@ -600,6 +605,26 @@ class AdminService {
                 },
             },
         });
+
+        // Notify the member
+        if (member.userId) {
+            await notificationService.sendBulkNotification({
+                title: "Trainer Assigned",
+                message: `You have been assigned a new trainer: ${trainer.firstName} ${trainer.lastName}.`,
+                type: "GENERAL",
+                userIds: [member.userId]
+            });
+        }
+
+        // Notify the trainer
+        await notificationService.sendBulkNotification({
+            title: "New Client Assigned",
+            message: `You have been assigned a new client: ${member.firstName} ${member.lastName}.`,
+            type: "GENERAL",
+            userIds: [trainer.userId]
+        });
+
+        return updatedMember;
     }
 
     async removeTrainerFromMember(memberId) {
@@ -687,7 +712,19 @@ class AdminService {
                 );
 
                 // Return the enriched membership object
-                return { ...membership, couponUsage: usage };
+                membership.couponUsage = usage;
+            }
+
+            // Notify the member about the new membership
+            if (member.userId) {
+                await tx.notification.create({
+                    data: {
+                        userId: member.userId,
+                        title: "New Membership Assigned",
+                        message: `You have been assigned a new membership plan: ${plan.name} starting from ${start.toDateString()}.`,
+                        type: "MEMBERSHIP",
+                    }
+                });
             }
 
             return membership;
@@ -765,7 +802,7 @@ class AdminService {
             throw new ErrorHandler("Membership not found", 404);
         }
 
-        if (membership.status !== "SUSPENDED" || !membership.frozenAt) {
+        if (membership.status !== "FROZEN" || !membership.frozenAt) {
             throw new ErrorHandler("This membership is not currently frozen", 400);
         }
 

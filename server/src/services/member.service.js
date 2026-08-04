@@ -4,6 +4,7 @@ import membershipRepository from "../repositories/membership.repository.js";
 import prisma from "../config/prisma.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
 import couponService from "./coupon.service.js";
+import notificationService from "./notification.service.js";
 
 const EDITABLE_FIELDS = [
     "firstName",
@@ -48,7 +49,7 @@ class MemberService {
                     },
                 },
                 memberships: {
-                    where: { status: { in: ["ACTIVE", "PENDING", "SUSPENDED"] } },
+                    where: { status: { in: ["ACTIVE", "PENDING", "FROZEN"] } },
                     include: {
                         plan: true,
                     },
@@ -221,7 +222,7 @@ class MemberService {
                 },
             },
             memberships: {
-                where: { status: "ACTIVE" },
+                where: { status: { in: ["ACTIVE", "FROZEN"] } },
                 include: { plan: true },
                 orderBy: { startDate: "desc" },
                 take: 1,
@@ -301,7 +302,7 @@ class MemberService {
                 const now = new Date();
                 const end = new Date(membership.endDate);
                 remainingDays = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
-            } else if (membership.status === "SUSPENDED" && membership.frozenAt) {
+            } else if (membership.status === "FROZEN" && membership.frozenAt) {
                 // Frozen time doesn't count — show remaining based on endDate vs frozenAt
                 const frozenAt = new Date(membership.frozenAt);
                 const end = new Date(membership.endDate);
@@ -311,7 +312,7 @@ class MemberService {
             return {
                 ...membership,
                 remainingDays,
-                isFrozen: membership.status === "SUSPENDED" && !!membership.frozenAt,
+                isFrozen: membership.status === "FROZEN" && !!membership.frozenAt,
             };
         });
     }
@@ -354,7 +355,7 @@ class MemberService {
         const updatedMembership = await prisma.membership.update({
             where: { id: membershipId },
             data: {
-                status: "SUSPENDED",
+                status: "FROZEN",
                 frozenAt: now,
                 freezeDurationDays: duration,
                 freezeReason: reason || null,
@@ -372,6 +373,35 @@ class MemberService {
                 type: "MEMBERSHIP",
             },
         });
+
+        // Notify Admins
+        try {
+            await notificationService.sendBulkNotification({
+                title: "Member Subscription Paused",
+                message: `${member.firstName} ${member.lastName} has paused their membership for ${duration} days.`,
+                type: "MEMBERSHIP",
+                role: "ADMIN"
+            });
+
+            // Notify Assigned Trainer
+            if (member.trainerId) {
+                const trainer = await prisma.trainer.findUnique({
+                    where: { id: member.trainerId },
+                    select: { userId: true }
+                });
+                
+                if (trainer) {
+                    await notificationService.sendBulkNotification({
+                        title: "Client Subscription Paused",
+                        message: `Your client ${member.firstName} ${member.lastName} has paused their membership for ${duration} days.`,
+                        type: "MEMBERSHIP",
+                        userIds: [trainer.userId]
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Failed to notify admin/trainer about frozen membership:", error);
+        }
 
         return updatedMembership;
     }
@@ -395,7 +425,7 @@ class MemberService {
             throw new ErrorHandler("This membership does not belong to you", 403);
         }
 
-        if (membership.status !== "SUSPENDED" || !membership.frozenAt) {
+        if (membership.status !== "FROZEN" || !membership.frozenAt) {
             throw new ErrorHandler("This membership is not currently frozen", 400);
         }
 
