@@ -56,7 +56,7 @@ const scanQrCode = asyncHandler(async (req, res) => {
         ? `${memberName} checked out successfully`
         : `${memberName} checked in successfully`;
     const statusCode = action === "CHECK_OUT" ? 200 : 201;
-    res.status(statusCode).json(new ApiResponse(statusCode, attendance, message));
+    res.status(statusCode).json(new ApiResponse(statusCode, { ...attendance, action, memberName }, message));
 });
 
 export {
