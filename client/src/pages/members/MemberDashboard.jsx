@@ -30,7 +30,8 @@ import {
   Phone,
   Mail,
 } from 'lucide-react';
-import { formatDate } from '@/utils/formatters';
+import { formatDate, daysRemaining } from '@/utils/formatters';
+
 
 /**
  * MemberDashboard — Main overview page for logged-in Members.
@@ -179,7 +180,9 @@ export default function MemberDashboard() {
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => setQrModalOpen(true)}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-md transition-all transform hover:scale-[1.02]"
+              disabled={isFrozen}
+              title={isFrozen ? 'QR generation disabled while membership is frozen' : ''}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-md transition-all transform hover:scale-[1.02] ${isFrozen ? 'opacity-50 cursor-not-allowed hover:scale-100 hover:bg-emerald-500' : ''}`}
             >
               <QrCode className="w-5 h-5" /> Digital QR Entrance Pass
             </button>
@@ -214,10 +217,7 @@ export default function MemberDashboard() {
             <div>
               <p className="text-[11px] text-slate-400 font-semibold uppercase">Days Remaining</p>
               <p className="text-xl font-extrabold text-emerald-700 mt-0.5">
-                {membership?.daysRemaining ??
-                  (membership?.endDate
-                    ? Math.max(0, Math.ceil((new Date(membership.endDate) - new Date()) / (1000 * 60 * 60 * 24)))
-                    : 0)}{' '}
+                {membership?.daysRemaining ?? daysRemaining(membership?.endDate, membership)}{' '}
                 Days
               </p>
             </div>

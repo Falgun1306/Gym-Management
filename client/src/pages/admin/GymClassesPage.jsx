@@ -70,6 +70,12 @@ export default function GymClassesPage() {
   const handleCreateSubmit = (e) => {
     e.preventDefault();
     const classTitle = (form.title || form.name).trim();
+    
+    const startDate = new Date(form.startTime);
+    const [endHours, endMinutes] = form.endTime.split(':');
+    const endDate = new Date(startDate);
+    endDate.setHours(parseInt(endHours, 10), parseInt(endMinutes, 10), 0, 0);
+
     createMutation.mutate(
       {
         title: classTitle,
@@ -77,8 +83,8 @@ export default function GymClassesPage() {
         description: form.description,
         trainerId: form.trainerId,
         capacity: parseInt(form.capacity) || 20,
-        startTime: new Date(form.startTime).toISOString(),
-        endTime: new Date(form.endTime).toISOString(),
+        startTime: startDate.toISOString(),
+        endTime: endDate.toISOString(),
       },
       {
         onSuccess: () => {
@@ -93,6 +99,12 @@ export default function GymClassesPage() {
     e.preventDefault();
     if (!editClass) return;
     const classTitle = (form.title || form.name).trim();
+    
+    const startDate = new Date(form.startTime);
+    const [endHours, endMinutes] = form.endTime.split(':');
+    const endDate = new Date(startDate);
+    endDate.setHours(parseInt(endHours, 10), parseInt(endMinutes, 10), 0, 0);
+
     updateMutation.mutate(
       {
         id: editClass.id,
@@ -102,8 +114,8 @@ export default function GymClassesPage() {
           description: form.description,
           trainerId: form.trainerId,
           capacity: parseInt(form.capacity) || 20,
-          startTime: new Date(form.startTime).toISOString(),
-          endTime: new Date(form.endTime).toISOString(),
+          startTime: startDate.toISOString(),
+          endTime: endDate.toISOString(),
         },
       },
       {
@@ -253,8 +265,12 @@ export default function GymClassesPage() {
                             description: cls.description || '',
                             trainerId: cls.trainerId || '',
                             capacity: cls.capacity,
-                            startTime: cls.startTime ? new Date(cls.startTime).toISOString().slice(0, 16) : '',
-                            endTime: cls.endTime ? new Date(cls.endTime).toISOString().slice(0, 16) : '',
+                            startTime: cls.startTime ? (() => {
+                              const d = new Date(cls.startTime);
+                              const offset = d.getTimezoneOffset() * 60000;
+                              return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+                            })() : '',
+                            endTime: cls.endTime ? new Date(cls.endTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '',
                           });
                         }}
                         className="!p-1.5"
@@ -348,9 +364,9 @@ export default function GymClassesPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">End Date & Time *</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">End Time *</label>
                 <input
-                  type="datetime-local"
+                  type="time"
                   value={form.endTime}
                   onChange={(e) => setForm({ ...form, endTime: e.target.value })}
                   className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"

@@ -390,7 +390,7 @@ describe("Member Progress & Attendance by Trainer", () => {
         prismaMock.progressLog.create.mockResolvedValue({ id: "pl1", weight: 75.5 });
 
         const res = await auth(request.post("/api/v1/trainers/members/m1/progress").send({
-            weight: 75.5, bodyFat: 15.2, notes: "Great progress",
+            weight: 75.5, notes: "Great progress",
         }), trainerUser);
 
         expect(res.status).toBe(201);

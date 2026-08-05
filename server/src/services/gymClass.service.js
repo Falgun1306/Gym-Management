@@ -1,7 +1,9 @@
 import gymClassRepository from "../repositories/gymClass.repository.js";
 import trainerRepository from "../repositories/trainer.repository.js";
 import memberRepository from "../repositories/member.repository.js";
+import membershipRepository from "../repositories/membership.repository.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
+import prisma from "../config/prisma.js";
 
 class GymClassService {
     async createGymClass(body) {
@@ -235,6 +237,26 @@ class GymClassService {
         const member = await memberRepository.findByUserId(userId);
         if (!member) {
             throw new ErrorHandler("Member profile not found", 404);
+        }
+
+        // Validate active membership
+        const { data: activeMemberships } = await membershipRepository.findMemberships(
+            {
+                memberId: member.id,
+                status: { in: ["ACTIVE", "PENDING", "FROZEN"] },
+                endDate: { gte: new Date() },
+            },
+            0,
+            1
+        );
+
+        const membership = activeMemberships[0];
+        if (!membership) {
+            throw new ErrorHandler("You must have an active membership to book classes", 403);
+        }
+
+        if (membership.status === "FROZEN") {
+            throw new ErrorHandler("Your membership is currently frozen. You cannot book classes.", 403);
         }
 
         const gymClass = await gymClassRepository.findById(classId, {

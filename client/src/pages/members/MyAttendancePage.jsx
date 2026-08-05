@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   useMemberAttendance,
   useMemberQrCode,
+  useMemberDashboard,
 } from '@/hooks/useMemberPortal';
 import { Card, CardHeader, Badge, Button, Modal, SkeletonTable } from '@/components/ui';
 import {
@@ -21,6 +22,9 @@ export default function MyAttendancePage() {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const { data: attendanceLogs = [], isLoading } = useMemberAttendance();
   const { data: qrData, isLoading: qrLoading, error: qrError, refetch: refetchQr } = useMemberQrCode(qrModalOpen);
+  const { data: dashboard } = useMemberDashboard();
+  
+  const isFrozen = (dashboard?.activeMembership || dashboard?.membership)?.status === 'FROZEN';
 
   const totalVisits = attendanceLogs.length;
 
@@ -62,7 +66,9 @@ export default function MyAttendancePage() {
         <Button
           onClick={() => setQrModalOpen(true)}
           icon={QrCode}
-          className="!bg-slate-900 !text-white hover:!bg-slate-800"
+          disabled={isFrozen}
+          title={isFrozen ? 'QR generation disabled while membership is frozen' : ''}
+          className={`!bg-slate-900 !text-white hover:!bg-slate-800 ${isFrozen ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           Digital QR Pass
         </Button>

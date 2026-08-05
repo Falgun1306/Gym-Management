@@ -395,13 +395,12 @@ class TrainerService {
             throw new ErrorHandler("Member not found or not assigned to you", 404);
         }
 
-        const { weight, bodyFat, chest, waist, arms, thigh, notes } = body;
+        const { weight, chest, waist, arms, thigh, notes } = body;
 
         return prisma.progressLog.create({
             data: {
                 memberId: member.id,
                 weight: weight ? parseFloat(weight) : null,
-                bodyFat: bodyFat ? parseFloat(bodyFat) : null,
                 chest: chest ? parseFloat(chest) : null,
                 waist: waist ? parseFloat(waist) : null,
                 arms: arms ? parseFloat(arms) : null,

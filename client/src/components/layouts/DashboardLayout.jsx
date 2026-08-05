@@ -48,7 +48,7 @@ const adminNav = [
   { to: '/dashboard/trainers', icon: GraduationCap, label: 'Trainers' },
   { to: '/dashboard/trainer-applications', icon: UserCheck, label: 'Applications' },
   { to: '/dashboard/membership-plans', icon: CreditCard, label: 'Plans & Subs' },
-  { to: '/dashboard/classes', icon: CalendarDays, label: 'Gym Classes' },
+  { to: '/dashboard/gym-classes', icon: CalendarDays, label: 'Gym Classes' },
   { to: '/dashboard/payments', icon: ClipboardList, label: 'Payments' },
   { to: '/dashboard/equipment', icon: Wrench, label: 'Equipment' },
   { to: '/dashboard/complaints', icon: MessageSquare, label: 'Complaints' },

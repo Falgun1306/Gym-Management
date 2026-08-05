@@ -78,12 +78,22 @@ export function getInitials(firstName, lastName) {
 
 /**
  * Calculate the number of days remaining until a given date.
+ * If a membership object is provided and it is FROZEN, it calculates based on the frozenAt date.
  * @param {string | Date} endDate
+ * @param {object} [membership]
  * @returns {number}
  */
-export function daysRemaining(endDate) {
+export function daysRemaining(endDate, membership = null) {
   if (!endDate) return 0;
-  const diff = new Date(endDate).getTime() - Date.now();
+  
+  let comparisonDate = Date.now();
+  
+  // If frozen, the days remaining should be calculated from the moment it was frozen
+  if (membership?.status === 'FROZEN' && membership?.frozenAt) {
+    comparisonDate = new Date(membership.frozenAt).getTime();
+  }
+  
+  const diff = new Date(endDate).getTime() - comparisonDate;
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 

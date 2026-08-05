@@ -1,13 +1,9 @@
-import { useState } from 'react';
-import { useMemberProgress, useLogMemberProgress } from '@/hooks/useMemberPortal';
-import { Card, CardHeader, Badge, Button, Modal, Input, Textarea, SkeletonTable, EmptyState } from '@/components/ui';
+import { useMemberProgress } from '@/hooks/useMemberPortal';
+import { Card, CardHeader, Badge, SkeletonTable } from '@/components/ui';
 import {
-  TrendingUp,
   Activity,
-  Plus,
   Calendar,
   Scale,
-  Percent,
   LineChart,
   ClipboardList,
   ArrowUpRight,
@@ -18,38 +14,6 @@ import { formatDate } from '@/utils/formatters';
 
 export default function MyProgressPage() {
   const { data: progressLogs = [], isLoading } = useMemberProgress();
-  const logProgressMutation = useLogMemberProgress();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    weight: '',
-    bodyFat: '',
-    chest: '',
-    waist: '',
-    arms: '',
-    thigh: '',
-    notes: '',
-    recordedAt: new Date().toISOString().split('T')[0],
-  });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    logProgressMutation.mutate(formData, {
-      onSuccess: () => {
-        setIsModalOpen(false);
-        setFormData({
-          weight: '',
-          bodyFat: '',
-          chest: '',
-          waist: '',
-          arms: '',
-          thigh: '',
-          notes: '',
-          recordedAt: new Date().toISOString().split('T')[0],
-        });
-      },
-    });
-  };
 
   const latestLog = progressLogs.length > 0 ? progressLogs[0] : null;
   const previousLog = progressLogs.length > 1 ? progressLogs[1] : null;
@@ -60,30 +24,19 @@ export default function MyProgressPage() {
   };
 
   const weightDiff = calculateDiff(latestLog?.weight, previousLog?.weight);
-  const fatDiff = calculateDiff(latestLog?.bodyFat, previousLog?.bodyFat);
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">My Progress & Body Metrics</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Track your weight, body fat percentage, measurements, and fitness evolution over time.
+            Track your weight, measurements, and fitness evolution over time.
           </p>
         </div>
-
-        <Button
-          onClick={() => setIsModalOpen(true)}
-          icon={Plus}
-          className="!bg-emerald-600 !text-white hover:!bg-emerald-700 shadow-md shadow-emerald-600/20"
-        >
-          Log New Metrics
-        </Button>
       </div>
 
-      {/* ── Stat Badges & Overview ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="!p-4 bg-gradient-to-br from-white to-slate-50 border-slate-200/80 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
             <div>
@@ -108,34 +61,6 @@ export default function MyProgressPage() {
             </div>
             <div className="p-3.5 rounded-2xl bg-indigo-50 text-indigo-600 shadow-inner">
               <Scale className="w-6 h-6" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="!p-4 bg-gradient-to-br from-white to-slate-50 border-slate-200/80 shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Body Fat %</p>
-              <p className="text-2xl font-extrabold text-slate-900 mt-0.5">
-                {latestLog && latestLog.bodyFat ? `${latestLog.bodyFat}%` : '—'}
-              </p>
-              {fatDiff !== null && (
-                <div className="flex items-center gap-1 mt-1">
-                  {Number(fatDiff) < 0 ? (
-                    <ArrowDownRight className="w-4 h-4 text-emerald-600" />
-                  ) : Number(fatDiff) > 0 ? (
-                    <ArrowUpRight className="w-4 h-4 text-amber-600" />
-                  ) : (
-                    <Minus className="w-4 h-4 text-slate-400" />
-                  )}
-                  <span className={`text-xs font-semibold ${Number(fatDiff) < 0 ? 'text-emerald-600' : Number(fatDiff) > 0 ? 'text-amber-600' : 'text-slate-500'}`}>
-                    {Math.abs(Number(fatDiff))}% from last log
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="p-3.5 rounded-2xl bg-emerald-50 text-emerald-600 shadow-inner">
-              <Percent className="w-6 h-6" />
             </div>
           </div>
         </Card>
@@ -169,7 +94,6 @@ export default function MyProgressPage() {
         </Card>
       </div>
 
-      {/* ── Progress History List ── */}
       <Card>
         <CardHeader title="Measurement History" subtitle="Chronological log of your body composition and trainer feedback" icon={LineChart} />
         <div className="p-6 pt-0">
@@ -181,12 +105,9 @@ export default function MyProgressPage() {
                 <Activity className="w-8 h-8" />
               </div>
               <h3 className="text-lg font-bold text-slate-900">No progress logs recorded yet</h3>
-              <p className="text-sm text-slate-500 max-w-sm mx-auto mt-1 mb-6">
-                Start logging your weight and measurements to keep track of your fitness gains and milestones.
+              <p className="text-sm text-slate-500 max-w-sm mx-auto mt-1">
+                Your assigned trainer will log your body metrics and fitness progress here during your assessments.
               </p>
-              <Button onClick={() => setIsModalOpen(true)} icon={Plus} size="sm">
-                Record Your First Entry
-              </Button>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -195,7 +116,6 @@ export default function MyProgressPage() {
                   <tr className="border-b border-slate-200/80 text-[11px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50/50">
                     <th className="py-3 px-4 rounded-tl-xl">Date</th>
                     <th className="py-3 px-4">Weight</th>
-                    <th className="py-3 px-4">Body Fat</th>
                     <th className="py-3 px-4">Chest / Waist</th>
                     <th className="py-3 px-4">Arms / Thighs</th>
                     <th className="py-3 px-4 rounded-tr-xl">Notes & Observations</th>
@@ -212,15 +132,6 @@ export default function MyProgressPage() {
                         {log.weight != null ? (
                           <Badge variant="success" className="font-semibold text-xs px-2.5 py-1">
                             {log.weight} kg
-                          </Badge>
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
-                      </td>
-                      <td className="py-4 px-4">
-                        {log.bodyFat != null ? (
-                          <Badge variant="info" className="font-semibold text-xs px-2.5 py-1">
-                            {log.bodyFat}%
                           </Badge>
                         ) : (
                           <span className="text-slate-400">—</span>
@@ -251,104 +162,6 @@ export default function MyProgressPage() {
           )}
         </div>
       </Card>
-
-      {/* ── Log Modal ── */}
-      <Modal
-        open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Log Fitness & Body Metrics"
-        description="Record your current weight, body fat, and body measurements to track your progress."
-        footer={
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              loading={logProgressMutation.isPending}
-              icon={TrendingUp}
-              className="!bg-emerald-600 !text-white hover:!bg-emerald-700"
-            >
-              Save Metrics
-            </Button>
-          </div>
-        }
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Weight (in kg)"
-              type="number"
-              step="0.1"
-              placeholder="e.g. 74.5"
-              value={formData.weight}
-              onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-            />
-            <Input
-              label="Body Fat (%)"
-              type="number"
-              step="0.1"
-              placeholder="e.g. 15.2"
-              value={formData.bodyFat}
-              onChange={(e) => setFormData({ ...formData, bodyFat: e.target.value })}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Chest (inches)"
-              type="number"
-              step="0.1"
-              placeholder="e.g. 100"
-              value={formData.chest}
-              onChange={(e) => setFormData({ ...formData, chest: e.target.value })}
-            />
-            <Input
-              label="Waist (inches)"
-              type="number"
-              step="0.1"
-              placeholder="e.g. 82"
-              value={formData.waist}
-              onChange={(e) => setFormData({ ...formData, waist: e.target.value })}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Arms / Biceps (inches)"
-              type="number"
-              step="0.1"
-              placeholder="e.g. 38"
-              value={formData.arms}
-              onChange={(e) => setFormData({ ...formData, arms: e.target.value })}
-            />
-            <Input
-              label="Thighs (inches)"
-              type="number"
-              step="0.1"
-              placeholder="e.g. 58"
-              value={formData.thigh}
-              onChange={(e) => setFormData({ ...formData, thigh: e.target.value })}
-            />
-          </div>
-
-          <Input
-            label="Measurement Date"
-            type="date"
-            value={formData.recordedAt}
-            onChange={(e) => setFormData({ ...formData, recordedAt: e.target.value })}
-            required
-          />
-
-          <Textarea
-            label="Notes or Reflections (Optional)"
-            placeholder="Add notes about your workout consistency, diet changes, or how you feel..."
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            rows={3}
-          />
-        </form>
-      </Modal>
     </div>
   );
 }

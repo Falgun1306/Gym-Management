@@ -4,6 +4,7 @@ import {
   useBookGymClass,
   useCancelGymClass,
   useMemberProfile,
+  useMemberDashboard,
 } from '@/hooks/useMemberPortal';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Card, CardHeader, Badge, Button, SkeletonCard } from '@/components/ui';
@@ -38,6 +39,9 @@ export default function MemberClassesPage() {
   const [search, setSearch] = useState('');
 
   const { data, isLoading, refetch } = useMemberGymClasses({ search });
+  const { data: dashboard } = useMemberDashboard();
+  
+  const isFrozen = (dashboard?.activeMembership || dashboard?.membership)?.status === 'FROZEN';
   const bookMutation = useBookGymClass();
   const cancelMutation = useCancelGymClass();
 
@@ -223,7 +227,8 @@ export default function MemberClassesPage() {
                       ) : (
                         <Button
                           size="sm"
-                          disabled={bookMutation.isPending}
+                          disabled={bookMutation.isPending || isFrozen}
+                          title={isFrozen ? 'Booking disabled while membership is frozen' : ''}
                           loading={bookMutation.isPending}
                           onClick={() => handleBook(cls.id)}
                           className="w-full"
