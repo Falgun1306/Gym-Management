@@ -346,7 +346,6 @@ model ProgressLog {
   id         String   @id @default(cuid())
   memberId   String
   weight     Float?
-  bodyFat    Float?
   chest      Float?
   waist      Float?
   arms       Float?

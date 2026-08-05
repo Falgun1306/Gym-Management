@@ -25,6 +25,13 @@ class QrCheckinService {
             );
         }
 
+        if (activeMembership.status === "FROZEN") {
+            throw new ErrorHandler(
+                "Your membership is currently frozen. You cannot generate a QR pass.",
+                403
+            );
+        }
+
         const secret = process.env.QR_TOKEN_SECRET || process.env.JWT_SECRET;
         const expiryMinutes = parseInt(process.env.QR_TOKEN_EXPIRY_MINUTES) || 5;
 

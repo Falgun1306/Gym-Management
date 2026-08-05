@@ -130,6 +130,7 @@ export default function App() {
         <Route path="equipment" element={<RoleGuard allowedRoles={['ADMIN']}><EquipmentPage /></RoleGuard>} />
         <Route path="complaints" element={<RoleGuard allowedRoles={['ADMIN']}><ComplaintsPage /></RoleGuard>} />
         <Route path="reports" element={<RoleGuard allowedRoles={['ADMIN']}><ReportsPage /></RoleGuard>} />
+        <Route path="gym-classes" element={<RoleGuard allowedRoles={['ADMIN']}><GymClassesPage /></RoleGuard>} />
         <Route path="settings" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER', 'MEMBER']}><AdminSettingsPage /></RoleGuard>} />
 
         {/* ── Trainer-only routes ── */}
@@ -149,7 +150,7 @@ export default function App() {
         <Route path="my-workout" element={<RoleGuard allowedRoles={['MEMBER']}><MyWorkoutPage /></RoleGuard>} />
         <Route path="my-diet" element={<RoleGuard allowedRoles={['MEMBER']}><MyDietPage /></RoleGuard>} />
         <Route path="my-progress" element={<RoleGuard allowedRoles={['MEMBER']}><MyProgressPage /></RoleGuard>} />
-        <Route path="classes" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER', 'MEMBER']}><MemberClassesPage /></RoleGuard>} />
+        <Route path="classes" element={<RoleGuard allowedRoles={['MEMBER']}><MemberClassesPage /></RoleGuard>} />
         <Route path="my-support" element={<RoleGuard allowedRoles={['MEMBER']}><MemberSupportPage /></RoleGuard>} />
       </Route>
 

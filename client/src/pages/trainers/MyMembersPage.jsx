@@ -64,10 +64,10 @@ export default function MyMembersPage() {
       key: 'membershipStatus',
       label: 'Membership',
       render: (row) => {
-        const activeMembership = row.memberships?.find((m) => m.status === 'ACTIVE');
+        const activeMembership = row.memberships?.find((m) => ['ACTIVE', 'FROZEN'].includes(m.status));
         return (
-          <Badge status={activeMembership ? 'ACTIVE' : 'EXPIRED'} size="sm">
-            {activeMembership?.plan?.name || (activeMembership ? 'Active' : 'No Plan')}
+          <Badge status={activeMembership ? activeMembership.status : 'EXPIRED'} size="sm">
+            {activeMembership?.plan?.name || (activeMembership ? activeMembership.status : 'No Plan')}
           </Badge>
         );
       },
@@ -219,7 +219,9 @@ function MemberDetailSheet({ member, open, onClose, onLogProgress }) {
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm space-y-1">
               <div className="flex justify-between font-semibold text-slate-900">
                 <span>{detail.memberships[0]?.plan?.name || 'Membership'}</span>
-                <Badge variant="success">ACTIVE</Badge>
+                <Badge variant={detail.memberships[0]?.status === 'ACTIVE' ? 'success' : detail.memberships[0]?.status === 'FROZEN' ? 'warning' : 'neutral'}>
+                  {detail.memberships[0]?.status}
+                </Badge>
               </div>
               <p className="text-xs text-slate-500">
                 Valid: {new Date(detail.memberships[0]?.startDate).toLocaleDateString()} – {new Date(detail.memberships[0]?.endDate).toLocaleDateString()}
@@ -251,7 +253,6 @@ function MemberDetailSheet({ member, open, onClose, onLogProgress }) {
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-xs text-slate-700">
                     {log.weight != null && <div>Weight: <strong>{log.weight} kg</strong></div>}
-                    {log.bodyFat != null && <div>Body Fat: <strong>{log.bodyFat}%</strong></div>}
                     {log.chest != null && <div>Chest: <strong>{log.chest} in</strong></div>}
                     {log.waist != null && <div>Waist: <strong>{log.waist} in</strong></div>}
                     {log.arms != null && <div>Arms: <strong>{log.arms} in</strong></div>}
@@ -287,7 +288,6 @@ function InfoCard({ icon: Icon, label, value }) {
 function LogProgressModal({ member, open, onClose, onSuccess }) {
   const [form, setForm] = useState({
     weight: '',
-    bodyFat: '',
     chest: '',
     waist: '',
     arms: '',
@@ -301,7 +301,7 @@ function LogProgressModal({ member, open, onClose, onSuccess }) {
     mutationFn: (data) => logMemberProgress(memberId, data),
     onSuccess: () => {
       toast.success('Progress logged successfully');
-      setForm({ weight: '', bodyFat: '', chest: '', waist: '', arms: '', thigh: '', notes: '' });
+      setForm({ weight: '', chest: '', waist: '', arms: '', thigh: '', notes: '' });
       onSuccess();
     },
     onError: (err) => toast.error(err.message),
@@ -311,7 +311,6 @@ function LogProgressModal({ member, open, onClose, onSuccess }) {
     e.preventDefault();
     const payload = {};
     if (form.weight) payload.weight = parseFloat(form.weight);
-    if (form.bodyFat) payload.bodyFat = parseFloat(form.bodyFat);
     if (form.chest) payload.chest = parseFloat(form.chest);
     if (form.waist) payload.waist = parseFloat(form.waist);
     if (form.arms) payload.arms = parseFloat(form.arms);
@@ -346,15 +345,6 @@ function LogProgressModal({ member, open, onClose, onSuccess }) {
             value={form.weight}
             onChange={(e) => setForm({ ...form, weight: e.target.value })}
             placeholder="72.5"
-          />
-          <Input
-            label="Body Fat (%)"
-            type="number"
-            step="0.1"
-            icon={Activity}
-            value={form.bodyFat}
-            onChange={(e) => setForm({ ...form, bodyFat: e.target.value })}
-            placeholder="15.0"
           />
           <Input
             label="Chest (inches)"

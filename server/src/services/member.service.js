@@ -536,12 +536,11 @@ class MemberService {
         if (!member) {
             throw new ErrorHandler("Member profile not found", 404);
         }
-        const { weight, bodyFat, chest, waist, arms, thigh, notes, recordedAt } = body;
+        const { weight, chest, waist, arms, thigh, notes, recordedAt } = body;
         return prisma.progressLog.create({
             data: {
                 memberId: member.id,
                 weight: weight !== undefined && weight !== null && weight !== "" ? parseFloat(weight) : null,
-                bodyFat: bodyFat !== undefined && bodyFat !== null && bodyFat !== "" ? parseFloat(bodyFat) : null,
                 chest: chest !== undefined && chest !== null && chest !== "" ? parseFloat(chest) : null,
                 waist: waist !== undefined && waist !== null && waist !== "" ? parseFloat(waist) : null,
                 arms: arms !== undefined && arms !== null && arms !== "" ? parseFloat(arms) : null,
