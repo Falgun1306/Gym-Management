@@ -10,7 +10,7 @@ import couponService from "./coupon.service.js";
 import notificationService from "./notification.service.js";
 
 const ADMIN_EDITABLE_FIELDS = ["username", "email"];
-const TRAINER_EDITABLE_FIELDS = ["salary", "experience", "specialization", "gender", "firstName", "lastName", "phone", "bio"];
+const TRAINER_EDITABLE_FIELDS = ["salary", "experience", "specialization", "gender", "firstName", "lastName", "phone", "bio", "trainerType"];
 const MEMBER_EDITABLE_FIELDS = [
     "firstName",
     "lastName",
@@ -226,7 +226,7 @@ class AdminService {
     }
 
     async directPromoteToTrainer(body) {
-        let { userId, username, specialization, specializations, experience, salary, joiningDate, bio, certifications } = body;
+        let { userId, username, specialization, specializations, experience, salary, joiningDate, bio, certifications, trainerType } = body;
 
         if (!userId && username) {
             const user = await userRepository.findByUsername(username);
@@ -257,6 +257,7 @@ class AdminService {
                 certifications: certifications || [],
                 salary: salary || null,
                 joiningDate: joiningDate || null,
+                trainerType: trainerType || 'PERSONAL',
             });
         });
     }
@@ -448,7 +449,7 @@ class AdminService {
     }
 
     async createMembershipPlan(body) {
-        const { name, durationMonths, durationInDays, price, description } = body;
+        const { name, durationMonths, durationInDays, price, description, providedTrainerType } = body;
         const months = durationMonths ? parseInt(durationMonths) : (durationInDays ? Math.max(1, Math.round(parseInt(durationInDays) / 30)) : null);
 
         if (!name || !months || !price) {
@@ -465,6 +466,7 @@ class AdminService {
             durationMonths: months,
             price: parseFloat(price),
             description: description || null,
+            providedTrainerType: providedTrainerType || 'COMMON',
         });
     }
 
@@ -496,6 +498,7 @@ class AdminService {
         if (body.price !== undefined) updateData.price = parseFloat(body.price);
         if (body.description !== undefined) updateData.description = body.description;
         if (body.isActive !== undefined) updateData.isActive = body.isActive;
+        if (body.providedTrainerType !== undefined) updateData.providedTrainerType = body.providedTrainerType;
 
         if (Object.keys(updateData).length === 0) {
             throw new ErrorHandler("No valid fields provided to update", 400);
@@ -580,6 +583,34 @@ class AdminService {
         return payment;
     }
 
+    async recordPayment(payload) {
+        const { username, amount, paymentMethod, description } = payload;
+        
+        if (!username) {
+            throw new ErrorHandler("Member username is required", 400);
+        }
+
+        const user = await userRepository.findByUsername(username);
+        if (!user || user.role !== "MEMBER") {
+            throw new ErrorHandler("Member not found with this username", 404);
+        }
+
+        const member = await memberRepository.findByUserId(user.id);
+        if (!member) {
+            throw new ErrorHandler("Member profile not found", 404);
+        }
+
+        const payment = await paymentRepository.create({
+            memberId: member.id,
+            amount: amount,
+            paymentMethod: paymentMethod || "CASH",
+            status: "SUCCESS",
+            description: description || "Manual facility payment",
+        });
+
+        return payment;
+    }
+
     async assignTrainerToMember(memberId, trainerId) {
         if (!trainerId) {
             throw new ErrorHandler("trainerId is required", 400);
@@ -593,6 +624,19 @@ class AdminService {
         const trainer = await trainerRepository.findById(trainerId);
         if (!trainer) {
             throw new ErrorHandler("Trainer not found", 404);
+        }
+
+        const activeMembership = await prisma.membership.findFirst({
+            where: { memberId, status: "ACTIVE" },
+            include: { plan: true },
+        });
+
+        if (!activeMembership) {
+            throw new ErrorHandler("Member does not have an active membership plan", 403);
+        }
+
+        if (activeMembership.plan.providedTrainerType === 'COMMON' && trainer.trainerType === 'PERSONAL') {
+            throw new ErrorHandler("Member's current plan only provides a Common Trainer. Cannot assign a Personal Trainer.", 403);
         }
 
         const updatedMember = await memberRepository.update(memberId, { trainerId }, {
@@ -838,6 +882,48 @@ class AdminService {
         });
 
         return updatedMembership;
+    }
+
+    async approvePendingPayment(paymentId) {
+        const payment = await prisma.payment.findUnique({
+            where: { id: paymentId },
+            include: { membership: true, member: true },
+        });
+
+        if (!payment) {
+            throw new ErrorHandler("Payment not found", 404);
+        }
+
+        if (payment.status !== "PENDING") {
+            throw new ErrorHandler("Only pending payments can be approved", 400);
+        }
+
+        return prisma.$transaction(async (tx) => {
+            const updatedPayment = await tx.payment.update({
+                where: { id: paymentId },
+                data: { status: "SUCCESS" },
+            });
+
+            if (payment.membershipId) {
+                await tx.membership.update({
+                    where: { id: payment.membershipId },
+                    data: { status: "ACTIVE" },
+                });
+            }
+
+            if (payment.member?.userId) {
+                await tx.notification.create({
+                    data: {
+                        userId: payment.member.userId,
+                        title: "Membership Approved",
+                        message: "Your cash payment has been approved and your membership is now active.",
+                        type: "MEMBERSHIP",
+                    },
+                });
+            }
+
+            return updatedPayment;
+        });
     }
 }
 

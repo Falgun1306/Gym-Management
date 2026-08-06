@@ -154,6 +154,10 @@ export async function createAdminPayment(data) {
   return api.post('/admins/payments', data);
 }
 
+export async function approvePayment(id) {
+  return api.patch(`/admins/payments/${id}/approve`);
+}
+
 // ── Attendance ──
 export async function listAdminAttendance(params = {}) {
   return api.get('/admins/attendance', { params });
@@ -164,8 +168,8 @@ export async function listAdminComplaints(params = {}) {
   return api.get('/admins/complaints', { params });
 }
 
-export async function resolveComplaint(id, resolution) {
-  return api.patch(`/admins/complaints/${id}`, { resolution });
+export async function resolveComplaint(id, status, resolution) {
+  return api.patch(`/admins/complaints/${id}`, { status, resolution });
 }
 
 // ── Equipment ──

@@ -128,6 +128,11 @@ enum CouponStatus {
   EXPIRED
 }
 
+enum TrainerType {
+  COMMON
+  PERSONAL
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
@@ -191,6 +196,7 @@ model Trainer {
   experience      Int?
   salary          Decimal?
   bio             String?
+  trainerType     TrainerType            @default(PERSONAL)
   profilePhoto    String?
   certifications  String[]               @default([])
   averageRating   Float                  @default(0.0)
@@ -242,6 +248,7 @@ model MembershipPlan {
   price          Decimal
   description    String?
   isActive       Boolean  @default(true)
+  providedTrainerType TrainerType @default(COMMON)
 
   memberships Membership[]
 }

@@ -550,6 +550,81 @@ class MemberService {
             },
         });
     }
+
+    async getAvailableMembershipPlans() {
+        return prisma.membershipPlan.findMany({
+            where: { isActive: true },
+            orderBy: { price: "asc" },
+        });
+    }
+
+    async purchaseMembership(userId, planId, paymentMethod = "ONLINE") {
+        const method = paymentMethod.toUpperCase();
+        const validMethods = ["CASH", "UPI", "CREDIT_CARD", "DEBIT_CARD", "NET_BANKING", "ONLINE"];
+        if (!validMethods.includes(method)) {
+            throw new ErrorHandler("Invalid payment method", 400);
+        }
+
+        const member = await memberRepository.findByUserId(userId);
+        if (!member) {
+            throw new ErrorHandler("Member profile not found", 404);
+        }
+
+        const plan = await prisma.membershipPlan.findUnique({
+            where: { id: planId },
+        });
+        if (!plan || !plan.isActive) {
+            throw new ErrorHandler("Invalid or inactive membership plan", 404);
+        }
+
+        const start = new Date();
+        const end = new Date(start);
+        end.setMonth(end.getMonth() + plan.durationMonths);
+
+        const isCash = method === "CASH";
+        const memStatus = isCash ? "PENDING" : "ACTIVE";
+        const payStatus = isCash ? "PENDING" : "SUCCESS";
+
+        return prisma.$transaction(async (tx) => {
+            const membership = await tx.membership.create({
+                data: {
+                    memberId: member.id,
+                    planId,
+                    startDate: start,
+                    endDate: end,
+                    status: memStatus,
+                },
+                include: { plan: true },
+            });
+
+            await tx.payment.create({
+                data: {
+                    memberId: member.id,
+                    membershipId: membership.id,
+                    amount: plan.price,
+                    paymentMethod: method,
+                    status: payStatus,
+                    description: `Purchased via Member Portal - ${plan.name}`,
+                },
+            });
+
+            const title = isCash ? "Membership Pending Approval" : "Membership Purchased";
+            const message = isCash 
+                ? `You have requested the ${plan.name} plan via Cash. Please pay at the front desk to activate your membership.`
+                : `You have successfully purchased the ${plan.name} plan.`;
+
+            await tx.notification.create({
+                data: {
+                    userId: userId,
+                    title,
+                    message,
+                    type: "MEMBERSHIP",
+                }
+            });
+
+            return membership;
+        });
+    }
 }
 
 export default new MemberService();

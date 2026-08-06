@@ -74,6 +74,20 @@ const logMyProgress = asyncHandler(async (req, res) => {
     res.status(201).json(new ApiResponse(201, log, "Progress log added successfully"));
 });
 
+const getAvailableMembershipPlans = asyncHandler(async (req, res) => {
+    const plans = await memberService.getAvailableMembershipPlans();
+    res.status(200).json(new ApiResponse(200, plans));
+});
+
+const purchaseMembership = asyncHandler(async (req, res) => {
+    const { planId, paymentMethod } = req.body;
+    if (!planId) {
+        throw new ErrorHandler("Plan ID is required", 400);
+    }
+    const membership = await memberService.purchaseMembership(req.user.id, planId, paymentMethod);
+    res.status(201).json(new ApiResponse(201, membership, "Membership purchased successfully"));
+});
+
 export {
     getMyProfile,
     createMyProfile,
@@ -97,4 +111,6 @@ export {
     getMyApplications,
     freezeMembership,
     unfreezeMembership,
+    getAvailableMembershipPlans,
+    purchaseMembership,
 };

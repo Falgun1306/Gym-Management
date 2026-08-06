@@ -345,6 +345,19 @@ export function useCreateAdminPayment() {
   });
 }
 
+export function useApprovePayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => adminService.approvePayment(id),
+    onSuccess: (res) => {
+      toast.success(res.message || 'Payment approved');
+      queryClient.invalidateQueries({ queryKey: queryKeys.payments.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.memberships.all });
+    },
+    onError: (err) => toast.error(err.message || 'Approval failed'),
+  });
+}
+
 // ── Equipment Hooks ──
 
 export function useEquipment(params = {}) {
@@ -433,7 +446,7 @@ export function useAdminComplaints(params = {}) {
 export function useResolveComplaint() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, resolution }) => adminService.resolveComplaint(id, resolution),
+    mutationFn: ({ id, status, resolution }) => adminService.resolveComplaint(id, status, resolution),
     onSuccess: (res) => {
       toast.success(res.message || 'Complaint resolved');
       queryClient.invalidateQueries({ queryKey: queryKeys.complaints.all });

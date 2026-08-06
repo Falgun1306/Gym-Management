@@ -15,7 +15,7 @@ export default function ComplaintsPage() {
     e.preventDefault();
     if (!selectedComplaint) return;
     resolveMutation.mutate(
-      { id: selectedComplaint.id, resolution: resolutionText },
+      { id: selectedComplaint.id, status: 'RESOLVED', resolution: resolutionText },
       {
         onSuccess: () => {
           setSelectedComplaint(null);
