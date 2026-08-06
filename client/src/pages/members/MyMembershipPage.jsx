@@ -5,6 +5,8 @@ import {
   useMemberReferralLink,
   useFreezeMembership,
   useUnfreezeMembership,
+  useAvailableMembershipPlans,
+  usePurchaseMembership,
 } from '@/hooks/useMemberPortal';
 import { Card, CardHeader, Badge, Button, Modal, SkeletonTable } from '@/components/ui';
 import {
@@ -38,6 +40,43 @@ export default function MyMembershipPage() {
   const freezeMutation = useFreezeMembership();
   const unfreezeMutation = useUnfreezeMembership();
 
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+  const [selectedPlanToPurchase, setSelectedPlanToPurchase] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('ONLINE');
+
+  const { data: availablePlans = [], isLoading: plansLoading } = useAvailableMembershipPlans();
+  const purchaseMutation = usePurchaseMembership();
+
+  const handlePurchaseClick = (plan) => {
+    setSelectedPlanToPurchase(plan);
+    setPaymentMethod('ONLINE');
+  };
+
+  const submitPurchase = () => {
+    if (!selectedPlanToPurchase) return;
+    const isCash = paymentMethod === 'CASH';
+    const msg = isCash 
+      ? 'Are you sure you want to request this membership via Cash? It will require admin approval.'
+      : 'Are you sure you want to purchase this membership? This will activate instantly.';
+      
+    if (confirm(msg)) {
+      purchaseMutation.mutate(
+        { planId: selectedPlanToPurchase.id, paymentMethod },
+        {
+          onSuccess: () => {
+            setPurchaseModalOpen(false);
+            setSelectedPlanToPurchase(null);
+          }
+        }
+      );
+    }
+  };
+
+  const handleClosePurchaseModal = () => {
+    setPurchaseModalOpen(false);
+    setSelectedPlanToPurchase(null);
+  };
+
   const activeSub = subscriptions.find((s) => s.status === 'ACTIVE' || s.status === 'FROZEN') || subscriptions[0];
   const payments = paymentData?.payments || [];
 
@@ -67,11 +106,16 @@ export default function MyMembershipPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ── Page Header ── */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">My Membership & Billing</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Manage your subscription plans, pause membership, view payment history, and earn referral rewards.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">My Membership & Billing</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Manage your subscription plans, pause membership, view payment history, and earn referral rewards.
+          </p>
+        </div>
+        <Button onClick={() => setPurchaseModalOpen(true)} icon={CreditCard}>
+          Purchase Plan
+        </Button>
       </div>
 
       {/* ── Active Plan Card ── */}
@@ -207,9 +251,9 @@ export default function MyMembershipPage() {
                     </td>
                     <td className="py-3 px-4 text-slate-600">{formatDate(p.createdAt)}</td>
                     <td className="py-3 px-4 font-bold text-slate-900">{formatCurrency(p.amount)}</td>
-                    <td className="py-3 px-4 text-slate-600">{p.gateway || 'CARD / UPI'}</td>
+                    <td className="py-3 px-4 text-slate-600">{p.paymentMethod || p.gateway || 'ONLINE'}</td>
                     <td className="py-3 px-4">
-                      <Badge variant={p.status === 'COMPLETED' ? 'success' : p.status === 'FAILED' ? 'danger' : 'warning'}>
+                      <Badge variant={p.status === 'SUCCESS' || p.status === 'COMPLETED' ? 'success' : p.status === 'FAILED' ? 'danger' : 'warning'}>
                         {p.status}
                       </Badge>
                     </td>
@@ -257,6 +301,112 @@ export default function MyMembershipPage() {
               <Button type="submit" loading={freezeMutation.isPending} icon={Pause}>Confirm Pause</Button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {/* ── Purchase Plan Modal ── */}
+      {purchaseModalOpen && (
+        <Modal open={purchaseModalOpen} onClose={handleClosePurchaseModal} title={selectedPlanToPurchase ? "Select Payment Method" : "Available Membership Plans"}>
+          <div className="max-h-[70vh] overflow-y-auto space-y-4 p-1">
+            {!selectedPlanToPurchase ? (
+              // Step 1: Select Plan
+              plansLoading ? (
+                <div className="space-y-4">
+                  <div className="h-24 bg-slate-100 rounded-xl animate-pulse" />
+                  <div className="h-24 bg-slate-100 rounded-xl animate-pulse" />
+                </div>
+              ) : availablePlans.length === 0 ? (
+                <p className="text-center text-slate-500 py-8">No plans available at the moment.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {availablePlans.map((plan) => (
+                    <Card key={plan.id} className="p-5 border border-slate-200 hover:border-emerald-500 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-bold text-slate-900 text-lg">{plan.name}</h3>
+                        <Badge variant="info">
+                          {Math.round((plan.durationInDays || plan.durationMonths * 30) / 30)} Month{Math.round((plan.durationInDays || plan.durationMonths * 30) / 30) !== 1 ? 's' : ''}
+                        </Badge>
+                      </div>
+                      <div className="text-2xl font-extrabold text-slate-800 mb-2">
+                        {formatCurrency(plan.price)}
+                      </div>
+                      {plan.providedTrainerType && (
+                        <Badge variant={plan.providedTrainerType === 'PERSONAL' ? 'purple' : 'slate'} className="mb-4">
+                          {plan.providedTrainerType === 'PERSONAL' ? 'Personal Trainer' : 'Common Trainer'}
+                        </Badge>
+                      )}
+                      <p className="text-xs text-slate-500 mb-4 h-8 line-clamp-2">{plan.description}</p>
+                      <Button 
+                        className="w-full" 
+                        onClick={() => handlePurchaseClick(plan)}
+                      >
+                        Select Plan
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
+              )
+            ) : (
+              // Step 2: Payment Method
+              <div className="space-y-6">
+                <Card className="p-4 bg-slate-50 border border-slate-200">
+                  <h3 className="font-bold text-slate-900">{selectedPlanToPurchase.name}</h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Duration: {selectedPlanToPurchase.durationMonths} Months
+                  </p>
+                  <p className="text-lg font-bold text-emerald-600 mt-2">
+                    {formatCurrency(selectedPlanToPurchase.price)}
+                  </p>
+                </Card>
+
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-slate-700">Choose Payment Method</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('ONLINE')}
+                      className={`p-4 border-2 rounded-xl text-left transition-all ${
+                        paymentMethod === 'ONLINE' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className="font-bold text-slate-800">Online Payment</div>
+                      <div className="text-xs text-slate-500 mt-1">Pay now via Gateway</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('CASH')}
+                      className={`p-4 border-2 rounded-xl text-left transition-all ${
+                        paymentMethod === 'CASH' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className="font-bold text-slate-800">Cash Payment</div>
+                      <div className="text-xs text-slate-500 mt-1">Pay at Front Desk</div>
+                    </button>
+                  </div>
+                </div>
+
+                {paymentMethod === 'CASH' && (
+                  <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs flex items-start gap-2 border border-amber-200">
+                    <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <p>Cash payments require administrator approval. Your membership will be marked as PENDING until verified.</p>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                  <Button variant="outline" onClick={() => setSelectedPlanToPurchase(null)}>
+                    Back
+                  </Button>
+                  <Button 
+                    loading={purchaseMutation.isPending}
+                    onClick={submitPurchase}
+                    icon={paymentMethod === 'CASH' ? Check : CreditCard}
+                  >
+                    {paymentMethod === 'CASH' ? 'Request Membership' : 'Pay Now'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </Modal>
       )}
     </div>

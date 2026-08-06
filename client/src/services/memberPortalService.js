@@ -120,3 +120,12 @@ export async function applyForTrainer(data) {
 export async function getMyTrainerApplications() {
   return api.get('/members/my-applications');
 }
+
+// ─── Memberships (Purchase & Listing) ────────────────────────────────────────
+export async function getAvailableMembershipPlans() {
+  return api.get('/members/membership-plans');
+}
+
+export async function purchaseMembership({ planId, paymentMethod }) {
+  return api.post('/members/memberships/purchase', { planId, paymentMethod });
+}

@@ -27,6 +27,8 @@ import {
     unfreezeMembership,
     listPayments,
     getPaymentById,
+    recordPayment,
+    approvePendingPayment,
     listAttendance,
     listComplaints,
     resolveComplaint,
@@ -94,6 +96,8 @@ router.patch("/memberships/:id/unfreeze", unfreezeMembership);
 
 router.get("/payments", listPayments);
 router.get("/payments/:id", getPaymentById);
+router.post("/payments", recordPayment);
+router.patch("/payments/:id/approve", approvePendingPayment);
 
 // ─── Attendance ──────────────────────────────────────────────────────────────
 

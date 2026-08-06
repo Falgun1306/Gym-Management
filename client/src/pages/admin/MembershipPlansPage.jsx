@@ -17,7 +17,7 @@ export default function MembershipPlansPage() {
   const [assignModal, setAssignModal] = useState(false);
 
   // durationMonths is what admin enters; we convert ×30 to days when submitting
-  const [planForm, setPlanForm] = useState({ name: '', price: '', durationMonths: 1, description: '' });
+  const [planForm, setPlanForm] = useState({ name: '', price: '', durationMonths: 1, description: '', providedTrainerType: 'COMMON' });
   const [assignForm, setAssignForm] = useState({
     memberId: '',
     planId: '',
@@ -43,11 +43,12 @@ export default function MembershipPlansPage() {
         durationMonths: months,
         durationInDays: months * 30,
         description: planForm.description,
+        providedTrainerType: planForm.providedTrainerType,
       },
       {
         onSuccess: () => {
           setCreateModal(false);
-          setPlanForm({ name: '', price: '', durationMonths: 1, description: '' });
+          setPlanForm({ name: '', price: '', durationMonths: 1, description: '', providedTrainerType: 'COMMON' });
         },
       }
     );
@@ -66,6 +67,7 @@ export default function MembershipPlansPage() {
           durationMonths: months,
           durationInDays: months * 30,
           description: planForm.description,
+          providedTrainerType: planForm.providedTrainerType,
         },
       },
       {
@@ -138,9 +140,14 @@ export default function MembershipPlansPage() {
               <div>
                 <div className="flex items-start justify-between">
                   <h3 className="text-lg font-bold text-slate-900">{plan.name}</h3>
-                  <Badge variant="info">
-                    {Math.round((plan.durationInDays || plan.durationMonths * 30) / 30)} Month{Math.round((plan.durationInDays || plan.durationMonths * 30) / 30) !== 1 ? 's' : ''}
-                  </Badge>
+                  <div className="flex gap-2">
+                    <Badge variant="info">
+                      {Math.round((plan.durationInDays || plan.durationMonths * 30) / 30)} Month{Math.round((plan.durationInDays || plan.durationMonths * 30) / 30) !== 1 ? 's' : ''}
+                    </Badge>
+                    <Badge variant={plan.providedTrainerType === 'PERSONAL' ? 'purple' : 'slate'}>
+                      {plan.providedTrainerType === 'PERSONAL' ? 'Personal Trainer' : 'Common Trainer'}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="mt-3">
@@ -149,7 +156,7 @@ export default function MembershipPlansPage() {
                 </div>
 
                 <p className="text-xs text-slate-600 mt-3 leading-relaxed">
-                  {plan.description || 'Access to facility equipment, standard classes, and locker room services.'}
+                  {plan.description}
                 </p>
               </div>
 
@@ -164,8 +171,9 @@ export default function MembershipPlansPage() {
                       setPlanForm({
                         name: plan.name,
                         price: plan.price,
-                        durationMonths: Math.round((plan.durationInDays || 30) / 30),
+                        durationMonths: plan.durationInDays ? Math.round(plan.durationInDays / 30) : plan.durationMonths,
                         description: plan.description || '',
+                        providedTrainerType: plan.providedTrainerType || 'COMMON',
                       });
                     }}
                     className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
@@ -235,7 +243,20 @@ export default function MembershipPlansPage() {
                 placeholder="Plan features and perks..."
                 rows={3}
                 className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
+                required
               />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Provided Trainer Type *</label>
+              <select
+                value={planForm.providedTrainerType}
+                onChange={(e) => setPlanForm({ ...planForm, providedTrainerType: e.target.value })}
+                className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
+                required
+              >
+                <option value="COMMON">Common Trainer</option>
+                <option value="PERSONAL">Personal Trainer</option>
+              </select>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setCreateModal(false)}>Cancel</Button>
@@ -293,6 +314,18 @@ export default function MembershipPlansPage() {
                 rows={3}
                 className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Provided Trainer Type *</label>
+              <select
+                value={planForm.providedTrainerType}
+                onChange={(e) => setPlanForm({ ...planForm, providedTrainerType: e.target.value })}
+                className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
+                required
+              >
+                <option value="COMMON">Common Trainer</option>
+                <option value="PERSONAL">Personal Trainer</option>
+              </select>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setEditPlan(null)}>Cancel</Button>
@@ -360,6 +393,7 @@ export default function MembershipPlansPage() {
               <label className="block text-xs font-semibold text-slate-700 mb-1">Start Date *</label>
               <input
                 type="date"
+                min={new Date().toISOString().split('T')[0]}
                 value={assignForm.startDate}
                 onChange={(e) => setAssignForm({ ...assignForm, startDate: e.target.value })}
                 className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20 bg-white"

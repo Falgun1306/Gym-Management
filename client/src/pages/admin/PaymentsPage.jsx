@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAdminPayments, useCreateAdminPayment } from '@/hooks/useAdmin';
+import { useAdminPayments, useCreateAdminPayment, useApprovePayment } from '@/hooks/useAdmin';
 import { Card, Badge, Button, Modal, SkeletonTable } from '@/components/ui';
 import { CreditCard, FileText, Plus, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/utils/formatters';
@@ -10,7 +10,7 @@ export default function PaymentsPage() {
   const [recordPaymentModal, setRecordPaymentModal] = useState(false);
 
   const [form, setForm] = useState({
-    memberId: '',
+    username: '',
     amount: '',
     paymentMethod: 'CASH',
     description: 'Manual facility payment',
@@ -19,12 +19,19 @@ export default function PaymentsPage() {
   const { data, isLoading } = useAdminPayments({ status: statusFilter || undefined });
   const payments = data?.payments || [];
   const createPaymentMutation = useCreateAdminPayment();
+  const approvePaymentMutation = useApprovePayment();
+
+  const handleApprove = (paymentId) => {
+    if (confirm('Approve this pending payment and activate the membership?')) {
+      approvePaymentMutation.mutate(paymentId);
+    }
+  };
 
   const handleRecordSubmit = (e) => {
     e.preventDefault();
     createPaymentMutation.mutate(
       {
-        memberId: form.memberId,
+        username: form.username,
         amount: parseFloat(form.amount) || 0,
         paymentMethod: form.paymentMethod,
         description: form.description,
@@ -32,7 +39,7 @@ export default function PaymentsPage() {
       {
         onSuccess: () => {
           setRecordPaymentModal(false);
-          setForm({ memberId: '', amount: '', paymentMethod: 'CASH', description: 'Manual facility payment' });
+          setForm({ username: '', amount: '', paymentMethod: 'CASH', description: 'Manual facility payment' });
         },
       }
     );
@@ -111,14 +118,27 @@ export default function PaymentsPage() {
                       </Badge>
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedInvoice(p)}
-                        className="!p-1.5"
-                      >
-                        <FileText className="w-4 h-4 text-slate-600" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        {p.status === 'PENDING' && (
+                          <Button
+                            variant="success"
+                            size="sm"
+                            onClick={() => handleApprove(p.id)}
+                            loading={approvePaymentMutation.isPending && approvePaymentMutation.variables === p.id}
+                            className="!px-2 !py-1 text-xs"
+                          >
+                            Approve
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedInvoice(p)}
+                          className="!p-1.5"
+                        >
+                          <FileText className="w-4 h-4 text-slate-600" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -133,12 +153,12 @@ export default function PaymentsPage() {
         <Modal open={recordPaymentModal} onClose={() => setRecordPaymentModal(false)} title="Record Facility Payment">
           <form onSubmit={handleRecordSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Member UUID</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Member Username</label>
               <input
                 type="text"
-                value={form.memberId}
-                onChange={(e) => setForm({ ...form, memberId: e.target.value })}
-                placeholder="Enter exact Member UUID"
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                placeholder="Enter exact Member Username"
                 className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
                 required
               />

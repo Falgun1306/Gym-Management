@@ -351,6 +351,7 @@ export default function TrainerSchedulePage() {
                   <Input
                     label="Start Date"
                     type="date"
+                    min={new Date().toISOString().split('T')[0]}
                     value={timeOffForm.startDate}
                     onChange={(e) => setTimeOffForm({ ...timeOffForm, startDate: e.target.value })}
                     required
@@ -358,6 +359,7 @@ export default function TrainerSchedulePage() {
                   <Input
                     label="End Date"
                     type="date"
+                    min={new Date().toISOString().split('T')[0]}
                     value={timeOffForm.endDate}
                     onChange={(e) => setTimeOffForm({ ...timeOffForm, endDate: e.target.value })}
                     required

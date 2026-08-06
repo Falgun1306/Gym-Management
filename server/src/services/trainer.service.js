@@ -6,7 +6,7 @@ import notificationService from "./notification.service.js";
 
 const EDITABLE_FIELDS = ["bio", "profilePhoto", "certifications", "gender"];
 
-export const createTrainerFromMember = async (tx, { userId, specialization, specializations, experience, bio, certifications, salary, joiningDate }) => {
+export const createTrainerFromMember = async (tx, { userId, specialization, specializations, experience, bio, certifications, salary, joiningDate, trainerType }) => {
     const member = await tx.member.findUnique({ where: { userId } });
     if (!member) {
         throw new ErrorHandler("Member profile not found for this user. A Member profile is required before promotion.", 400);
@@ -51,6 +51,7 @@ export const createTrainerFromMember = async (tx, { userId, specialization, spec
             bio: bio || null,
             certifications: certifications || [],
             profilePhoto: member.profilePhoto || null,
+            trainerType: trainerType || 'PERSONAL',
             salary: salary ? parseFloat(salary) : null,
             joinedAt: joiningDate ? new Date(joiningDate) : new Date(),
         },

@@ -26,6 +26,8 @@ import {
   getMyComplaints,
   applyForTrainer,
   getMyTrainerApplications,
+  getAvailableMembershipPlans,
+  purchaseMembership,
 } from '@/services/memberPortalService';
 import toast from 'react-hot-toast';
 
@@ -124,6 +126,29 @@ export function useUnfreezeMembership() {
       queryClient.invalidateQueries({ queryKey: queryKeys.members.subscriptions('me') });
     },
     onError: (err) => toast.error(err.message || 'Failed to resume membership'),
+  });
+}
+
+export function useAvailableMembershipPlans() {
+  return useQuery({
+    queryKey: ['members', 'membership-plans', 'available'],
+    queryFn: getAvailableMembershipPlans,
+    staleTime: 60_000,
+    select: (res) => res.data,
+  });
+}
+
+export function usePurchaseMembership() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ planId, paymentMethod }) => purchaseMembership({ planId, paymentMethod }),
+    onSuccess: (res) => {
+      toast.success(res.message || 'Membership request submitted successfully!');
+      queryClient.invalidateQueries({ queryKey: queryKeys.members.subscriptions('me') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.member() });
+      queryClient.invalidateQueries({ queryKey: ['payments', 'me'] });
+    },
+    onError: (err) => toast.error(err.message || 'Failed to purchase membership'),
   });
 }
 

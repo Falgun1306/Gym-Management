@@ -104,6 +104,11 @@ const getPaymentById = asyncHandler(async (req, res) => {
     res.status(200).json(new ApiResponse(200, payment));
 });
 
+const recordPayment = asyncHandler(async (req, res) => {
+    const payment = await adminService.recordPayment(req.body);
+    res.status(201).json(new ApiResponse(201, payment, "Payment recorded successfully"));
+});
+
 const assignTrainerToMember = asyncHandler(async (req, res) => {
     const updatedMember = await adminService.assignTrainerToMember(req.params.memberId, req.body.trainerId);
     res.status(200).json(new ApiResponse(200, updatedMember, "Trainer assigned to member successfully"));
@@ -134,6 +139,11 @@ const unfreezeMembership = asyncHandler(async (req, res) => {
     res.status(200).json(new ApiResponse(200, membership, "Membership resumed successfully"));
 });
 
+const approvePendingPayment = asyncHandler(async (req, res) => {
+    const payment = await adminService.approvePendingPayment(req.params.id);
+    res.status(200).json(new ApiResponse(200, payment, "Payment and membership approved successfully"));
+});
+
 export {
     getMyProfile,
     updateMyProfile,
@@ -160,6 +170,7 @@ export {
     unfreezeMembership,
     listPayments,
     getPaymentById,
+    recordPayment,
     listAttendance,
     listComplaints,
     resolveComplaint,
@@ -169,4 +180,5 @@ export {
     getDashboard,
     listTrainers,
     getTrainerById,
+    approvePendingPayment,
 };

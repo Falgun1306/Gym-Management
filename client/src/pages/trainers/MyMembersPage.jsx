@@ -64,11 +64,21 @@ export default function MyMembersPage() {
       key: 'membershipStatus',
       label: 'Membership',
       render: (row) => {
-        const activeMembership = row.memberships?.find((m) => ['ACTIVE', 'FROZEN'].includes(m.status));
+        const activeMembership = row.memberships?.find((m) => ['ACTIVE', 'FROZEN', 'PENDING'].includes(m.status)) || row.memberships?.[0];
+        
+        if (!activeMembership) {
+          return <Badge status="EXPIRED" size="sm">No Plan</Badge>;
+        }
+
         return (
-          <Badge status={activeMembership ? activeMembership.status : 'EXPIRED'} size="sm">
-            {activeMembership?.plan?.name || (activeMembership ? activeMembership.status : 'No Plan')}
-          </Badge>
+          <div className="flex items-center gap-1.5">
+            <span className="font-semibold text-xs text-slate-700 capitalize">
+              {activeMembership.plan?.name || 'Unknown'}
+            </span>
+            <Badge status={activeMembership.status} size="sm">
+              {activeMembership.status}
+            </Badge>
+          </div>
         );
       },
     },

@@ -34,6 +34,18 @@ class PaymentRepository {
     async count(where = {}) {
         return prisma.payment.count({ where });
     }
+
+    async create(data) {
+        return prisma.payment.create({ data });
+    }
+
+    async update(id, data, include = null) {
+        return prisma.payment.update({
+            where: { id },
+            data,
+            ...(include && { include }),
+        });
+    }
 }
 
 export default new PaymentRepository();

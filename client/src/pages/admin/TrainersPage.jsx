@@ -31,6 +31,7 @@ const EMPTY_PROMOTE = {
   bio: '',
   certifications: '',
   joiningDate: '',
+  trainerType: 'PERSONAL',
 };
 
 const inputCls = 'w-full text-sm border border-slate-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/20';
@@ -42,7 +43,7 @@ export default function TrainersPage() {
   const [promoteModal, setPromoteModal] = useState(false);
 
   const [promoteForm, setPromoteForm] = useState(EMPTY_PROMOTE);
-  const [editForm, setEditForm] = useState({ specializations: ['GENERAL_FITNESS'], salary: '', experience: '', gender: 'MALE' });
+  const [editForm, setEditForm] = useState({ specializations: ['GENERAL_FITNESS'], salary: '', experience: '', gender: 'MALE', trainerType: 'PERSONAL' });
 
   const { data: trainers = [], isLoading } = useTrainers({ search });
   const promoteMutation = usePromoteTrainer();
@@ -91,6 +92,7 @@ export default function TrainersPage() {
         ? promoteForm.certifications.split(',').map((c) => c.trim()).filter(Boolean)
         : [],
       joiningDate: promoteForm.joiningDate || null,
+      trainerType: promoteForm.trainerType,
     };
     promoteMutation.mutate(payload, {
       onSuccess: () => {
@@ -112,6 +114,7 @@ export default function TrainersPage() {
           specialization: editForm.specializations[0] || 'GENERAL_FITNESS',
           salary: parseFloat(editForm.salary) || 0,
           experience: parseInt(editForm.experience) || 0,
+          trainerType: editForm.trainerType,
         },
       },
       { onSuccess: () => setEditTrainer(null) }
@@ -166,6 +169,7 @@ export default function TrainersPage() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/50">
                   <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Trainer</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Type</th>
                   <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Gender</th>
                   <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Specializations</th>
                   <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Experience</th>
@@ -190,6 +194,11 @@ export default function TrainersPage() {
                             <p className="text-xs text-slate-400 font-mono">@{t.user?.username || 'trainer'}</p>
                           </div>
                         </div>
+                      </td>
+                      <td className="py-3 px-4 text-slate-600">
+                        <Badge variant={t.trainerType === 'PERSONAL' ? 'purple' : 'slate'}>
+                          {t.trainerType === 'PERSONAL' ? 'Personal' : 'Common'}
+                        </Badge>
                       </td>
                       <td className="py-3 px-4 text-slate-600 capitalize">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
@@ -219,9 +228,10 @@ export default function TrainersPage() {
                               setEditTrainer(t);
                               setEditForm({
                                 specializations: specs,
-                                salary: t.salary || 0,
-                                experience: t.experience || 1,
+                                salary: t.salary || '',
+                                experience: t.experience || '',
                                 gender: t.gender || 'MALE',
+                                trainerType: t.trainerType || 'PERSONAL',
                               });
                             }}
                             className="!p-1.5"
@@ -312,7 +322,7 @@ export default function TrainersPage() {
                 })}
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Gender *</label>
                 <select
@@ -324,6 +334,18 @@ export default function TrainersPage() {
                   {GENDER_OPTIONS.map((g) => (
                     <option key={g.value} value={g.value}>{g.label}</option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Trainer Type *</label>
+                <select
+                  value={editForm.trainerType}
+                  onChange={(e) => setEditForm({ ...editForm, trainerType: e.target.value })}
+                  className={inputCls}
+                  required
+                >
+                  <option value="PERSONAL">Personal Trainer</option>
+                  <option value="COMMON">Common Trainer</option>
                 </select>
               </div>
               <div>
@@ -437,16 +459,30 @@ export default function TrainersPage() {
               </div>
             </div>
 
-            {/* Joining Date */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Joining Date</label>
-              <input
-                type="date"
-                value={promoteForm.joiningDate}
-                onChange={(e) => setP('joiningDate', e.target.value)}
-                className={inputCls}
-              />
-              <p className="text-[11px] text-slate-400 mt-0.5">Leave blank to use today's date.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Trainer Type *</label>
+                <select
+                  value={promoteForm.trainerType}
+                  onChange={(e) => setP('trainerType', e.target.value)}
+                  className={inputCls}
+                  required
+                >
+                  <option value="PERSONAL">Personal Trainer</option>
+                  <option value="COMMON">Common Trainer</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Joining Date</label>
+                <input
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                  value={promoteForm.joiningDate}
+                  onChange={(e) => setP('joiningDate', e.target.value)}
+                  className={inputCls}
+                />
+                <p className="text-[11px] text-slate-400 mt-0.5">Leave blank to use today's date.</p>
+              </div>
             </div>
 
             {/* Bio */}

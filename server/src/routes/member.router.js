@@ -24,6 +24,8 @@ import {
     unfreezeMembership,
     getMyProgress,
     logMyProgress,
+    getAvailableMembershipPlans,
+    purchaseMembership,
 } from "../controller/member.controller.js";
 
 const router = express.Router();
@@ -42,6 +44,11 @@ router.get("/me/progress", auth, getMyProgress);
 router.post("/me/progress", auth, logMyProgress);
 router.get("/me/notifications", auth, getMyNotifications);
 router.patch("/me/notifications/:id", auth, markNotificationRead);
+
+// ─── Memberships (Purchase & Listing) ────────────────────────────────────────
+
+router.get("/membership-plans", auth, getAvailableMembershipPlans);
+router.post("/memberships/purchase", auth, purchaseMembership);
 
 // ─── Membership Freeze / Pause ───────────────────────────────────────────────
 
