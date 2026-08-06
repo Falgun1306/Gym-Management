@@ -14,6 +14,7 @@ import {
   Clock,
   MapPin,
   ArrowRight,
+  Star,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -98,13 +99,13 @@ export default function TrainerDashboard() {
 
       {/* ── Stat Cards ── */}
       {dashLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => (
             <SkeletonStat key={i} />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
             title="Assigned Members"
             value={stats?.assignedMembersCount ?? '—'}
@@ -133,6 +134,12 @@ export default function TrainerDashboard() {
             value={stats?.gymClassesCount ?? '—'}
             icon={CalendarDays}
             iconBg="bg-indigo-50 text-indigo-700"
+          />
+          <StatCard
+            title="Average Rating"
+            value={stats?.trainerProfile?.averageRating ? `${stats.trainerProfile.averageRating} / 5` : 'N/A'}
+            icon={Star}
+            iconBg="bg-amber-50 text-amber-500"
           />
         </div>
       )}

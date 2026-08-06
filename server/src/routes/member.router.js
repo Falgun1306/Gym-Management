@@ -26,6 +26,8 @@ import {
     logMyProgress,
     getAvailableMembershipPlans,
     purchaseMembership,
+    submitTrainerRating,
+    getMyTrainerRatings,
 } from "../controller/member.controller.js";
 
 const router = express.Router();
@@ -69,6 +71,11 @@ router.patch("/gym-classes/bookings/:bookingId/cancel", auth, cancelGymClass);
 // ─── Complaints ──────────────────────────────────────────────────────────────
 
 router.post("/complaints", auth, createComplaint);
+
+// ─── Trainer Ratings ──────────────────────────────────────────────────────────────
+
+router.post("/me/trainer-rating", auth, submitTrainerRating);
+router.get("/me/trainer-ratings", auth, getMyTrainerRatings);
 
 // ─── Admin / Trainer routes ──────────────────────────────────────────────────
 

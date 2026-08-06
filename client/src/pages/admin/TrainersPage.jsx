@@ -173,6 +173,7 @@ export default function TrainersPage() {
                   <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Gender</th>
                   <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Specializations</th>
                   <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Experience</th>
+                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Avg Rating</th>
                   <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Monthly Salary</th>
                   <th className="text-right py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Actions</th>
                 </tr>
@@ -214,7 +215,12 @@ export default function TrainersPage() {
                           ))}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-slate-600">{t.experience ?? 1} yrs</td>
+                      <td className="py-3 px-4 text-slate-600 font-medium">
+                        {t.experience ? `${t.experience} Yrs` : '—'}
+                      </td>
+                      <td className="py-3 px-4 text-amber-500 font-semibold flex items-center gap-1">
+                        ⭐ {t.averageRating ? t.averageRating.toFixed(1) : 'N/A'}
+                      </td>
                       <td className="py-3 px-4 font-semibold text-emerald-700">{formatCurrency(t.salary ?? 0)}</td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">

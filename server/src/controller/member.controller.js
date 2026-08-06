@@ -1,6 +1,7 @@
 import asyncHandler from "../middlewares/asyncHandler.middleware.js";
 import ApiResponse from "../utility/ApiResponse.utility.js";
 import memberService from "../services/member.service.js";
+import ratingService from "../services/rating.service.js";
 
 import { getMyWorkoutPlans } from "./workout.controller.js";
 import { getMyDietPlans } from "./diet.controller.js";
@@ -88,6 +89,16 @@ const purchaseMembership = asyncHandler(async (req, res) => {
     res.status(201).json(new ApiResponse(201, membership, "Membership purchased successfully"));
 });
 
+const submitTrainerRating = asyncHandler(async (req, res) => {
+    const result = await ratingService.submitRating(req.user.id, req.body);
+    res.status(201).json(new ApiResponse(201, result, "Rating submitted successfully"));
+});
+
+const getMyTrainerRatings = asyncHandler(async (req, res) => {
+    const result = await ratingService.getMyTrainerRatings(req.user.id);
+    res.status(200).json(new ApiResponse(200, result));
+});
+
 export {
     getMyProfile,
     createMyProfile,
@@ -113,4 +124,6 @@ export {
     unfreezeMembership,
     getAvailableMembershipPlans,
     purchaseMembership,
+    submitTrainerRating,
+    getMyTrainerRatings,
 };

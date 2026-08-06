@@ -9,6 +9,8 @@ import {
   useMemberCheckOut,
   useFreezeMembership,
   useUnfreezeMembership,
+  useMyTrainerRatings,
+  useSubmitTrainerRating,
 } from '@/hooks/useMemberPortal';
 import { Card, CardHeader, Badge, Button, Modal, Avatar, SkeletonCard } from '@/components/ui';
 import CompleteProfileForm from '@/components/members/CompleteProfileForm';
@@ -29,6 +31,7 @@ import {
   RefreshCw,
   Phone,
   Mail,
+  Star,
 } from 'lucide-react';
 import { formatDate, daysRemaining } from '@/utils/formatters';
 
@@ -70,6 +73,26 @@ export default function MemberDashboard() {
   const checkOutMutation = useMemberCheckOut();
   const freezeMutation = useFreezeMembership();
   const unfreezeMutation = useUnfreezeMembership();
+
+  // Trainer rating
+  const { data: ratingData } = useMyTrainerRatings();
+  const submitRatingMutation = useSubmitTrainerRating();
+  const [ratingValue, setRatingValue] = useState(0);
+  const [ratingHover, setRatingHover] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
+
+  const handleRatingSubmit = () => {
+    if (ratingValue < 1) return;
+    submitRatingMutation.mutate(
+      { rating: ratingValue, comment: ratingComment },
+      {
+        onSuccess: () => {
+          setRatingValue(0);
+          setRatingComment('');
+        },
+      }
+    );
+  };
 
   const isLoading = isProfileLoading || isDashboardLoading;
 
@@ -307,6 +330,67 @@ export default function MemberDashboard() {
           )}
         </Card>
       </div>
+
+      {/* ── Rate Your Trainer Widget ── */}
+      {trainer && (
+        <Card className="bg-white border-slate-200">
+          <CardHeader title="Rate Your Trainer" subtitle={`Share weekly feedback for ${trainer.firstName}`} />
+          {ratingData?.canRateThisWeek ? (
+            <div className="space-y-4">
+              {/* Star Selector */}
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRatingValue(star)}
+                    onMouseEnter={() => setRatingHover(star)}
+                    onMouseLeave={() => setRatingHover(0)}
+                    className="p-0.5 transition-transform hover:scale-110"
+                  >
+                    <Star
+                      className={`w-7 h-7 transition-colors ${
+                        star <= (ratingHover || ratingValue)
+                          ? 'text-amber-400 fill-amber-400'
+                          : 'text-slate-300'
+                      }`}
+                    />
+                  </button>
+                ))}
+                {ratingValue > 0 && (
+                  <span className="text-sm font-bold text-slate-700 ml-2">{ratingValue}/5</span>
+                )}
+              </div>
+              {/* Comment */}
+              <textarea
+                value={ratingComment}
+                onChange={(e) => setRatingComment(e.target.value)}
+                placeholder="Add an optional comment about your experience..."
+                className="w-full text-sm border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none h-20 resize-none"
+              />
+              <Button
+                onClick={handleRatingSubmit}
+                disabled={ratingValue < 1}
+                loading={submitRatingMutation.isPending}
+                icon={Star}
+                className="!py-2"
+              >
+                Submit Rating
+              </Button>
+            </div>
+          ) : (
+            <div className="py-4 text-center space-y-2">
+              <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full text-xs font-semibold border border-emerald-200">
+                <Star className="w-3.5 h-3.5 fill-emerald-500" /> Rated this week!
+              </div>
+              <p className="text-xs text-slate-500">You've already rated your trainer this week. Come back next Monday!</p>
+              {ratingData?.ratings?.[0] && (
+                <p className="text-xs text-slate-400">Your last rating: {'⭐'.repeat(ratingData.ratings[0].rating)}</p>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* ── Stat Badges Grid ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
