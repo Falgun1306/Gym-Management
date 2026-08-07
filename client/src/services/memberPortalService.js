@@ -129,3 +129,12 @@ export async function getAvailableMembershipPlans() {
 export async function purchaseMembership({ planId, paymentMethod }) {
   return api.post('/members/memberships/purchase', { planId, paymentMethod });
 }
+
+// ─── Trainer Ratings ─────────────────────────────────────────────────────────────────
+export async function submitTrainerRating(data) {
+  return api.post('/members/me/trainer-rating', data);
+}
+
+export async function getMyTrainerRatings() {
+  return api.get('/members/me/trainer-ratings');
+}

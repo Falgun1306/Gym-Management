@@ -28,6 +28,8 @@ import {
   getMyTrainerApplications,
   getAvailableMembershipPlans,
   purchaseMembership,
+  submitTrainerRating,
+  getMyTrainerRatings,
 } from '@/services/memberPortalService';
 import toast from 'react-hot-toast';
 
@@ -339,5 +341,28 @@ export function useMemberTrainerApplications() {
     queryFn: getMyTrainerApplications,
     staleTime: 30_000,
     select: (res) => res.data,
+  });
+}
+
+// ─── Trainer Rating Hooks ────────────────────────────────────────────────────────
+
+export function useMyTrainerRatings() {
+  return useQuery({
+    queryKey: ['members', 'trainer-ratings'],
+    queryFn: getMyTrainerRatings,
+    staleTime: 60_000,
+    select: (res) => res.data,
+  });
+}
+
+export function useSubmitTrainerRating() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data) => submitTrainerRating(data),
+    onSuccess: (res) => {
+      toast.success(res.message || 'Rating submitted! Thank you for your feedback.');
+      queryClient.invalidateQueries({ queryKey: ['members', 'trainer-ratings'] });
+    },
+    onError: (err) => toast.error(err.message || 'Failed to submit rating'),
   });
 }
