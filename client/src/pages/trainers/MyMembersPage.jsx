@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { queryKeys } from '@/lib/queryKeys';
-import { getMyMembers, getMyMemberById, logMemberProgress, getMemberProgress } from '@/services/trainerService';
+import { getMyMembers, getMyMemberById, logMemberProgress, getMemberProgress, getMemberAttendance } from '@/services/trainerService';
 import { DataTable, Sheet, Card, CardHeader, Button, Input, Textarea, Avatar, Badge, Modal } from '@/components/ui';
+import AttendanceCalendar from '@/components/ui/AttendanceCalendar';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import {
   Users,
@@ -13,6 +14,7 @@ import {
   Ruler,
   Activity,
   Calendar,
+  CalendarDays,
 } from 'lucide-react';
 
 /**
@@ -22,6 +24,7 @@ export default function MyMembersPage() {
   const queryClient = useQueryClient();
   const [selectedMember, setSelectedMember] = useState(null);
   const [progressModalMember, setProgressModalMember] = useState(null);
+  const [attendanceCalendarMember, setAttendanceCalendarMember] = useState(null);
 
   // ── Fetch assigned members ──
   const { data: membersRes, isLoading } = useQuery({
@@ -94,6 +97,16 @@ export default function MyMembersPage() {
       label: 'Actions',
       render: (row) => (
         <div className="flex items-center gap-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setAttendanceCalendarMember(row);
+            }}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+            title="View Attendance Calendar"
+          >
+            <CalendarDays className="w-4 h-4" />
+          </button>
           <Button
             variant="ghost"
             size="sm"
@@ -159,6 +172,13 @@ export default function MyMembersPage() {
           }
           setProgressModalMember(null);
         }}
+      />
+
+      {/* ── Attendance Calendar Modal ── */}
+      <AttendanceCalendarModal
+        member={attendanceCalendarMember}
+        open={!!attendanceCalendarMember}
+        onClose={() => setAttendanceCalendarMember(null)}
       />
     </div>
   );
@@ -397,6 +417,55 @@ function LogProgressModal({ member, open, onClose, onSuccess }) {
           rows={3}
         />
       </form>
+    </Modal>
+  );
+}
+
+// ─── Attendance Calendar Modal ──────────────────────────────────────────────
+
+function AttendanceCalendarModal({ member, open, onClose }) {
+  const memberId = member?.id;
+  const memberName = member?.firstName
+    ? `${member.firstName} ${member.lastName}`
+    : member?.user?.username || 'Member';
+
+  // Fetch attendance for the selected member
+  const { data: attendanceRes, isLoading } = useQuery({
+    queryKey: queryKeys.attendance.list({ memberId }),
+    queryFn: () => getMemberAttendance(memberId),
+    enabled: !!memberId && open,
+  });
+
+  const attendanceLogs = attendanceRes?.data || [];
+
+  // Get membership dates from member data
+  const activeMembership = member?.memberships?.find(
+    (m) => ['ACTIVE', 'FROZEN', 'PENDING'].includes(m.status)
+  ) || member?.memberships?.[0];
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={`${memberName}'s Attendance`}
+      description="Monthly calendar view of gym attendance history"
+      size="lg"
+      footer={
+        <Button variant="outline" onClick={onClose}>Close</Button>
+      }
+    >
+      {isLoading ? (
+        <div className="py-12 text-center">
+          <div className="w-8 h-8 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-slate-400">Loading attendance...</p>
+        </div>
+      ) : (
+        <AttendanceCalendar
+          attendanceLogs={attendanceLogs}
+          membershipStart={activeMembership?.startDate}
+          membershipEnd={activeMembership?.endDate}
+        />
+      )}
     </Modal>
   );
 }
