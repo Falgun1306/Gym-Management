@@ -5,6 +5,7 @@ import {
   useMemberDashboard,
 } from '@/hooks/useMemberPortal';
 import { Card, CardHeader, Badge, Button, Modal, SkeletonTable } from '@/components/ui';
+import AttendanceCalendar from '@/components/ui/AttendanceCalendar';
 import {
   QrCode,
   Calendar,
@@ -14,17 +15,21 @@ import {
   UserCheck,
   RefreshCw,
   ScanLine,
+  CalendarDays,
+  List,
 } from 'lucide-react';
 import { formatDate } from '@/utils/formatters';
 
 
 export default function MyAttendancePage() {
   const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState('calendar'); // 'calendar' | 'list'
   const { data: attendanceLogs = [], isLoading } = useMemberAttendance();
   const { data: qrData, isLoading: qrLoading, error: qrError, refetch: refetchQr } = useMemberQrCode(qrModalOpen);
   const { data: dashboard } = useMemberDashboard();
   
-  const isFrozen = (dashboard?.activeMembership || dashboard?.membership)?.status === 'FROZEN';
+  const activeMembership = dashboard?.activeMembership || dashboard?.membership;
+  const isFrozen = activeMembership?.status === 'FROZEN';
 
   const totalVisits = attendanceLogs.length;
 
@@ -124,7 +129,46 @@ export default function MyAttendancePage() {
         </Card>
       </div>
 
-      {/* ── Attendance Log Table ── */}
+      {/* ── View Mode Toggle ── */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold text-slate-900">Attendance History</h2>
+        <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${
+              viewMode === 'calendar'
+                ? 'bg-emerald-700 text-white'
+                : 'bg-white text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            <CalendarDays className="w-3.5 h-3.5" />
+            Calendar
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${
+              viewMode === 'list'
+                ? 'bg-emerald-700 text-white'
+                : 'bg-white text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            <List className="w-3.5 h-3.5" />
+            List
+          </button>
+        </div>
+      </div>
+
+      {/* ── Calendar View ── */}
+      {viewMode === 'calendar' && (
+        <AttendanceCalendar
+          attendanceLogs={attendanceLogs}
+          membershipStart={activeMembership?.startDate}
+          membershipEnd={activeMembership?.endDate}
+        />
+      )}
+
+      {/* ── Attendance Log Table (List View) ── */}
+      {viewMode === 'list' && (
       <Card>
         <CardHeader title="Attendance Logs" subtitle="Your check-in / check-out history" />
         {isLoading ? (
@@ -191,6 +235,7 @@ export default function MyAttendancePage() {
           </div>
         )}
       </Card>
+      )}
 
       {/* ── QR Code Entrance Pass Modal ── */}
       {qrModalOpen && (
