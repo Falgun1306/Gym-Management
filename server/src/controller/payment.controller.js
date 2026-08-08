@@ -4,7 +4,7 @@ import prisma from "../config/prisma.js";
 import razorpay from "../config/razorpay.js";
 import asyncHandler from "../middlewares/asyncHandler.middleware.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
-import { sendPaymentReceipt } from "../services/email.service.js";
+import { sendPaymentReceipt, sendPaymentFailureEmail } from "../services/email.service.js";
 import couponService from "../services/coupon.service.js";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -411,16 +411,50 @@ const webhook = asyncHandler(async (req, res) => {
         // Grant referral rewards (fire-and-forget)
         couponService.grantReferralRewards(payment.memberId)
             .catch((err) => console.error("⚠️ Referral reward grant failed (webhook):", err.message || err));
+
+        // Send success email
+        prisma.member.findUnique({
+            where: { id: payment.memberId },
+            include: { user: { select: { email: true } } },
+        }).then((m) => {
+            if (m?.user?.email) {
+                sendPaymentReceipt(
+                    { name: `${m.firstName} ${m.lastName}`, email: m.user.email },
+                    { amount: payment.amount, transactionId: rpPayment.id || payment.id, paymentMethod: payment.paymentMethod }
+                ).catch((err) => console.error("⚠️ Failed to send payment receipt email (webhook):", err.message || err));
+            }
+        }).catch((err) => console.error("⚠️ Member lookup for payment receipt failed (webhook):", err.message || err));
     } else if (eventType === "payment.failed") {
         const rpPayment = event.payload?.payment?.entity;
         if (rpPayment?.order_id) {
-            await prisma.payment.updateMany({
+            const paymentsToFail = await prisma.payment.findMany({
                 where: {
                     razorpayOrderId: rpPayment.order_id,
                     status: "PENDING",
                 },
-                data: { status: "FAILED" },
+                include: {
+                    member: {
+                        include: { user: { select: { email: true } } },
+                    },
+                },
             });
+
+            if (paymentsToFail.length > 0) {
+                await prisma.payment.updateMany({
+                    where: { id: { in: paymentsToFail.map(p => p.id) } },
+                    data: { status: "FAILED" },
+                });
+
+                // Send failure email
+                paymentsToFail.forEach(p => {
+                    if (p.member?.user?.email) {
+                        sendPaymentFailureEmail(
+                            { name: `${p.member.firstName} ${p.member.lastName}`, email: p.member.user.email },
+                            { amount: p.amount, orderId: rpPayment.order_id || p.id }
+                        ).catch(err => console.error("⚠️ Failed to send payment failure email:", err));
+                    }
+                });
+            }
         }
     } else if (eventType === "refund.processed") {
         const rpRefund = event.payload?.refund?.entity;
@@ -442,6 +476,80 @@ const webhook = asyncHandler(async (req, res) => {
 
     // Always return 200 to acknowledge receipt (Razorpay retries on non-2xx)
     res.status(200).json({ success: true });
+});
+
+const failPayment = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const payment = await prisma.payment.findUnique({
+        where: { id },
+        include: { member: { include: { user: { select: { email: true } } } } }
+    });
+
+    if (!payment) {
+        throw new ErrorHandler("Payment not found", 404);
+    }
+    if (payment.status !== "PENDING") {
+        throw new ErrorHandler("Only PENDING payments can be marked as FAILED", 400);
+    }
+
+    const updatedPayment = await prisma.payment.update({
+        where: { id },
+        data: { status: "FAILED" },
+    });
+
+    // Send failure email
+    if (payment.member?.user?.email) {
+        sendPaymentFailureEmail(
+            { name: `${payment.member.firstName} ${payment.member.lastName}`, email: payment.member.user.email },
+            { amount: payment.amount, orderId: payment.razorpayOrderId || payment.id }
+        ).catch(err => console.error("⚠️ Failed to send payment failure email:", err));
+    }
+
+    res.status(200).json(new ApiResponse(200, updatedPayment, "Payment marked as failed"));
+});
+
+const retryPayment = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const payment = await prisma.payment.findUnique({
+        where: { id },
+        include: { membership: { include: { plan: true } } }
+    });
+
+    if (!payment) {
+        throw new ErrorHandler("Payment not found", 404);
+    }
+    if (payment.status !== "FAILED") {
+        throw new ErrorHandler("Only FAILED payments can be retried", 400);
+    }
+    if (!payment.membership) {
+        throw new ErrorHandler("No membership associated with this payment", 400);
+    }
+
+    // Generate new Razorpay order
+    const razorpayOrder = await razorpay.orders.create({
+        amount: Math.round(payment.amount * 100), // paise
+        currency: "INR",
+        receipt: `rcpt_${Date.now()}_${payment.memberId.slice(-6)}`,
+        notes: {
+            memberId: payment.memberId,
+            description: `Retry Payment - ${payment.membership.plan.name}`,
+        },
+    });
+
+    const updatedPayment = await prisma.payment.update({
+        where: { id },
+        data: {
+            status: "PENDING",
+            razorpayOrderId: razorpayOrder.id,
+        },
+    });
+
+    res.status(200).json(new ApiResponse(200, {
+        payment: updatedPayment,
+        razorpayOrderId: razorpayOrder.id,
+        amount: Math.round(payment.amount * 100),
+        key_id: process.env.RAZORPAY_KEY_ID,
+    }, "Retry payment initiated"));
 });
 
 // ─── 4. refundPayment ────────────────────────────────────────────────────────
@@ -1039,6 +1147,8 @@ export {
     createPayment,
     verifyPayment,
     webhook,
+    failPayment,
+    retryPayment,
     refundPayment,
     downloadInvoice,
     getRevenueReport,

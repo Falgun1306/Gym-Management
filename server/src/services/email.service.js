@@ -4,6 +4,7 @@ import { getPasswordResetEmailTemplate } from "../templates/emails/passwordReset
 import { getMembershipExpiryEmailTemplate } from "../templates/emails/membershipExpiry.template.js";
 import { getPaymentReceiptEmailTemplate } from "../templates/emails/paymentReceipt.template.js";
 import { getClassReminderEmailTemplate } from "../templates/emails/classReminder.template.js";
+import { getPaymentFailureEmailTemplate } from "../templates/emails/paymentFailure.template.js";
 
 /**
  * Base method to send any email
@@ -180,6 +181,25 @@ export const sendClassReminder = async (member, classDetails = {}) => {
     });
 };
 
+/**
+ * Send Payment Failure Notification
+ * @param {Object} member - User object with email and name
+ * @param {Object} paymentDetails - amount and orderId
+ */
+export const sendPaymentFailureEmail = async (member, paymentDetails) => {
+    const { subject, html, text } = getPaymentFailureEmailTemplate({
+        name: member.name || member.firstName || "Valued Member",
+        ...paymentDetails,
+    });
+
+    return await sendEmail({
+        to: member.email,
+        subject,
+        html,
+        text,
+    });
+};
+
 export default {
     sendEmail,
     sendWelcomeEmail,
@@ -187,4 +207,5 @@ export default {
     sendMembershipExpiryReminder,
     sendPaymentReceipt,
     sendClassReminder,
+    sendPaymentFailureEmail,
 };
