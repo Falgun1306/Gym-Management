@@ -30,6 +30,8 @@ import {
   purchaseMembership,
   submitTrainerRating,
   getMyTrainerRatings,
+  failPayment,
+  retryPayment,
 } from '@/services/memberPortalService';
 import toast from 'react-hot-toast';
 
@@ -145,7 +147,11 @@ export function usePurchaseMembership() {
   return useMutation({
     mutationFn: ({ planId, paymentMethod }) => purchaseMembership({ planId, paymentMethod }),
     onSuccess: (res) => {
-      toast.success(res.message || 'Membership request submitted successfully!');
+      if (!res.data?.razorpayOrderId) {
+        toast.success(res.message || 'Membership request submitted successfully!');
+      } else {
+        toast.loading('Opening payment gateway...', { duration: 1500 });
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.members.subscriptions('me') });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.member() });
       queryClient.invalidateQueries({ queryKey: ['payments', 'me'] });
@@ -154,6 +160,28 @@ export function usePurchaseMembership() {
   });
 }
 
+export function useRetryPayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (paymentId) => retryPayment(paymentId),
+    onSuccess: (res) => {
+      toast.loading('Re-opening payment gateway...', { duration: 1500 });
+      queryClient.invalidateQueries({ queryKey: ['payments', 'me'] });
+    },
+    onError: (err) => toast.error(err.message || 'Failed to retry payment'),
+  });
+}
+
+export function useFailPayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (paymentId) => failPayment(paymentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments', 'me'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.members.subscriptions('me') });
+    },
+  });
+}
 // ─── Attendance & QR Code Hooks ─────────────────────────────────────────────
 export function useMemberAttendance(params = {}) {
   return useQuery({

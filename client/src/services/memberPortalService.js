@@ -138,3 +138,15 @@ export async function submitTrainerRating(data) {
 export async function getMyTrainerRatings() {
   return api.get('/members/me/trainer-ratings');
 }
+
+export async function verifyPayment(data) {
+  return api.post('/payments/verify', data);
+}
+
+export async function failPayment(paymentId) {
+  return api.post(`/payments/${paymentId}/fail`);
+}
+
+export async function retryPayment(paymentId) {
+  return api.post(`/payments/${paymentId}/retry`);
+}

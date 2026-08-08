@@ -5,6 +5,7 @@ import prisma from "../config/prisma.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
 import couponService from "./coupon.service.js";
 import notificationService from "./notification.service.js";
+import razorpay from "../config/razorpay.js";
 
 const EDITABLE_FIELDS = [
     "firstName",
@@ -582,10 +583,24 @@ class MemberService {
         end.setMonth(end.getMonth() + plan.durationMonths);
 
         const isCash = method === "CASH";
-        const memStatus = isCash ? "PENDING" : "ACTIVE";
-        const payStatus = isCash ? "PENDING" : "SUCCESS";
+        
+        let razorpayOrder = null;
+        if (!isCash) {
+            razorpayOrder = await razorpay.orders.create({
+                amount: Math.round(plan.price * 100), // paise
+                currency: "INR",
+                receipt: `rcpt_${Date.now()}_${member.id.slice(-6)}`,
+                notes: {
+                    memberId: member.id,
+                    description: `Purchased via Member Portal - ${plan.name}`,
+                },
+            });
+        }
 
-        return prisma.$transaction(async (tx) => {
+        const memStatus = "PENDING";
+        const payStatus = "PENDING";
+
+        const result = await prisma.$transaction(async (tx) => {
             const membership = await tx.membership.create({
                 data: {
                     memberId: member.id,
@@ -604,14 +619,15 @@ class MemberService {
                     amount: plan.price,
                     paymentMethod: method,
                     status: payStatus,
+                    razorpayOrderId: razorpayOrder ? razorpayOrder.id : null,
                     description: `Purchased via Member Portal - ${plan.name}`,
                 },
             });
 
-            const title = isCash ? "Membership Pending Approval" : "Membership Purchased";
+            const title = isCash ? "Membership Pending Approval" : "Payment Required";
             const message = isCash 
                 ? `You have requested the ${plan.name} plan via Cash. Please pay at the front desk to activate your membership.`
-                : `You have successfully purchased the ${plan.name} plan.`;
+                : `Please complete your online payment for the ${plan.name} plan.`;
 
             await tx.notification.create({
                 data: {
@@ -624,6 +640,17 @@ class MemberService {
 
             return membership;
         });
+
+        if (!isCash && razorpayOrder) {
+            return {
+                ...result,
+                razorpayOrderId: razorpayOrder.id,
+                amount: Math.round(plan.price * 100),
+                key_id: process.env.RAZORPAY_KEY_ID,
+            };
+        }
+
+        return result;
     }
 }
 

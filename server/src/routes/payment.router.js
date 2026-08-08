@@ -5,6 +5,8 @@ import {
     createPayment,
     verifyPayment,
     webhook,
+    failPayment,
+    retryPayment,
     refundPayment,
     downloadInvoice,
     getRevenueReport,
@@ -28,6 +30,8 @@ router.get("/all", auth, authorize("ADMIN"), getAllPayments);
 
 // Admin or authenticated member (ownership enforced in controller)
 router.post("/verify", auth, authorize("ADMIN", "MEMBER"), verifyPayment);
+router.post("/:id/fail", auth, authorize("ADMIN", "MEMBER"), failPayment);
+router.post("/:id/retry", auth, authorize("ADMIN", "MEMBER"), retryPayment);
 router.get("/:id/invoice", auth, authorize("ADMIN", "MEMBER"), downloadInvoice);
 router.get("/member/:memberId", auth, authorize("ADMIN", "MEMBER"), getMemberPayments);
 router.get("/:id", auth, authorize("ADMIN", "MEMBER"), getPaymentById);

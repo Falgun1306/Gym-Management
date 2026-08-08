@@ -7,7 +7,10 @@ import {
   useUnfreezeMembership,
   useAvailableMembershipPlans,
   usePurchaseMembership,
+  useRetryPayment,
+  useFailPayment,
 } from '@/hooks/useMemberPortal';
+import { verifyPayment } from '@/services/memberPortalService';
 import { Card, CardHeader, Badge, Button, Modal, SkeletonTable } from '@/components/ui';
 import {
   CreditCard,
@@ -46,30 +49,142 @@ export default function MyMembershipPage() {
 
   const { data: availablePlans = [], isLoading: plansLoading } = useAvailableMembershipPlans();
   const purchaseMutation = usePurchaseMembership();
+  const retryMutation = useRetryPayment();
+  const failMutation = useFailPayment();
 
   const handlePurchaseClick = (plan) => {
     setSelectedPlanToPurchase(plan);
     setPaymentMethod('ONLINE');
   };
 
-  const submitPurchase = () => {
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const submitPurchase = async () => {
     if (!selectedPlanToPurchase) return;
     const isCash = paymentMethod === 'CASH';
     const msg = isCash 
       ? 'Are you sure you want to request this membership via Cash? It will require admin approval.'
-      : 'Are you sure you want to purchase this membership? This will activate instantly.';
+      : 'Are you sure you want to purchase this membership? You will be redirected to the payment gateway.';
       
     if (confirm(msg)) {
       purchaseMutation.mutate(
         { planId: selectedPlanToPurchase.id, paymentMethod },
         {
-          onSuccess: () => {
-            setPurchaseModalOpen(false);
-            setSelectedPlanToPurchase(null);
+          onSuccess: async (res) => {
+            if (res.data?.razorpayOrderId && res.data?.key_id) {
+              const resLoad = await loadRazorpay();
+              if (!resLoad) {
+                toast.error('Failed to load Razorpay SDK. Are you online?');
+                return;
+              }
+
+              const options = {
+                key: res.data.key_id,
+                amount: res.data.amount,
+                currency: 'INR',
+                name: 'Gym Management',
+                description: `Purchase ${selectedPlanToPurchase.name}`,
+                order_id: res.data.razorpayOrderId,
+                handler: async function (response) {
+                  try {
+                    await verifyPayment({
+                      paymentId: res.data.id,
+                      razorpay_payment_id: response.razorpay_payment_id,
+                      razorpay_order_id: response.razorpay_order_id,
+                      razorpay_signature: response.razorpay_signature,
+                    });
+                    toast.success('Payment verified successfully!');
+                    setPurchaseModalOpen(false);
+                    setSelectedPlanToPurchase(null);
+                    // Reload window or refetch queries to update UI
+                    window.location.reload();
+                  } catch (error) {
+                    toast.error('Payment verification failed');
+                  }
+                },
+                theme: {
+                  color: '#10b981',
+                },
+                modal: {
+                  ondismiss: function () {
+                    // Modal closed without completing payment
+                    failMutation.mutate(res.data.id);
+                  },
+                },
+              };
+
+              const paymentObject = new window.Razorpay(options);
+              paymentObject.on('payment.failed', function () {
+                failMutation.mutate(res.data.id);
+                toast.error('Payment failed.');
+              });
+              paymentObject.open();
+            } else {
+              setPurchaseModalOpen(false);
+              setSelectedPlanToPurchase(null);
+            }
           }
         }
       );
     }
+  };
+
+  const handleRetryPayment = async (paymentId) => {
+    retryMutation.mutate(paymentId, {
+      onSuccess: async (res) => {
+        if (res.data?.razorpayOrderId && res.data?.key_id) {
+          const resLoad = await loadRazorpay();
+          if (!resLoad) {
+            toast.error('Failed to load Razorpay SDK. Are you online?');
+            return;
+          }
+
+          const options = {
+            key: res.data.key_id,
+            amount: res.data.amount,
+            currency: 'INR',
+            name: 'Gym Management',
+            description: `Retry Payment`,
+            order_id: res.data.razorpayOrderId,
+            handler: async function (response) {
+              try {
+                await verifyPayment({
+                  paymentId: res.data.payment.id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_signature: response.razorpay_signature,
+                });
+                toast.success('Payment verified successfully!');
+                window.location.reload();
+              } catch (error) {
+                toast.error('Payment verification failed');
+              }
+            },
+            theme: { color: '#10b981' },
+            modal: {
+              ondismiss: function () {
+                failMutation.mutate(res.data.payment.id);
+              },
+            },
+          };
+
+          const paymentObject = new window.Razorpay(options);
+          paymentObject.on('payment.failed', function () {
+            failMutation.mutate(res.data.payment.id);
+            toast.error('Payment failed.');
+          });
+          paymentObject.open();
+        }
+      }
+    });
   };
 
   const handleClosePurchaseModal = () => {
@@ -241,6 +356,7 @@ export default function MyMembershipPage() {
                   <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Amount</th>
                   <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Method</th>
                   <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Status</th>
+                  <th className="text-right py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -253,9 +369,24 @@ export default function MyMembershipPage() {
                     <td className="py-3 px-4 font-bold text-slate-900">{formatCurrency(p.amount)}</td>
                     <td className="py-3 px-4 text-slate-600">{p.paymentMethod || p.gateway || 'ONLINE'}</td>
                     <td className="py-3 px-4">
-                      <Badge variant={p.status === 'SUCCESS' || p.status === 'COMPLETED' ? 'success' : p.status === 'FAILED' ? 'danger' : 'warning'}>
-                        {p.status}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={p.status === 'SUCCESS' || p.status === 'COMPLETED' ? 'success' : p.status === 'FAILED' ? 'danger' : 'warning'}>
+                          {p.status}
+                        </Badge>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      {p.status === 'FAILED' && p.paymentMethod === 'ONLINE' && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="!py-1 !px-2 text-[10px]"
+                          onClick={() => handleRetryPayment(p.id)}
+                          loading={retryMutation.isPending}
+                        >
+                          Retry
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}
