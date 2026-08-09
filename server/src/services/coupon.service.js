@@ -48,7 +48,7 @@ class CouponService {
         const {
             code, description, discountType, discountValue,
             minPurchaseAmount, maxDiscountAmount, maxUsageCount,
-            perUserLimit, startDate, expiresAt,
+            perUserLimit, applicablePlanIds, startDate, expiresAt,
         } = body;
 
         if (!code || !discountType || !discountValue) {
@@ -76,7 +76,7 @@ class CouponService {
             throw new ErrorHandler("expiresAt must be after startDate", 400);
         }
 
-        return couponRepository.createCoupon({
+        const coupon = await couponRepository.createCoupon({
             code: upperCode,
             description: description || null,
             discountType: discountType.toUpperCase(),
@@ -85,9 +85,56 @@ class CouponService {
             maxDiscountAmount: maxDiscountAmount ? parseFloat(maxDiscountAmount) : null,
             maxUsageCount: maxUsageCount ? parseInt(maxUsageCount) : null,
             perUserLimit: perUserLimit ? parseInt(perUserLimit) : 1,
+            applicablePlanIds: Array.isArray(applicablePlanIds) ? applicablePlanIds : [],
             startDate: start,
             expiresAt: expires,
         });
+
+        // ── Notify all member users about the new coupon code ──
+        try {
+            const memberUsers = (await prisma.user.findMany({
+                where: { role: "MEMBER" },
+                select: { id: true },
+            })) || [];
+
+            if (Array.isArray(memberUsers) && memberUsers.length > 0) {
+                const discountText =
+                    coupon.discountType === "PERCENTAGE"
+                        ? `${coupon.discountValue}% OFF${coupon.maxDiscountAmount ? ` (Max Cap: ₹${coupon.maxDiscountAmount})` : ""}`
+                        : coupon.discountType === "FIXED_AMOUNT"
+                        ? `₹${coupon.discountValue} OFF`
+                        : `+${coupon.discountValue} Extra Free Days`;
+
+                const limitRules = [
+                    `Per-member limit: ${coupon.perUserLimit} use(s)`,
+                    coupon.maxUsageCount ? `Total limit: ${coupon.maxUsageCount} uses` : "Total limit: Unlimited",
+                    coupon.minPurchaseAmount ? `Min purchase: ₹${coupon.minPurchaseAmount}` : "Min purchase: None",
+                ].join(" • ");
+
+                const startStr = new Date(coupon.startDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+                const durationText = coupon.expiresAt
+                    ? `Valid from ${startStr} to ${new Date(coupon.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`
+                    : `Valid from ${startStr} (No expiration)`;
+
+                const notifTitle = `🎁 New Coupon Available: ${coupon.code}!`;
+                const notifMessage = `Use coupon code '${coupon.code}' to get ${discountText} on membership!\n\n📌 Rules: ${limitRules}\n📅 Duration: ${durationText}${coupon.description ? `\n\nInfo: ${coupon.description}` : ""}`;
+
+                const notificationsData = memberUsers.map((u) => ({
+                    userId: u.id,
+                    title: notifTitle,
+                    message: notifMessage,
+                    type: "GENERAL",
+                }));
+
+                await prisma.notification.createMany({
+                    data: notificationsData,
+                });
+            }
+        } catch (err) {
+            console.error("⚠️ Failed to send coupon creation notifications to members:", err.message || err);
+        }
+
+        return coupon;
     }
 
     async listCoupons(query) {
@@ -127,7 +174,7 @@ class CouponService {
 
         const allowed = [
             "description", "minPurchaseAmount", "maxDiscountAmount",
-            "maxUsageCount", "perUserLimit", "expiresAt", "status", "startDate",
+            "maxUsageCount", "perUserLimit", "applicablePlanIds", "expiresAt", "status", "startDate",
         ];
         const updateData = {};
         for (const field of allowed) {
@@ -135,11 +182,14 @@ class CouponService {
         }
 
         // Coerce numeric fields
-        if (updateData.minPurchaseAmount !== undefined) updateData.minPurchaseAmount = parseFloat(updateData.minPurchaseAmount);
-        if (updateData.maxDiscountAmount !== undefined) updateData.maxDiscountAmount = parseFloat(updateData.maxDiscountAmount);
-        if (updateData.maxUsageCount !== undefined) updateData.maxUsageCount = parseInt(updateData.maxUsageCount);
+        if (updateData.minPurchaseAmount !== undefined) updateData.minPurchaseAmount = updateData.minPurchaseAmount ? parseFloat(updateData.minPurchaseAmount) : null;
+        if (updateData.maxDiscountAmount !== undefined) updateData.maxDiscountAmount = updateData.maxDiscountAmount ? parseFloat(updateData.maxDiscountAmount) : null;
+        if (updateData.maxUsageCount !== undefined) updateData.maxUsageCount = updateData.maxUsageCount ? parseInt(updateData.maxUsageCount) : null;
         if (updateData.perUserLimit !== undefined) updateData.perUserLimit = parseInt(updateData.perUserLimit);
-        if (updateData.expiresAt !== undefined) updateData.expiresAt = new Date(updateData.expiresAt);
+        if (updateData.applicablePlanIds !== undefined && !Array.isArray(updateData.applicablePlanIds)) {
+            updateData.applicablePlanIds = [];
+        }
+        if (updateData.expiresAt !== undefined) updateData.expiresAt = updateData.expiresAt ? new Date(updateData.expiresAt) : null;
         if (updateData.startDate !== undefined) updateData.startDate = new Date(updateData.startDate);
 
         if (Object.keys(updateData).length === 0) {
@@ -152,12 +202,59 @@ class CouponService {
     async deactivateCoupon(id) {
         const coupon = await couponRepository.findCouponById(id);
         if (!coupon) throw new ErrorHandler("Coupon not found", 404);
-        return couponRepository.updateCoupon(id, { status: "INACTIVE" });
+        const newStatus = coupon.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+        return couponRepository.updateCoupon(id, { status: newStatus });
+    }
+
+    async getCouponUsagesAdmin(couponId, query = {}) {
+        let coupon = await couponRepository.findCouponById(couponId);
+        if (!coupon) {
+            coupon = await couponRepository.findCouponByCode(couponId);
+        }
+        if (!coupon) throw new ErrorHandler("Coupon not found", 404);
+
+        // Auto-sync/backfill any SUCCESS payments that applied this coupon code but lack a CouponUsage record
+        try {
+            const unlinkedPayments = await prisma.payment.findMany({
+                where: {
+                    appliedCouponCode: { equals: coupon.code, mode: 'insensitive' },
+                    status: "SUCCESS",
+                    couponUsageId: null,
+                },
+            });
+
+            for (const p of unlinkedPayments) {
+                try {
+                    await prisma.$transaction(async (tx) => {
+                        const usage = await this.applyCoupon(coupon.code, p.memberId, p.membershipId, p.amount, tx);
+                        await tx.payment.update({
+                            where: { id: p.id },
+                            data: { couponUsageId: usage.id },
+                        });
+                    });
+                } catch (e) {
+                    console.error(`⚠️ Auto-sync coupon usage failed for payment ${p.id}:`, e.message || e);
+                }
+            }
+        } catch (err) {
+            console.error("⚠️ Error checking unlinked payments for coupon:", err.message || err);
+        }
+
+        const { page = 1, limit = 20 } = query;
+        const pageNum = Math.max(1, parseInt(page));
+        const limitNum = Math.max(1, Math.min(100, parseInt(limit)));
+        const skip = (pageNum - 1) * limitNum;
+
+        const { data, total } = await couponRepository.findUsagesByCouponId(coupon.id, skip, limitNum);
+        return {
+            usages: data,
+            pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) },
+        };
     }
 
     // ─── MEMBER: Validate Coupon (Checkout Preview) ───────────────────────────
 
-    async validateCoupon(code, memberId, purchaseAmount = 0) {
+    async validateCoupon(code, memberId, purchaseAmount = 0, planId = null) {
         const coupon = await couponRepository.findCouponByCode(code);
         if (!coupon) throw new ErrorHandler("Coupon not found", 404);
 
@@ -182,6 +279,13 @@ class CouponService {
         const userUsages = await couponRepository.countUserUsages(coupon.id, memberId);
         if (userUsages >= coupon.perUserLimit) {
             throw new ErrorHandler("You have already used this coupon the maximum number of times", 409);
+        }
+
+        // Applicable membership plans check
+        if (Array.isArray(coupon.applicablePlanIds) && coupon.applicablePlanIds.length > 0) {
+            if (!planId || !coupon.applicablePlanIds.includes(planId)) {
+                throw new ErrorHandler("This coupon is not applicable to the selected membership plan", 400);
+            }
         }
 
         // Minimum purchase check (skip for FREE_DAYS)
@@ -239,14 +343,40 @@ class CouponService {
             throw new ErrorHandler("You have already used this coupon the maximum number of times", 409);
         }
 
-        const amount = parseFloat(purchaseAmount) || 0;
+        // Applicable plans check
+        if (Array.isArray(coupon.applicablePlanIds) && coupon.applicablePlanIds.length > 0 && membershipId) {
+            const m = await tx.membership.findUnique({ where: { id: membershipId }, select: { planId: true } });
+            if (m?.planId && !coupon.applicablePlanIds.includes(m.planId)) {
+                throw new ErrorHandler("This coupon is not applicable to the selected membership plan", 400);
+            }
+        }
+
+        let baseAmount = parseFloat(purchaseAmount) || 0;
+        if (membershipId) {
+            const m = await tx.membership.findUnique({
+                where: { id: membershipId },
+                include: { plan: { select: { price: true } } },
+            });
+            if (m?.plan?.price) {
+                baseAmount = parseFloat(m.plan.price);
+            }
+        }
+
         if (coupon.discountType !== "FREE_DAYS" && coupon.minPurchaseAmount) {
-            if (amount < parseFloat(coupon.minPurchaseAmount)) {
+            if (baseAmount < parseFloat(coupon.minPurchaseAmount)) {
                 throw new ErrorHandler(`Minimum purchase amount of ₹${parseFloat(coupon.minPurchaseAmount)} required`, 400);
             }
         }
 
-        const { discountAmount, extraDays } = computeDiscount(coupon, amount);
+        const { discountAmount, extraDays } = computeDiscount(coupon, baseAmount);
+
+        // Idempotency check: if coupon usage for this membership already exists, return it
+        if (membershipId) {
+            const existingUsage = await tx.couponUsage.findFirst({
+                where: { couponId: coupon.id, membershipId },
+            });
+            if (existingUsage) return existingUsage;
+        }
 
         // Create usage record
         const usage = await tx.couponUsage.create({
@@ -271,7 +401,6 @@ class CouponService {
                 where: { id: membershipId },
                 data: {
                     endDate: {
-                        // We can't use increment directly on DateTime, so we set it in JS
                         set: await (async () => {
                             const m = await tx.membership.findUnique({ where: { id: membershipId }, select: { endDate: true } });
                             const newEnd = new Date(m.endDate);

@@ -9,6 +9,7 @@ import {
   usePurchaseMembership,
   useRetryPayment,
   useFailPayment,
+  useValidateCoupon,
 } from '@/hooks/useMemberPortal';
 import { verifyPayment } from '@/services/memberPortalService';
 import { Card, CardHeader, Badge, Button, Modal, SkeletonTable } from '@/components/ui';
@@ -25,6 +26,9 @@ import {
   Gift,
   ShieldCheck,
   TrendingUp,
+  Tag,
+  Ticket,
+  X,
 } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/utils/formatters';
 import toast from 'react-hot-toast';
@@ -47,6 +51,11 @@ export default function MyMembershipPage() {
   const [selectedPlanToPurchase, setSelectedPlanToPurchase] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('ONLINE');
 
+  // Coupon state
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const validateCouponMutation = useValidateCoupon();
+
   const { data: availablePlans = [], isLoading: plansLoading } = useAvailableMembershipPlans();
   const purchaseMutation = usePurchaseMembership();
   const retryMutation = useRetryPayment();
@@ -55,6 +64,8 @@ export default function MyMembershipPage() {
   const handlePurchaseClick = (plan) => {
     setSelectedPlanToPurchase(plan);
     setPaymentMethod('ONLINE');
+    setCouponInput('');
+    setAppliedCoupon(null);
   };
 
   const loadRazorpay = () => {
@@ -67,16 +78,49 @@ export default function MyMembershipPage() {
     });
   };
 
+  const handleApplyCoupon = (e) => {
+    e.preventDefault();
+    if (!couponInput.trim() || !selectedPlanToPurchase) return;
+
+    validateCouponMutation.mutate(
+      {
+        code: couponInput.trim(),
+        amount: selectedPlanToPurchase.price,
+        planId: selectedPlanToPurchase.id,
+      },
+      {
+        onSuccess: (res) => {
+          setAppliedCoupon(res.data);
+          toast.success(`Coupon "${res.data.code}" applied!`);
+        },
+        onError: (err) => {
+          setAppliedCoupon(null);
+          toast.error(err.message || 'Invalid coupon code');
+        },
+      }
+    );
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponInput('');
+    setAppliedCoupon(null);
+    toast.success('Coupon removed');
+  };
+
   const submitPurchase = async () => {
     if (!selectedPlanToPurchase) return;
     const isCash = paymentMethod === 'CASH';
-    const msg = isCash 
+    const msg = isCash
       ? 'Are you sure you want to request this membership via Cash? It will require admin approval.'
       : 'Are you sure you want to purchase this membership? You will be redirected to the payment gateway.';
-      
+
     if (confirm(msg)) {
       purchaseMutation.mutate(
-        { planId: selectedPlanToPurchase.id, paymentMethod },
+        {
+          planId: selectedPlanToPurchase.id,
+          paymentMethod,
+          couponCode: appliedCoupon?.code || undefined,
+        },
         {
           onSuccess: async (res) => {
             if (res.data?.razorpayOrderId && res.data?.key_id) {
@@ -102,9 +146,7 @@ export default function MyMembershipPage() {
                       razorpay_signature: response.razorpay_signature,
                     });
                     toast.success('Payment verified successfully!');
-                    setPurchaseModalOpen(false);
-                    setSelectedPlanToPurchase(null);
-                    // Reload window or refetch queries to update UI
+                    handleClosePurchaseModal();
                     window.location.reload();
                   } catch (error) {
                     toast.error('Payment verification failed');
@@ -115,21 +157,23 @@ export default function MyMembershipPage() {
                 },
                 modal: {
                   ondismiss: function () {
-                    // Modal closed without completing payment
-                    failMutation.mutate(res.data.id);
+                    const payId = res.data.paymentId || res.data.id;
+                    if (payId) failMutation.mutate(payId);
+                    handleClosePurchaseModal();
                   },
                 },
               };
 
               const paymentObject = new window.Razorpay(options);
               paymentObject.on('payment.failed', function () {
-                failMutation.mutate(res.data.id);
+                const payId = res.data.paymentId || res.data.id;
+                if (payId) failMutation.mutate(payId);
                 toast.error('Payment failed.');
+                handleClosePurchaseModal();
               });
               paymentObject.open();
             } else {
-              setPurchaseModalOpen(false);
-              setSelectedPlanToPurchase(null);
+              handleClosePurchaseModal();
             }
           }
         }
@@ -147,6 +191,8 @@ export default function MyMembershipPage() {
             return;
           }
 
+          const targetPayId = res.data.payment?.id || res.data.paymentId || paymentId;
+
           const options = {
             key: res.data.key_id,
             amount: res.data.amount,
@@ -157,7 +203,7 @@ export default function MyMembershipPage() {
             handler: async function (response) {
               try {
                 await verifyPayment({
-                  paymentId: res.data.payment.id,
+                  paymentId: targetPayId,
                   razorpay_payment_id: response.razorpay_payment_id,
                   razorpay_order_id: response.razorpay_order_id,
                   razorpay_signature: response.razorpay_signature,
@@ -171,14 +217,14 @@ export default function MyMembershipPage() {
             theme: { color: '#10b981' },
             modal: {
               ondismiss: function () {
-                failMutation.mutate(res.data.payment.id);
+                if (targetPayId) failMutation.mutate(targetPayId);
               },
             },
           };
 
           const paymentObject = new window.Razorpay(options);
           paymentObject.on('payment.failed', function () {
-            failMutation.mutate(res.data.payment.id);
+            if (targetPayId) failMutation.mutate(targetPayId);
             toast.error('Payment failed.');
           });
           paymentObject.open();
@@ -190,6 +236,8 @@ export default function MyMembershipPage() {
   const handleClosePurchaseModal = () => {
     setPurchaseModalOpen(false);
     setSelectedPlanToPurchase(null);
+    setCouponInput('');
+    setAppliedCoupon(null);
   };
 
   const activeSub = subscriptions.find((s) => s.status === 'ACTIVE' || s.status === 'FROZEN') || subscriptions[0];
@@ -377,9 +425,9 @@ export default function MyMembershipPage() {
                     </td>
                     <td className="py-3 px-4 text-right">
                       {p.status === 'FAILED' && p.paymentMethod === 'ONLINE' && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           className="!py-1 !px-2 text-[10px]"
                           onClick={() => handleRetryPayment(p.id)}
                           loading={retryMutation.isPending}
@@ -467,8 +515,8 @@ export default function MyMembershipPage() {
                         </Badge>
                       )}
                       <p className="text-xs text-slate-500 mb-4 h-8 line-clamp-2">{plan.description}</p>
-                      <Button 
-                        className="w-full" 
+                      <Button
+                        className="w-full"
                         onClick={() => handlePurchaseClick(plan)}
                       >
                         Select Plan
@@ -478,47 +526,129 @@ export default function MyMembershipPage() {
                 </div>
               )
             ) : (
-              // Step 2: Payment Method
-              <div className="space-y-6">
+              // Step 2: Payment Method & Coupon
+              <div className="space-y-5">
+                {/* Plan Summary & Price Breakdown Card */}
                 <Card className="p-4 bg-slate-50 border border-slate-200">
-                  <h3 className="font-bold text-slate-900">{selectedPlanToPurchase.name}</h3>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Duration: {selectedPlanToPurchase.durationMonths} Months
-                  </p>
-                  <p className="text-lg font-bold text-emerald-600 mt-2">
-                    {formatCurrency(selectedPlanToPurchase.price)}
-                  </p>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-slate-900">{selectedPlanToPurchase.name}</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Duration: {selectedPlanToPurchase.durationMonths} Months
+                      </p>
+                    </div>
+                    <Badge variant="info">{formatCurrency(selectedPlanToPurchase.price)}</Badge>
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-slate-200/80 space-y-1.5 text-xs">
+                    <div className="flex justify-between text-slate-600">
+                      <span>Original Price:</span>
+                      <span>{formatCurrency(selectedPlanToPurchase.price)}</span>
+                    </div>
+
+                    {appliedCoupon && appliedCoupon.discountAmount > 0 && (
+                      <div className="flex justify-between text-emerald-600 font-semibold">
+                        <span>Coupon Discount ({appliedCoupon.code}):</span>
+                        <span>-{formatCurrency(appliedCoupon.discountAmount)}</span>
+                      </div>
+                    )}
+
+                    {appliedCoupon && appliedCoupon.extraDays > 0 && (
+                      <div className="flex justify-between text-purple-600 font-semibold">
+                        <span>Extra Days Bonus:</span>
+                        <span>+{appliedCoupon.extraDays} Days</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
+                      <span>Total Net Payable:</span>
+                      <span className="text-emerald-600">
+                        {formatCurrency(appliedCoupon ? appliedCoupon.finalAmount : selectedPlanToPurchase.price)}
+                      </span>
+                    </div>
+                  </div>
                 </Card>
 
-                <div className="space-y-3">
-                  <label className="block text-sm font-semibold text-slate-700">Choose Payment Method</label>
+                {/* ── Coupon Code Input ── */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-700">Apply Coupon Code</label>
+                  {!appliedCoupon ? (
+                    <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Tag className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="ENTER COUPON CODE"
+                          value={couponInput}
+                          onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                          className="w-full pl-9 pr-3 py-2 text-xs font-mono border border-slate-300 rounded-lg uppercase focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                        />
+                      </div>
+                      <Button
+                        type="submit"
+                        size="sm"
+                        loading={validateCouponMutation.isPending}
+                        disabled={!couponInput.trim()}
+                        className="!py-2 !px-4 text-xs"
+                      >
+                        Apply
+                      </Button>
+                    </form>
+                  ) : (
+                    <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs">
+                      <div className="flex items-center gap-2">
+                        <Ticket className="w-4 h-4 text-emerald-600" />
+                        <div>
+                          <span className="font-bold text-emerald-900 font-mono">{appliedCoupon.code}</span>
+                          <p className="text-[11px] text-emerald-700">
+                            {appliedCoupon.discountType === 'PERCENTAGE' && `${appliedCoupon.discountValue}% discount applied!`}
+                            {appliedCoupon.discountType === 'FIXED_AMOUNT' && `${formatCurrency(appliedCoupon.discountAmount)} discount applied!`}
+                            {appliedCoupon.discountType === 'FREE_DAYS' && `+${appliedCoupon.extraDays} Free membership days added!`}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-slate-400 hover:text-red-500 p-1 rounded transition-colors"
+                        title="Remove Coupon"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Payment Method Options */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-700">Choose Payment Method</label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('ONLINE')}
-                      className={`p-4 border-2 rounded-xl text-left transition-all ${
-                        paymentMethod === 'ONLINE' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-emerald-300'
+                      className={`p-3.5 border-2 rounded-xl text-left transition-all ${
+                        paymentMethod === 'ONLINE' ? 'border-emerald-500 bg-emerald-50/60' : 'border-slate-200 hover:border-emerald-300'
                       }`}
                     >
-                      <div className="font-bold text-slate-800">Online Payment</div>
-                      <div className="text-xs text-slate-500 mt-1">Pay now via Gateway</div>
+                      <div className="font-bold text-slate-800 text-xs">Online Payment</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">Pay via Gateway / UPI</div>
                     </button>
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('CASH')}
-                      className={`p-4 border-2 rounded-xl text-left transition-all ${
-                        paymentMethod === 'CASH' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-emerald-300'
+                      className={`p-3.5 border-2 rounded-xl text-left transition-all ${
+                        paymentMethod === 'CASH' ? 'border-emerald-500 bg-emerald-50/60' : 'border-slate-200 hover:border-emerald-300'
                       }`}
                     >
-                      <div className="font-bold text-slate-800">Cash Payment</div>
-                      <div className="text-xs text-slate-500 mt-1">Pay at Front Desk</div>
+                      <div className="font-bold text-slate-800 text-xs">Cash Payment</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">Pay at Front Desk</div>
                     </button>
                   </div>
                 </div>
 
                 {paymentMethod === 'CASH' && (
                   <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs flex items-start gap-2 border border-amber-200">
-                    <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-600" />
                     <p>Cash payments require administrator approval. Your membership will be marked as PENDING until verified.</p>
                   </div>
                 )}
@@ -527,12 +657,14 @@ export default function MyMembershipPage() {
                   <Button variant="outline" onClick={() => setSelectedPlanToPurchase(null)}>
                     Back
                   </Button>
-                  <Button 
+                  <Button
                     loading={purchaseMutation.isPending}
                     onClick={submitPurchase}
                     icon={paymentMethod === 'CASH' ? Check : CreditCard}
                   >
-                    {paymentMethod === 'CASH' ? 'Request Membership' : 'Pay Now'}
+                    {paymentMethod === 'CASH'
+                      ? 'Request Membership'
+                      : `Pay ${formatCurrency(appliedCoupon ? appliedCoupon.finalAmount : selectedPlanToPurchase.price)}`}
                   </Button>
                 </div>
               </div>

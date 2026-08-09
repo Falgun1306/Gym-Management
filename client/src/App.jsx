@@ -25,6 +25,7 @@ import MembersPage from '@/pages/dashboard/MembersPage';
 import TrainersPage from '@/pages/admin/TrainersPage';
 import TrainerApplicationsPage from '@/pages/admin/TrainerApplicationsPage';
 import MembershipPlansPage from '@/pages/admin/MembershipPlansPage';
+import CouponsPage from '@/pages/admin/CouponsPage';
 import GymClassesPage from '@/pages/admin/GymClassesPage';
 import PaymentsPage from '@/pages/admin/PaymentsPage';
 import EquipmentPage from '@/pages/admin/EquipmentPage';
@@ -126,6 +127,7 @@ export default function App() {
         <Route path="trainers" element={<RoleGuard allowedRoles={['ADMIN']}><TrainersPage /></RoleGuard>} />
         <Route path="trainer-applications" element={<RoleGuard allowedRoles={['ADMIN']}><TrainerApplicationsPage /></RoleGuard>} />
         <Route path="membership-plans" element={<RoleGuard allowedRoles={['ADMIN']}><MembershipPlansPage /></RoleGuard>} />
+        <Route path="coupons" element={<RoleGuard allowedRoles={['ADMIN']}><CouponsPage /></RoleGuard>} />
         <Route path="payments" element={<RoleGuard allowedRoles={['ADMIN']}><PaymentsPage /></RoleGuard>} />
         <Route path="equipment" element={<RoleGuard allowedRoles={['ADMIN']}><EquipmentPage /></RoleGuard>} />
         <Route path="complaints" element={<RoleGuard allowedRoles={['ADMIN']}><ComplaintsPage /></RoleGuard>} />

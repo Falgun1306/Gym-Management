@@ -391,6 +391,7 @@ model Payment {
   invoiceNumber  String?   @unique
 
   // ─── Coupon Usage ─────────────────────────────────
+  appliedCouponCode String?
   couponUsageId  String?   @unique
 
   member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
@@ -541,6 +542,7 @@ model Coupon {
   maxUsageCount      Int?         // null = unlimited
   usageCount         Int          @default(0)
   perUserLimit       Int          @default(1) // Times a single user can use it
+  applicablePlanIds  String[]     @default([]) // Empty array = applicable to all plans
   isReferral         Boolean      @default(false) // System-generated referral coupon
   startDate          DateTime     @default(now())
   expiresAt          DateTime?

@@ -145,7 +145,7 @@ export function useAvailableMembershipPlans() {
 export function usePurchaseMembership() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ planId, paymentMethod }) => purchaseMembership({ planId, paymentMethod }),
+    mutationFn: ({ planId, paymentMethod, couponCode }) => purchaseMembership({ planId, paymentMethod, couponCode }),
     onSuccess: (res) => {
       if (!res.data?.razorpayOrderId) {
         toast.success(res.message || 'Membership request submitted successfully!');
@@ -325,6 +325,24 @@ export function useMemberReferralLink() {
     queryFn: getMyReferralLink,
     staleTime: 600_000,
     select: (res) => res.data,
+  });
+}
+
+export function useValidateCoupon() {
+  return useMutation({
+    mutationFn: ({ code, amount, planId }) => validateCoupon(code, amount, planId),
+  });
+}
+
+export function useMemberCouponUsages(params = {}) {
+  return useQuery({
+    queryKey: ['coupons', 'my-usages', params],
+    queryFn: () => getMyCouponUsages(params),
+    staleTime: 30_000,
+    select: (res) => ({
+      usages: res.data,
+      pagination: res.pagination,
+    }),
   });
 }
 

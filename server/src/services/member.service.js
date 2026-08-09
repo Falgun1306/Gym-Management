@@ -390,7 +390,7 @@ class MemberService {
                     where: { id: member.trainerId },
                     select: { userId: true }
                 });
-                
+
                 if (trainer) {
                     await notificationService.sendBulkNotification({
                         title: "Client Subscription Paused",
@@ -559,7 +559,7 @@ class MemberService {
         });
     }
 
-    async purchaseMembership(userId, planId, paymentMethod = "ONLINE") {
+    async purchaseMembership(userId, planId, paymentMethod = "ONLINE", couponCode = null) {
         const method = paymentMethod.toUpperCase();
         const validMethods = ["CASH", "UPI", "CREDIT_CARD", "DEBIT_CARD", "NET_BANKING", "ONLINE"];
         if (!validMethods.includes(method)) {
@@ -578,21 +578,37 @@ class MemberService {
             throw new ErrorHandler("Invalid or inactive membership plan", 404);
         }
 
+        const rawPrice = parseFloat(plan.price);
+        let finalPrice = rawPrice;
+        let validatedCouponCode = null;
+
+        if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+            const validation = await couponService.validateCoupon(
+                couponCode.trim(),
+                member.id,
+                rawPrice,
+                plan.id
+            );
+            finalPrice = validation.finalAmount;
+            validatedCouponCode = validation.code;
+        }
+
         const start = new Date();
         const end = new Date(start);
         end.setMonth(end.getMonth() + plan.durationMonths);
 
         const isCash = method === "CASH";
-        
+
         let razorpayOrder = null;
         if (!isCash) {
             razorpayOrder = await razorpay.orders.create({
-                amount: Math.round(plan.price * 100), // paise
+                amount: Math.round(finalPrice * 100), // paise
                 currency: "INR",
                 receipt: `rcpt_${Date.now()}_${member.id.slice(-6)}`,
                 notes: {
                     memberId: member.id,
                     description: `Purchased via Member Portal - ${plan.name}`,
+                    couponCode: validatedCouponCode || "",
                 },
             });
         }
@@ -612,20 +628,21 @@ class MemberService {
                 include: { plan: true },
             });
 
-            await tx.payment.create({
+            const paymentRecord = await tx.payment.create({
                 data: {
                     memberId: member.id,
                     membershipId: membership.id,
-                    amount: plan.price,
+                    amount: finalPrice,
                     paymentMethod: method,
                     status: payStatus,
                     razorpayOrderId: razorpayOrder ? razorpayOrder.id : null,
-                    description: `Purchased via Member Portal - ${plan.name}`,
+                    appliedCouponCode: validatedCouponCode,
+                    description: `Purchased via Member Portal - ${plan.name}${validatedCouponCode ? ` (Coupon: ${validatedCouponCode})` : ""}`,
                 },
             });
 
             const title = isCash ? "Membership Pending Approval" : "Payment Required";
-            const message = isCash 
+            const message = isCash
                 ? `You have requested the ${plan.name} plan via Cash. Please pay at the front desk to activate your membership.`
                 : `Please complete your online payment for the ${plan.name} plan.`;
 
@@ -638,19 +655,21 @@ class MemberService {
                 }
             });
 
-            return membership;
+            return { membership, paymentId: paymentRecord.id };
         });
 
         if (!isCash && razorpayOrder) {
             return {
-                ...result,
+                ...result.membership,
+                paymentId: result.paymentId,
+                id: result.paymentId,
                 razorpayOrderId: razorpayOrder.id,
-                amount: Math.round(plan.price * 100),
+                amount: Math.round(finalPrice * 100),
                 key_id: process.env.RAZORPAY_KEY_ID,
             };
         }
 
-        return result;
+        return { ...result.membership, paymentId: result.paymentId, id: result.paymentId };
     }
 }
 

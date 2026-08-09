@@ -26,6 +26,7 @@ import {
   CalendarClock,
   TrendingUp,
   User,
+  Ticket,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -48,6 +49,7 @@ const adminNav = [
   { to: '/dashboard/trainers', icon: GraduationCap, label: 'Trainers' },
   { to: '/dashboard/trainer-applications', icon: UserCheck, label: 'Applications' },
   { to: '/dashboard/membership-plans', icon: CreditCard, label: 'Plans & Subs' },
+  { to: '/dashboard/coupons', icon: Ticket, label: 'Coupons' },
   { to: '/dashboard/gym-classes', icon: CalendarDays, label: 'Gym Classes' },
   { to: '/dashboard/payments', icon: ClipboardList, label: 'Payments' },
   { to: '/dashboard/equipment', icon: Wrench, label: 'Equipment' },

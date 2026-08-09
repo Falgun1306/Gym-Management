@@ -4,6 +4,7 @@ import prisma from "../config/prisma.js";
 import razorpay from "../config/razorpay.js";
 import asyncHandler from "../middlewares/asyncHandler.middleware.js";
 import ErrorHandler from "../utility/ErrorHandler.utility.js";
+import ApiResponse from "../utility/ApiResponse.utility.js";
 import { sendPaymentReceipt, sendPaymentFailureEmail } from "../services/email.service.js";
 import couponService from "../services/coupon.service.js";
 
@@ -294,6 +295,24 @@ const verifyPayment = asyncHandler(async (req, res) => {
 
     // ── Atomically update payment + activate membership ──
     await prisma.$transaction(async (tx) => {
+        let couponUsageId = null;
+
+        // Consume coupon AFTER successful payment verification
+        if (payment.appliedCouponCode && !payment.couponUsageId) {
+            try {
+                const usage = await couponService.applyCoupon(
+                    payment.appliedCouponCode,
+                    payment.memberId,
+                    payment.membershipId,
+                    payment.amount,
+                    tx
+                );
+                couponUsageId = usage.id;
+            } catch (err) {
+                console.error("⚠️ Failed to consume coupon post-payment verification:", err.message || err);
+            }
+        }
+
         await tx.payment.update({
             where: { id: payment.id },
             data: {
@@ -301,13 +320,41 @@ const verifyPayment = asyncHandler(async (req, res) => {
                 razorpayPaymentId: razorpay_payment_id,
                 razorpaySignature: razorpay_signature,
                 paidAt: new Date(),
+                ...(couponUsageId ? { couponUsageId } : {}),
             },
         });
 
+        let planName = "Membership Plan";
         if (payment.membershipId) {
-            await tx.membership.update({
+            const updatedMem = await tx.membership.update({
                 where: { id: payment.membershipId },
                 data: { status: "ACTIVE" },
+                include: { plan: { select: { name: true } } },
+            });
+            if (updatedMem?.plan?.name) planName = updatedMem.plan.name;
+        }
+
+        // Clean up pending payment notifications & post success notification
+        const member = await tx.member.findUnique({
+            where: { id: payment.memberId },
+            select: { userId: true },
+        });
+
+        if (member?.userId) {
+            await tx.notification.deleteMany({
+                where: {
+                    userId: member.userId,
+                    title: { in: ["Payment Required", "Membership Pending Approval"] },
+                },
+            });
+
+            await tx.notification.create({
+                data: {
+                    userId: member.userId,
+                    title: "🎉 Payment Successful",
+                    message: `Your payment of ₹${payment.amount} for the ${planName} was verified successfully. Your membership is now ACTIVE!`,
+                    type: "PAYMENT",
+                },
             });
         }
     });
@@ -391,19 +438,63 @@ const webhook = asyncHandler(async (req, res) => {
         }
 
         await prisma.$transaction(async (tx) => {
+            let couponUsageId = null;
+
+            if (payment.appliedCouponCode && !payment.couponUsageId) {
+                try {
+                    const usage = await couponService.applyCoupon(
+                        payment.appliedCouponCode,
+                        payment.memberId,
+                        payment.membershipId,
+                        payment.amount,
+                        tx
+                    );
+                    couponUsageId = usage.id;
+                } catch (err) {
+                    console.error("⚠️ Failed to consume coupon in webhook:", err.message || err);
+                }
+            }
+
             await tx.payment.update({
                 where: { id: payment.id },
                 data: {
                     status: "SUCCESS",
                     razorpayPaymentId: rpPayment.id,
                     paidAt: new Date(),
+                    ...(couponUsageId ? { couponUsageId } : {}),
                 },
             });
 
+            let planName = "Membership Plan";
             if (payment.membershipId) {
-                await tx.membership.update({
+                const updatedMem = await tx.membership.update({
                     where: { id: payment.membershipId },
                     data: { status: "ACTIVE" },
+                    include: { plan: { select: { name: true } } },
+                });
+                if (updatedMem?.plan?.name) planName = updatedMem.plan.name;
+            }
+
+            const member = await tx.member.findUnique({
+                where: { id: payment.memberId },
+                select: { userId: true },
+            });
+
+            if (member?.userId) {
+                await tx.notification.deleteMany({
+                    where: {
+                        userId: member.userId,
+                        title: { in: ["Payment Required", "Membership Pending Approval"] },
+                    },
+                });
+
+                await tx.notification.create({
+                    data: {
+                        userId: member.userId,
+                        title: "🎉 Payment Successful",
+                        message: `Your payment of ₹${payment.amount} for the ${planName} was processed successfully. Your membership is now ACTIVE!`,
+                        type: "PAYMENT",
+                    },
                 });
             }
         });
@@ -480,29 +571,64 @@ const webhook = asyncHandler(async (req, res) => {
 
 const failPayment = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const payment = await prisma.payment.findUnique({
+
+    let payment = await prisma.payment.findUnique({
         where: { id },
-        include: { member: { include: { user: { select: { email: true } } } } }
+        include: { member: { include: { user: { select: { email: true } } } } },
     });
 
     if (!payment) {
-        throw new ErrorHandler("Payment not found", 404);
+        payment = await prisma.payment.findFirst({
+            where: {
+                OR: [{ razorpayOrderId: id }, { membershipId: id }],
+            },
+            include: { member: { include: { user: { select: { email: true } } } } },
+        });
     }
+
+    if (!payment) {
+        throw new ErrorHandler("Payment record not found", 404);
+    }
+
+    if (payment.status === "FAILED") {
+        return res.status(200).json(new ApiResponse(200, payment, "Payment is already marked as failed"));
+    }
+
     if (payment.status !== "PENDING") {
         throw new ErrorHandler("Only PENDING payments can be marked as FAILED", 400);
     }
 
-    const updatedPayment = await prisma.payment.update({
-        where: { id },
-        data: { status: "FAILED" },
+    const updatedPayment = await prisma.$transaction(async (tx) => {
+        const updated = await tx.payment.update({
+            where: { id: payment.id },
+            data: { status: "FAILED" },
+        });
+
+        if (payment.membershipId) {
+            await tx.membership.update({
+                where: { id: payment.membershipId },
+                data: { status: "CANCELLED" },
+            }).catch(() => {});
+        }
+
+        if (payment.member?.userId) {
+            await tx.notification.deleteMany({
+                where: {
+                    userId: payment.member.userId,
+                    title: { in: ["Payment Required", "Membership Pending Approval"] },
+                },
+            });
+        }
+
+        return updated;
     });
 
-    // Send failure email
+    // Send failure email (non-blocking)
     if (payment.member?.user?.email) {
         sendPaymentFailureEmail(
             { name: `${payment.member.firstName} ${payment.member.lastName}`, email: payment.member.user.email },
             { amount: payment.amount, orderId: payment.razorpayOrderId || payment.id }
-        ).catch(err => console.error("⚠️ Failed to send payment failure email:", err));
+        ).catch((err) => console.error("⚠️ Failed to send payment failure email:", err));
     }
 
     res.status(200).json(new ApiResponse(200, updatedPayment, "Payment marked as failed"));

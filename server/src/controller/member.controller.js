@@ -81,12 +81,12 @@ const getAvailableMembershipPlans = asyncHandler(async (req, res) => {
 });
 
 const purchaseMembership = asyncHandler(async (req, res) => {
-    const { planId, paymentMethod } = req.body;
+    const { planId, paymentMethod, couponCode } = req.body;
     if (!planId) {
         throw new ErrorHandler("Plan ID is required", 400);
     }
-    const membership = await memberService.purchaseMembership(req.user.id, planId, paymentMethod);
-    res.status(201).json(new ApiResponse(201, membership, "Membership purchased successfully"));
+    const membership = await memberService.purchaseMembership(req.user.id, planId, paymentMethod, couponCode);
+    res.status(201).json(new ApiResponse(201, membership, "Membership requested successfully"));
 });
 
 const submitTrainerRating = asyncHandler(async (req, res) => {

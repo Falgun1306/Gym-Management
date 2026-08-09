@@ -197,3 +197,24 @@ export async function getAttendanceReport(params = {}) {
 export async function getRevenueReport(params = {}) {
   return api.get('/reports/revenue', { params });
 }
+
+// ── Coupons ──
+export async function listAdminCoupons(params = {}) {
+  return api.get('/coupons/admin/all', { params });
+}
+
+export async function createAdminCoupon(data) {
+  return api.post('/coupons', data);
+}
+
+export async function updateAdminCoupon(id, data) {
+  return api.patch(`/coupons/admin/${id}`, data);
+}
+
+export async function toggleAdminCouponStatus(id) {
+  return api.delete(`/coupons/admin/${id}`);
+}
+
+export async function getAdminCouponUsages(id, params = {}) {
+  return api.get(`/coupons/admin/${id}/usages`, { params });
+}
