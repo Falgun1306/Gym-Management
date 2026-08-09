@@ -35,20 +35,26 @@ export const updateCoupon = asyncHandler(async (req, res) => {
 
 export const deactivateCoupon = asyncHandler(async (req, res) => {
     const coupon = await couponService.deactivateCoupon(req.params.id);
-    res.status(200).json(new ApiResponse(200, coupon, "Coupon deactivated"));
+    const message = coupon.status === "INACTIVE" ? "Coupon deactivated" : "Coupon activated";
+    res.status(200).json(new ApiResponse(200, coupon, message));
+});
+
+export const getCouponUsagesAdmin = asyncHandler(async (req, res) => {
+    const { usages, pagination } = await couponService.getCouponUsagesAdmin(req.params.id, req.query);
+    res.status(200).json(new ApiResponse(200, usages, "Coupon usage history", pagination));
 });
 
 // ─── MEMBER: Validate Coupon ──────────────────────────────────────────────────
 
 export const validateCoupon = asyncHandler(async (req, res) => {
     const { code } = req.params;
-    const { amount = 0 } = req.query;
+    const { amount = 0, planId } = req.query;
 
     // Resolve memberId from authenticated user
     const member = await memberRepository.findByUserId(req.user.id);
     if (!member) throw new ErrorHandler("Member profile not found", 404);
 
-    const result = await couponService.validateCoupon(code, member.id, parseFloat(amount));
+    const result = await couponService.validateCoupon(code, member.id, parseFloat(amount), planId || null);
     res.status(200).json(new ApiResponse(200, result, "Coupon is valid"));
 });
 

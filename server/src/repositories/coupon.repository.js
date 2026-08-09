@@ -68,6 +68,32 @@ class CouponRepository {
         return { data, total };
     }
 
+    async findUsagesByCouponId(couponId, skip = 0, take = 20) {
+        const [data, total] = await Promise.all([
+            prisma.couponUsage.findMany({
+                where: { couponId },
+                skip,
+                take,
+                orderBy: { usedAt: "desc" },
+                include: {
+                    member: {
+                        select: {
+                            id: true,
+                            firstName: true,
+                            lastName: true,
+                            phone: true,
+                            user: { select: { email: true } },
+                        },
+                    },
+                    membership: { include: { plan: { select: { name: true, price: true } } } },
+                    payment: { select: { id: true, amount: true, status: true, paymentMethod: true } },
+                },
+            }),
+            prisma.couponUsage.count({ where: { couponId } }),
+        ]);
+        return { data, total };
+    }
+
     // ─── ReferralLink ─────────────────────────────────────────────────────────
 
     async findReferralLinkByMemberId(memberId) {

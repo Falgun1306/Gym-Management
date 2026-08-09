@@ -7,6 +7,7 @@ import {
     getCouponById,
     updateCoupon,
     deactivateCoupon,
+    getCouponUsagesAdmin,
     validateCoupon,
     getMyCouponUsages,
     getMyReferralLink,
@@ -18,6 +19,7 @@ const router = express.Router();
 
 router.post("/", auth, authorize("ADMIN"), createCoupon);
 router.get("/admin/all", auth, authorize("ADMIN"), listCoupons);
+router.get("/admin/:id/usages", auth, authorize("ADMIN"), getCouponUsagesAdmin);
 router.get("/admin/:id", auth, authorize("ADMIN"), getCouponById);
 router.patch("/admin/:id", auth, authorize("ADMIN"), updateCoupon);
 router.delete("/admin/:id", auth, authorize("ADMIN"), deactivateCoupon);

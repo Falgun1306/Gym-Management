@@ -99,8 +99,15 @@ export async function getMyReferralLink() {
   return api.get('/coupons/my-referral-link');
 }
 
-export async function validateCoupon(code) {
-  return api.get(`/coupons/validate/${code}`);
+export async function validateCoupon(code, amount = 0, planId = null) {
+  const params = {};
+  if (amount) params.amount = amount;
+  if (planId) params.planId = planId;
+  return api.get(`/coupons/validate/${code}`, { params });
+}
+
+export async function getMyCouponUsages(params = {}) {
+  return api.get('/coupons/my-usages', { params });
 }
 
 // ─── Complaints & Support ────────────────────────────────────────────────────
@@ -126,8 +133,8 @@ export async function getAvailableMembershipPlans() {
   return api.get('/members/membership-plans');
 }
 
-export async function purchaseMembership({ planId, paymentMethod }) {
-  return api.post('/members/memberships/purchase', { planId, paymentMethod });
+export async function purchaseMembership({ planId, paymentMethod, couponCode }) {
+  return api.post('/members/memberships/purchase', { planId, paymentMethod, couponCode });
 }
 
 // ─── Trainer Ratings ─────────────────────────────────────────────────────────────────

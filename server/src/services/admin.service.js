@@ -749,7 +749,7 @@ class AdminService {
                 // applyCoupon works inside an existing tx
                 const usage = await couponService.applyCoupon(
                     couponCode,
-                    memberId,
+                    resolvedMemberId,
                     membership.id,
                     parseFloat(plan.price),
                     tx
@@ -899,9 +899,28 @@ class AdminService {
         }
 
         return prisma.$transaction(async (tx) => {
+            let couponUsageId = null;
+            if (payment.appliedCouponCode && !payment.couponUsageId) {
+                try {
+                    const usage = await couponService.applyCoupon(
+                        payment.appliedCouponCode,
+                        payment.memberId,
+                        payment.membershipId,
+                        payment.amount,
+                        tx
+                    );
+                    couponUsageId = usage.id;
+                } catch (err) {
+                    console.error("⚠️ Failed to apply coupon during payment approval:", err.message || err);
+                }
+            }
+
             const updatedPayment = await tx.payment.update({
                 where: { id: paymentId },
-                data: { status: "SUCCESS" },
+                data: {
+                    status: "SUCCESS",
+                    ...(couponUsageId ? { couponUsageId } : {}),
+                },
             });
 
             if (payment.membershipId) {
@@ -912,11 +931,18 @@ class AdminService {
             }
 
             if (payment.member?.userId) {
+                await tx.notification.deleteMany({
+                    where: {
+                        userId: payment.member.userId,
+                        title: { in: ["Payment Required", "Membership Pending Approval"] },
+                    },
+                });
+
                 await tx.notification.create({
                     data: {
                         userId: payment.member.userId,
-                        title: "Membership Approved",
-                        message: "Your cash payment has been approved and your membership is now active.",
+                        title: "🎉 Membership Approved",
+                        message: "Your cash payment has been approved and your membership is now ACTIVE.",
                         type: "MEMBERSHIP",
                     },
                 });

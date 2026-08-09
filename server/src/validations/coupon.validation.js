@@ -39,6 +39,10 @@ export const validateCreateCoupon = (req) => {
         return "perUserLimit must be a positive integer";
     }
 
+    if (req.body.applicablePlanIds !== undefined && !Array.isArray(req.body.applicablePlanIds)) {
+        return "applicablePlanIds must be an array of membership plan IDs";
+    }
+
     return null;
 };
 
