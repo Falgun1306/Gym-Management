@@ -65,6 +65,22 @@ class MembershipRepository {
         return prisma.membership.count({ where });
     }
 
+    async update(id, data, include = null) {
+        return prisma.membership.update({
+            where: { id },
+            data,
+            ...(include && { include }),
+        });
+    }
+
+    async updateMembership(id, data, include = null) {
+        return this.update(id, data, include);
+    }
+
+    async deleteMembership(id) {
+        return prisma.membership.delete({ where: { id } });
+    }
+
     async groupByStatus() {
         return prisma.membership.groupBy({
             by: ["status"],
