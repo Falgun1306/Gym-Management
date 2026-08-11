@@ -73,6 +73,9 @@ app.use("/api/v1/coupons", couponRouter);
 import healthRouter from "./routes/health.router.js";
 app.use("/api/v1/health", healthRouter);
 
+import timeSlotRouter from "./routes/timeSlot.router.js";
+app.use("/api/v1/time-slots", timeSlotRouter);
+
 app.use(errorHandler);
 
 export { app };

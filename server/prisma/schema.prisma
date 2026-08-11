@@ -96,6 +96,7 @@ enum NotificationType {
   WORKOUT
   CLASS
   GENERAL
+  TIME_SLOT
 }
 
 enum ComplaintStatus {
@@ -183,6 +184,9 @@ model Member {
   referralLink        ReferralLink?
   referredBy          Referral?     @relation("ReferredMember")
   trainerRatings      TrainerRating[]
+
+  // ─── Time Slot Relations ───────────────────────────
+  timeSlots           MemberTimeSlot[]
 }
 
 model Trainer {
@@ -216,6 +220,7 @@ model Trainer {
   schedules          TrainerSchedule[]
   timeOffs           TrainerTimeOff[]
   trainerRatings     TrainerRating[]
+  timeSlotAdvisories TimeSlotAdvisory[]
 }
 
 model TrainerApplication {
@@ -608,3 +613,41 @@ model Referral {
   @@index([referralLinkId])
   @@index([referredMemberId])
 }
+
+// ─── Member Time Slot & Space Management ─────────────────────────────────────
+
+model MemberTimeSlot {
+  id        String   @id @default(cuid())
+  memberId  String
+  dayOfWeek Int      @default(-1) // -1 = Daily, 0=Sun, 1=Mon, ..., 6=Sat
+  startTime String   // e.g. "06:00"
+  endTime   String   // e.g. "07:00"
+  notes     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([startTime, endTime])
+  @@index([dayOfWeek])
+}
+
+model TimeSlotAdvisory {
+  id          String   @id @default(cuid())
+  trainerId   String
+  startTime   String   // e.g. "06:00"
+  endTime     String   // e.g. "07:00"
+  dayOfWeek   Int      @default(-1)
+  title       String
+  description String?
+  maxCapacity Int?     @default(30)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trainer Trainer @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@index([trainerId])
+  @@index([startTime, endTime])
+}

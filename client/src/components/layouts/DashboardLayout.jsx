@@ -24,6 +24,7 @@ import {
   BookOpen,
   UserCheck,
   CalendarClock,
+  Clock,
   TrendingUp,
   User,
   Ticket,
@@ -51,6 +52,7 @@ const adminNav = [
   { to: '/dashboard/membership-plans', icon: CreditCard, label: 'Plans & Subs' },
   { to: '/dashboard/coupons', icon: Ticket, label: 'Coupons' },
   { to: '/dashboard/gym-classes', icon: CalendarDays, label: 'Gym Classes' },
+  { to: '/dashboard/time-slots', icon: Clock, label: 'Time Slots & Space' },
   { to: '/dashboard/payments', icon: ClipboardList, label: 'Payments' },
   { to: '/dashboard/equipment', icon: Wrench, label: 'Equipment' },
   { to: '/dashboard/complaints', icon: MessageSquare, label: 'Complaints' },
@@ -60,6 +62,7 @@ const adminNav = [
 const trainerNav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/dashboard/my-members', icon: Users, label: 'My Members' },
+  { to: '/dashboard/time-slots', icon: Clock, label: 'Time Slots & Space' },
   { to: '/dashboard/workout-plans', icon: Dumbbell, label: 'Workout Plans' },
   { to: '/dashboard/diet-plans', icon: UtensilsCrossed, label: 'Diet Plans' },
   { to: '/dashboard/exercises', icon: BookOpen, label: 'Exercises' },
@@ -71,6 +74,7 @@ const trainerNav = [
 const memberNav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/dashboard/my-membership', icon: CreditCard, label: 'My Membership' },
+  { to: '/dashboard/my-time-slot', icon: Clock, label: 'My Time Slot' },
   { to: '/dashboard/my-attendance', icon: UserCheck, label: 'My Attendance' },
   { to: '/dashboard/my-workout', icon: Dumbbell, label: 'My Workout' },
   { to: '/dashboard/my-diet', icon: UtensilsCrossed, label: 'My Diet' },

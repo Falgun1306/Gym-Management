@@ -90,4 +90,18 @@ function StatCard({
   );
 }
 
-export { Card, CardHeader, StatCard };
+/**
+ * CardContent — content container of a card.
+ */
+function CardContent({ children, className }) {
+  return <div className={cn('p-4', className)}>{children}</div>;
+}
+
+/**
+ * CardTitle — header title of a card.
+ */
+function CardTitle({ children, className }) {
+  return <h3 className={cn('text-base font-semibold text-slate-900', className)}>{children}</h3>;
+}
+
+export { Card, CardHeader, CardTitle, CardContent, StatCard };
