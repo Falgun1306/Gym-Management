@@ -44,6 +44,7 @@ import WorkoutPlansPage from '@/pages/trainers/WorkoutPlansPage';
 import DietPlansPage from '@/pages/trainers/DietPlansPage';
 import MemberAttendancePage from '@/pages/trainers/MemberAttendancePage';
 import ClassBookingsPage from '@/pages/trainers/ClassBookingsPage';
+import TimeSlotsPage from '@/pages/trainers/TimeSlotsPage';
 
 // ── Member Portal pages ──
 import MemberDashboard from '@/pages/members/MemberDashboard';
@@ -54,6 +55,7 @@ import MyDietPage from '@/pages/members/MyDietPage';
 import MyProgressPage from '@/pages/members/MyProgressPage';
 import MemberClassesPage from '@/pages/members/MemberClassesPage';
 import MemberSupportPage from '@/pages/members/MemberSupportPage';
+import MyTimeSlotsPage from '@/pages/members/MyTimeSlotsPage';
 
 // ── Dev tools ──
 import ComponentShowcase from '@/pages/ComponentShowcase';
@@ -146,8 +148,12 @@ export default function App() {
         <Route path="profile" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER', 'MEMBER']}><ProfilePage /></RoleGuard>} />
         <Route path="notifications" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER', 'MEMBER']}><NotificationsPage /></RoleGuard>} />
 
+        {/* ── Trainer & Admin Time Slot Management ── */}
+        <Route path="time-slots" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER']}><TimeSlotsPage /></RoleGuard>} />
+
         {/* ── Member Portal routes ── */}
         <Route path="my-membership" element={<RoleGuard allowedRoles={['MEMBER']}><MyMembershipPage /></RoleGuard>} />
+        <Route path="my-time-slot" element={<RoleGuard allowedRoles={['MEMBER']}><MyTimeSlotsPage /></RoleGuard>} />
         <Route path="my-attendance" element={<RoleGuard allowedRoles={['MEMBER']}><MyAttendancePage /></RoleGuard>} />
         <Route path="my-workout" element={<RoleGuard allowedRoles={['MEMBER']}><MyWorkoutPage /></RoleGuard>} />
         <Route path="my-diet" element={<RoleGuard allowedRoles={['MEMBER']}><MyDietPage /></RoleGuard>} />

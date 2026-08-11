@@ -13,5 +13,5 @@ export { Sheet } from './Sheet';
 export { ConfirmDialog } from './ConfirmDialog';
 export { Skeleton, SkeletonText, SkeletonCard, SkeletonTable, SkeletonStat } from './Skeleton';
 export { EmptyState } from './EmptyState';
-export { Card, CardHeader, StatCard } from './Card';
+export { Card, CardHeader, CardTitle, CardContent, StatCard } from './Card';
 export { Avatar } from './Avatar';
