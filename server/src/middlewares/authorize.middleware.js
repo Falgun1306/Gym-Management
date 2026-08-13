@@ -8,15 +8,19 @@ import ErrorHandler from "../utility/ErrorHandler.utility.js";
  */
 const authorize = (...roles) => {
     return (req, res, next) => {
-        if (!req.user) {
-            throw new ErrorHandler("Authentication required", 401);
-        }
+        try {
+            if (!req.user) {
+                throw new ErrorHandler("Authentication required", 401);
+            }
 
-        if (!roles.includes(req.user.role)) {
-            throw new ErrorHandler("Access denied: insufficient permissions", 403);
-        }
+            if (!roles.includes(req.user.role)) {
+                throw new ErrorHandler("Access denied: insufficient permissions", 403);
+            }
 
-        next();
+            next();
+        } catch (err) {
+            next(err);
+        }
     };
 };
 
