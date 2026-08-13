@@ -1,8 +1,19 @@
 import express from "express";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import errorHandler from "./middlewares/errorHandler.middleware.js";
 
 const app = express();
+
+// ── CORS ─────────────────────────────────────────────────────────────────────
+const allowedOrigins = [
+    process.env.CLIENT_URL || "http://localhost:3000",
+].filter(Boolean);
+
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true,
+}));
 
 // ── Raw body parsing for Razorpay webhook (must come BEFORE express.json) ──
 app.use("/api/v1/payments/webhook", express.raw({ type: "application/json" }), (req, _res, next) => {

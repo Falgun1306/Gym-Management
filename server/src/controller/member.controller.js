@@ -1,5 +1,6 @@
 import asyncHandler from "../middlewares/asyncHandler.middleware.js";
 import ApiResponse from "../utility/ApiResponse.utility.js";
+import ErrorHandler from "../utility/ErrorHandler.utility.js";
 import memberService from "../services/member.service.js";
 import ratingService from "../services/rating.service.js";
 
