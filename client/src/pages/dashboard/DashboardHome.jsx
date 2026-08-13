@@ -214,7 +214,7 @@ function AdminDashboard() {
               <h3 className="text-sm font-bold text-slate-900">Upcoming Classes</h3>
               <p className="text-xs text-slate-500">Scheduled group sessions</p>
             </div>
-            <Link to="/dashboard/classes" className="text-xs font-semibold text-emerald-700 hover:underline">
+            <Link to="/dashboard/gym-classes" className="text-xs font-semibold text-emerald-700 hover:underline">
               View All
             </Link>
           </div>

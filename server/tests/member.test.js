@@ -46,7 +46,7 @@ const prismaMock = {
     workoutPlanExercise: createModelMock(), dietPlan: createModelMock(),
     dietAssignment: createModelMock(), progressLog: createModelMock(),
     gymClass: createModelMock(), classBooking: createModelMock(),
-    trainerSchedule: createModelMock(), equipment: createModelMock(),
+    trainerSchedule: createModelMock(), trainerTimeOff: createModelMock(), equipment: createModelMock(),
     notification: createModelMock(), complaint: createModelMock(),
     $transaction: jest.fn((fn) => (typeof fn === "function" ? fn(prismaMock) : Promise.all(fn))),
     $connect: jest.fn(), $disconnect: jest.fn(),
@@ -75,6 +75,7 @@ const resetAll = () => {
     for (const m of Object.values(prismaMock)) {
         if (typeof m === "object" && m !== null) {
             for (const fn of Object.values(m)) { if (typeof fn?.mockReset === "function") fn.mockReset(); }
+            if (m.createMany) m.createMany.mockResolvedValue({ count: 1 });
         }
     }
     prismaMock.$transaction.mockImplementation((fn) => typeof fn === "function" ? fn(prismaMock) : Promise.all(fn));
@@ -409,7 +410,11 @@ describe("GET /api/v1/members/gym-classes", () => {
 
 describe("POST /api/v1/members/gym-classes/:classId/book", () => {
     const user = createUser();
-    beforeEach(() => { resetAll(); prismaMock.user.findUnique.mockResolvedValue(user); });
+    beforeEach(() => {
+        resetAll();
+        prismaMock.user.findUnique.mockResolvedValue(user);
+        prismaMock.membership.findMany.mockResolvedValue([{ id: "ms1", status: "ACTIVE" }]);
+    });
 
     it("should book a gym class successfully", async () => {
         prismaMock.member.findUnique.mockResolvedValue(createMember());
