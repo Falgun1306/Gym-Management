@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAdminPayments, useCreateAdminPayment, useApprovePayment } from '@/hooks/useAdmin';
+import { useMembers } from '@/hooks/useMembers';
 import { Card, Badge, Button, Modal, SkeletonTable } from '@/components/ui';
 import { CreditCard, FileText, Plus, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/utils/formatters';
@@ -15,6 +16,9 @@ export default function PaymentsPage() {
     paymentMethod: 'CASH',
     description: 'Manual facility payment',
   });
+
+  const { data: membersRes } = useMembers({ limit: 100 });
+  const memberList = membersRes?.members || (Array.isArray(membersRes) ? membersRes : []);
 
   const { data, isLoading } = useAdminPayments({ status: statusFilter || undefined });
   const payments = data?.payments || [];
@@ -153,12 +157,29 @@ export default function PaymentsPage() {
         <Modal open={recordPaymentModal} onClose={() => setRecordPaymentModal(false)} title="Record Facility Payment">
           <form onSubmit={handleRecordSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Member Username</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Select Member or Enter Username *</label>
+              {memberList.length > 0 && (
+                <select
+                  value={form.username}
+                  onChange={(e) => setForm({ ...form, username: e.target.value })}
+                  className="w-full text-sm border border-slate-300 rounded-lg p-2 mb-2 focus:ring-2 focus:ring-emerald-500/20 bg-white"
+                >
+                  <option value="">Choose from existing members...</option>
+                  {memberList.map((m) => {
+                    const uName = m.user?.username || m.user?.email || m.firstName;
+                    return (
+                      <option key={m.id} value={uName}>
+                        {m.firstName} {m.lastName} (@{uName})
+                      </option>
+                    );
+                  })}
+                </select>
+              )}
               <input
                 type="text"
                 value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value })}
-                placeholder="Enter exact Member Username"
+                placeholder="Or type exact Member Username"
                 className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"
                 required
               />

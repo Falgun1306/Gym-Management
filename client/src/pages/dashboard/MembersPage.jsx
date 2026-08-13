@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Search,
@@ -67,17 +67,17 @@ export default function MembersPage() {
   const [selectedMemberId, setSelectedMemberId] = useState(null);
   const [addMemberModal, setAddMemberModal] = useState(false);
 
-  const debounceTimerRef = useState(null);
+  const debounceTimerRef = useRef(null);
   const handleSearchChange = useCallback((e) => {
     const value = e.target.value;
     setSearch(value);
     setPage(1);
 
-    if (debounceTimerRef[0]) clearTimeout(debounceTimerRef[0]);
-    debounceTimerRef[0] = setTimeout(() => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
       setDebouncedSearch(value.trim());
     }, 400);
-  }, [debounceTimerRef]);
+  }, []);
 
   const params = useMemo(() => {
     const p = { page, limit };

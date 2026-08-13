@@ -12,13 +12,26 @@ export default function ReportsPage() {
 
   const exportCSV = (data, filename) => {
     if (!data) return;
-    const jsonStr = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
+    let csvContent = '';
+    if (Array.isArray(data)) {
+      if (data.length > 0) {
+        const headers = Object.keys(data[0]);
+        csvContent = headers.join(',') + '\n' +
+          data.map(row => headers.map(h => JSON.stringify(row[h] ?? '')).join(',')).join('\n');
+      }
+    } else if (typeof data === 'object') {
+      const entries = Object.entries(data);
+      csvContent = 'Metric,Value\n' +
+        entries.map(([k, v]) => `${k},${typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n');
+    }
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${filename}.json`;
+    a.download = `${filename}.csv`;
     a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (

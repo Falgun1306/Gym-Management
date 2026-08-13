@@ -37,6 +37,7 @@ const prismaMock = {
     membership: createModelMock(),
     membershipPlan: createModelMock(),
     payment: createModelMock(),
+    trainerTimeOff: createModelMock(),
     $transaction: jest.fn((fn) => (typeof fn === "function" ? fn(prismaMock) : Promise.all(fn))),
     $queryRaw: jest.fn(),
     $connect: jest.fn(),
@@ -57,6 +58,7 @@ const resetAllMocks = () => {
             for (const fn of Object.values(model)) {
                 if (typeof fn?.mockReset === "function") fn.mockReset();
             }
+            if (model.createMany) model.createMany.mockResolvedValue({ count: 1 });
         }
     }
     if (typeof prismaMock.$queryRaw.mockReset === "function") {
@@ -645,6 +647,7 @@ describe("Feature Domain Controllers — Complete Jest Test Suite", () => {
         });
 
         it("POST /api/v1/gym-classes/:classId/book — member book gym class", async () => {
+            prismaMock.membership.findMany.mockResolvedValue([{ id: "ms-1", status: "ACTIVE" }]);
             prismaMock.gymClass.findUnique.mockResolvedValue(mockClass);
             prismaMock.classBooking.findFirst.mockResolvedValue(null);
             prismaMock.classBooking.create.mockResolvedValue({

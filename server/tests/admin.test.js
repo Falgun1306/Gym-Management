@@ -44,7 +44,7 @@ const createModelMock = () => ({
     findUnique: jest.fn(), findFirst: jest.fn(), findMany: jest.fn(),
     create: jest.fn(), update: jest.fn(), delete: jest.fn(),
     count: jest.fn(), aggregate: jest.fn(), upsert: jest.fn(),
-    deleteMany: jest.fn(), updateMany: jest.fn(), createMany: jest.fn(),
+    deleteMany: jest.fn(), updateMany: jest.fn(), createMany: jest.fn().mockResolvedValue({ count: 1 }),
 });
 
 const prismaMock = {
@@ -56,7 +56,7 @@ const prismaMock = {
     workoutPlanExercise: createModelMock(), dietPlan: createModelMock(),
     dietAssignment: createModelMock(), progressLog: createModelMock(),
     gymClass: createModelMock(), classBooking: createModelMock(),
-    trainerSchedule: createModelMock(), equipment: createModelMock(),
+    trainerSchedule: createModelMock(), trainerTimeOff: createModelMock(), equipment: createModelMock(),
     notification: createModelMock(), complaint: createModelMock(),
     $transaction: jest.fn((fn) => (typeof fn === "function" ? fn(prismaMock) : Promise.all(fn))),
     $connect: jest.fn(), $disconnect: jest.fn(),
@@ -84,6 +84,7 @@ const resetAll = () => {
     for (const m of Object.values(prismaMock)) {
         if (typeof m === "object" && m !== null) {
             for (const fn of Object.values(m)) { if (typeof fn?.mockReset === "function") fn.mockReset(); }
+            if (m.createMany) m.createMany.mockResolvedValue({ count: 1 });
         }
     }
     prismaMock.$transaction.mockImplementation((fn) => typeof fn === "function" ? fn(prismaMock) : Promise.all(fn));
@@ -199,6 +200,7 @@ describe("Admin Member Management", () => {
     it("PATCH /admins/members/:memberId/assign-trainer — assign trainer to member", async () => {
         prismaMock.member.findUnique.mockResolvedValue(createMemberRecord());
         prismaMock.trainer.findUnique.mockResolvedValue(createTrainerRecord());
+        prismaMock.membership.findFirst.mockResolvedValue({ id: "ms1", status: "ACTIVE", plan: { providedTrainerType: "PERSONAL" } });
         prismaMock.member.update.mockResolvedValue(createMemberRecord({ trainerId: "tr1" }));
 
         const res = await auth(request.patch("/api/v1/admins/members/m1/assign-trainer").send({ trainerId: "tr1" }), adminUser);

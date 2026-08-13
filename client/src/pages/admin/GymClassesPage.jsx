@@ -357,7 +357,10 @@ export default function GymClassesPage() {
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Start Date & Time *</label>
                 <input
                   type="datetime-local"
-                  min={new Date().toISOString().slice(0, 16)}
+                  min={(() => {
+                    const d = new Date();
+                    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                  })()}
                   value={form.startTime}
                   onChange={(e) => setForm({ ...form, startTime: e.target.value })}
                   className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20"

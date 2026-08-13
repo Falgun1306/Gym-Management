@@ -393,7 +393,6 @@ export default function MembershipPlansPage() {
               <label className="block text-xs font-semibold text-slate-700 mb-1">Start Date *</label>
               <input
                 type="date"
-                min={new Date().toISOString().split('T')[0]}
                 value={assignForm.startDate}
                 onChange={(e) => setAssignForm({ ...assignForm, startDate: e.target.value })}
                 className="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500/20 bg-white"

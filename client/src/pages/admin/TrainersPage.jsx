@@ -482,7 +482,6 @@ export default function TrainersPage() {
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Joining Date</label>
                 <input
                   type="date"
-                  min={new Date().toISOString().split('T')[0]}
                   value={promoteForm.joiningDate}
                   onChange={(e) => setP('joiningDate', e.target.value)}
                   className={inputCls}
