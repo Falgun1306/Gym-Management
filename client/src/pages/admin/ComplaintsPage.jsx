@@ -40,50 +40,91 @@ export default function ComplaintsPage() {
         ) : complaints.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-sm">No complaints or support tickets found.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Submitted By</th>
-                  <th className="py-3 px-4">Subject / Issue</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {complaints.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-semibold text-slate-900">
-                      {c.member ? `${c.member.firstName} ${c.member.lastName}` : 'Anonymous Member'}
-                    </td>
-                    <td className="py-3.5 px-4 max-w-xs">
-                      <p className="font-semibold text-slate-800 truncate">{c.title || c.subject || 'Facility Complaint'}</p>
-                      <p className="text-xs text-slate-500 truncate">{c.description}</p>
-                    </td>
-                    <td className="py-3.5 px-4 text-xs text-slate-500">{formatDate(c.createdAt)}</td>
-                    <td className="py-3.5 px-4">
-                      <Badge variant={c.status === 'RESOLVED' ? 'success' : 'warning'}>
-                        {c.status}
-                      </Badge>
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedComplaint(c);
-                          setResolutionText(c.resolution || '');
-                        }}
-                      >
-                        {c.status === 'RESOLVED' ? 'View Ticket' : 'Resolve'}
-                      </Button>
-                    </td>
+          <>
+            {/* Mobile Card List View (< md) */}
+            <div className="block md:hidden divide-y divide-slate-100 bg-white">
+              {complaints.map((c) => (
+                <div key={c.id} className="p-4 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">
+                        {c.member ? `${c.member.firstName} ${c.member.lastName}` : 'Anonymous Member'}
+                      </p>
+                      <p className="text-[11px] text-slate-400">{formatDate(c.createdAt)}</p>
+                    </div>
+                    <Badge variant={c.status === 'RESOLVED' ? 'success' : 'warning'}>
+                      {c.status}
+                    </Badge>
+                  </div>
+
+                  <div className="text-xs space-y-1">
+                    <p className="font-bold text-slate-800">{c.title || c.subject || 'Facility Complaint'}</p>
+                    <p className="text-slate-600 line-clamp-2">{c.description}</p>
+                  </div>
+
+                  <div className="flex items-center justify-end pt-2 border-t border-slate-100">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedComplaint(c);
+                        setResolutionText(c.resolution || '');
+                      }}
+                      className="text-xs"
+                    >
+                      {c.status === 'RESOLVED' ? 'View Ticket' : 'Resolve Ticket'}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4">Submitted By</th>
+                    <th className="py-3 px-4">Subject / Issue</th>
+                    <th className="py-3 px-4">Date</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {complaints.map((c) => (
+                    <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-semibold text-slate-900">
+                        {c.member ? `${c.member.firstName} ${c.member.lastName}` : 'Anonymous Member'}
+                      </td>
+                      <td className="py-3.5 px-4 max-w-xs">
+                        <p className="font-semibold text-slate-800 truncate">{c.title || c.subject || 'Facility Complaint'}</p>
+                        <p className="text-xs text-slate-500 truncate">{c.description}</p>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-slate-500">{formatDate(c.createdAt)}</td>
+                      <td className="py-3.5 px-4">
+                        <Badge variant={c.status === 'RESOLVED' ? 'success' : 'warning'}>
+                          {c.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedComplaint(c);
+                            setResolutionText(c.resolution || '');
+                          }}
+                        >
+                          {c.status === 'RESOLVED' ? 'View Ticket' : 'Resolve'}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
 

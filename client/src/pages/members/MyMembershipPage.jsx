@@ -622,7 +622,7 @@ export default function MyMembershipPage() {
                 {/* Payment Method Options */}
                 <div className="space-y-2">
                   <label className="block text-xs font-semibold text-slate-700">Choose Payment Method</label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('ONLINE')}

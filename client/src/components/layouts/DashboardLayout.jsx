@@ -1,5 +1,6 @@
 import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
+import React from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -139,10 +140,16 @@ export default function DashboardLayout() {
   const location = useLocation();
   const { user, logout: storeLogout } = useAuthStore();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
+  const [mobileOpen, setMobileOpen] = React.useState(false);
 
   const role = user?.role || 'MEMBER';
   const navItems = getNavItems(role);
   const breadcrumbParts = getBreadcrumb(location.pathname);
+
+  // Close mobile sidebar on route change
+  React.useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   const logoutMutation = useMutation({
     mutationFn: logoutUser,
@@ -152,7 +159,6 @@ export default function DashboardLayout() {
       navigate('/login', { replace: true });
     },
     onError: () => {
-      // Even if server logout fails, clear client state
       storeLogout();
       navigate('/login', { replace: true });
     },
@@ -163,59 +169,62 @@ export default function DashboardLayout() {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
+    <div className="min-h-screen flex bg-slate-50 relative overflow-x-hidden">
+      {/* ── Mobile Backdrop ── */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs md:hidden animate-fade-in"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
       {/* ── Sidebar ── */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex flex-col bg-slate-900 text-white transition-all duration-200',
-          sidebarCollapsed ? 'w-16' : 'w-60'
+          'fixed inset-y-0 left-0 z-50 flex flex-col bg-slate-900 text-white transition-all duration-200 shadow-xl md:shadow-none',
+          // Mobile responsive classes:
+          mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0',
+          // Desktop collapsed width:
+          sidebarCollapsed ? 'md:w-16' : 'md:w-60'
         )}
       >
         {/* Brand header */}
-        <div className={cn('p-5 border-b border-slate-800', sidebarCollapsed && 'px-3')}>
-          {!sidebarCollapsed && (
-            <>
-              {/* Avatar + brand */}
-              <div className="flex items-center gap-2.5 mb-3">
-                <Avatar
-                  firstName={user?.username?.[0]}
-                  lastName=""
-                  size="md"
-                  className="!bg-emerald-700 !text-white !border-emerald-600"
-                />
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-white truncate">
-                    {user?.username || 'User'}
-                  </p>
-                  <p className="text-[11px] text-slate-400 truncate">
-                    {getRoleLabel(role)}
-                  </p>
-                </div>
+        <div className={cn('p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between', sidebarCollapsed && 'md:px-3')}>
+          {(!sidebarCollapsed || mobileOpen) && (
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Avatar
+                firstName={user?.username?.[0]}
+                lastName=""
+                size="md"
+                className="!bg-emerald-700 !text-white !border-emerald-600 shrink-0"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-white truncate">
+                  {user?.username || 'User'}
+                </p>
+                <p className="text-[11px] text-slate-400 truncate">
+                  {getRoleLabel(role)}
+                </p>
               </div>
-
-              <h2 className="text-lg font-bold text-emerald-400 tracking-tight">
-                IronPeak Elite
-              </h2>
-            </>
+            </div>
           )}
-          {sidebarCollapsed && (
-            <div className="flex items-center justify-center">
+
+          {sidebarCollapsed && !mobileOpen && (
+            <div className="flex items-center justify-center w-full">
               <div className="w-8 h-8 rounded-lg bg-emerald-700 flex items-center justify-center">
                 <Dumbbell className="w-4 h-4 text-white" />
               </div>
             </div>
           )}
-        </div>
 
-        {/* New Check-in button
-        {!sidebarCollapsed && (
-          <div className="px-4 pt-4">
-            <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-colors">
-              <Plus className="w-4 h-4" />
-              New Check-in
-            </button>
-          </div>
-        )} */}
+          {/* Close button on mobile */}
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="md:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
@@ -230,30 +239,30 @@ export default function DashboardLayout() {
                   isActive
                     ? 'bg-emerald-700/20 text-emerald-400 border-l-[3px] border-emerald-400 -ml-px'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800',
-                  sidebarCollapsed && 'justify-center px-2'
+                  sidebarCollapsed && !mobileOpen && 'md:justify-center md:px-2'
                 )
               }
             >
               <item.icon className={cn('w-[18px] h-[18px] shrink-0')} />
-              {!sidebarCollapsed && <span>{item.label}</span>}
+              {(!sidebarCollapsed || mobileOpen) && <span>{item.label}</span>}
             </NavLink>
           ))}
         </nav>
 
         {/* Bottom section */}
-        <div className={cn('border-t border-slate-800 p-3 space-y-1', sidebarCollapsed && 'px-2')}>
+        <div className={cn('border-t border-slate-800 p-3 space-y-1', sidebarCollapsed && !mobileOpen && 'md:px-2')}>
           <NavLink
             to="/dashboard/profile"
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full',
                 isActive ? 'bg-emerald-700/20 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-slate-800',
-                sidebarCollapsed && 'justify-center px-2'
+                sidebarCollapsed && !mobileOpen && 'md:justify-center md:px-2'
               )
             }
           >
             <User className="w-[18px] h-[18px]" />
-            {!sidebarCollapsed && <span>My Profile</span>}
+            {(!sidebarCollapsed || mobileOpen) && <span>My Profile</span>}
           </NavLink>
           <NavLink
             to="/dashboard/settings"
@@ -261,23 +270,23 @@ export default function DashboardLayout() {
               cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full',
                 isActive ? 'bg-emerald-700/20 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-slate-800',
-                sidebarCollapsed && 'justify-center px-2'
+                sidebarCollapsed && !mobileOpen && 'md:justify-center md:px-2'
               )
             }
           >
             <Settings className="w-[18px] h-[18px]" />
-            {!sidebarCollapsed && <span>Settings</span>}
+            {(!sidebarCollapsed || mobileOpen) && <span>Settings</span>}
           </NavLink>
           <button
             onClick={handleLogout}
             disabled={logoutMutation.isPending}
             className={cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors w-full',
-              sidebarCollapsed && 'justify-center px-2'
+              sidebarCollapsed && !mobileOpen && 'md:justify-center md:px-2'
             )}
           >
             <LogOut className="w-[18px] h-[18px]" />
-            {!sidebarCollapsed && <span>Logout</span>}
+            {(!sidebarCollapsed || mobileOpen) && <span>Logout</span>}
           </button>
         </div>
       </aside>
@@ -285,47 +294,56 @@ export default function DashboardLayout() {
       {/* ── Main Content Area ── */}
       <div
         className={cn(
-          'flex-1 flex flex-col transition-all duration-200',
-          sidebarCollapsed ? 'ml-16' : 'ml-60'
+          'flex-1 flex flex-col min-w-0 transition-all duration-200',
+          'ml-0', // Default mobile margin
+          sidebarCollapsed ? 'md:ml-16' : 'md:ml-60'
         )}
       >
         {/* Top Header Bar */}
-        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            {/* Sidebar toggle (mobile + collapse) */}
+        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            {/* Sidebar toggle button (Mobile opens drawer, Desktop collapses) */}
             <button
-              onClick={toggleSidebar}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              onClick={() => {
+                if (window.innerWidth < 768) {
+                  setMobileOpen((prev) => !prev);
+                } else {
+                  toggleSidebar();
+                }
+              }}
+              className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
+              aria-label="Toggle Navigation"
             >
-              {sidebarCollapsed ? (
-                <Menu className="w-5 h-5" />
-              ) : (
-                <Menu className="w-5 h-5" />
-              )}
+              <Menu className="w-5 h-5" />
             </button>
 
             {/* Breadcrumbs */}
-            <div className="flex items-center gap-1.5 text-sm">
+            <div className="hidden sm:flex items-center gap-1.5 text-sm truncate">
               <span className="text-slate-500 font-medium">
                 {role === 'ADMIN' ? 'Admin' : role === 'TRAINER' ? 'Trainer' : 'Member'}
               </span>
               {breadcrumbParts?.map((part, i) => (
                 <span key={i} className="flex items-center gap-1.5">
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-slate-700 font-medium">{part}</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="text-slate-700 font-medium truncate">{part}</span>
                 </span>
               ))}
             </div>
+
+            {/* Mobile Title preview if breadcrumbs hidden */}
+            <span className="sm:hidden text-sm font-bold text-slate-800 truncate">
+              IronPeak Elite
+            </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Portal label */}
-            <span className="hidden md:block text-sm font-semibold text-slate-700">
+            <span className="hidden lg:block text-sm font-semibold text-slate-700">
               {getPortalLabel(role)}
             </span>
 
             {/* Search */}
-            <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 w-52">
+            <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 w-44 lg:w-52">
               <Search className="w-4 h-4 text-slate-400" />
               <input
                 type="text"
@@ -338,7 +356,7 @@ export default function DashboardLayout() {
             <NotificationDropdown />
 
             {/* Help */}
-            <button className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+            <button className="hidden sm:block p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
               <HelpCircle className="w-5 h-5" />
             </button>
 
@@ -355,7 +373,7 @@ export default function DashboardLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">
           <Outlet />
         </main>
       </div>

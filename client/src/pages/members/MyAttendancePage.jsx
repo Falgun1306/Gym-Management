@@ -178,61 +178,111 @@ export default function MyAttendancePage() {
             No attendance records yet. Check in to see your history.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/50">
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Date</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Check-In</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Check-Out</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Duration</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Method</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {attendanceLogs.map((log) => {
-                  const isQr = log.checkInMethod === 'QR_CODE';
-                  const isCheckedIn = log.checkIn && !log.checkOut;
-                  const duration = calculateDuration(log.checkIn, log.checkOut);
-                  return (
-                    <tr key={log.id} className="hover:bg-slate-50 transition-colors text-xs">
-                      <td className="py-3 px-4 font-semibold text-slate-800">{formatLogDate(log.checkIn)}</td>
-                      <td className="py-3 px-4 text-slate-700 font-mono">{formatTime(log.checkIn)}</td>
-                      <td className="py-3 px-4 text-slate-700 font-mono">{formatTime(log.checkOut)}</td>
-                      <td className="py-3 px-4 text-slate-600 font-medium">
-                        {isCheckedIn ? (
-                          <span className="text-amber-600 font-semibold">In Progress</span>
-                        ) : duration ? (
-                          duration
-                        ) : '—'}
-                      </td>
-                      <td className="py-3 px-4">
-                        {isQr ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full text-[10px] font-semibold">
-                            <ScanLine className="w-3 h-3" /> QR Scan
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-semibold">
-                            Manual
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        {isCheckedIn ? (
-                          <Badge variant="warning">Checked In</Badge>
-                        ) : log.checkOut ? (
-                          <Badge variant="success">Completed</Badge>
-                        ) : (
-                          <Badge variant="neutral">—</Badge>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            {/* Mobile Card List View (< md) */}
+            <div className="block md:hidden divide-y divide-slate-100 bg-white">
+              {attendanceLogs.map((log) => {
+                const isQr = log.checkInMethod === 'QR_CODE';
+                const isCheckedIn = log.checkIn && !log.checkOut;
+                const duration = calculateDuration(log.checkIn, log.checkOut);
+                return (
+                  <div key={log.id} className="p-4 space-y-2">
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                      <p className="text-sm font-bold text-slate-900">{formatLogDate(log.checkIn)}</p>
+                      {isCheckedIn ? (
+                        <Badge variant="warning">Checked In</Badge>
+                      ) : log.checkOut ? (
+                        <Badge variant="success">Completed</Badge>
+                      ) : (
+                        <Badge variant="neutral">Recorded</Badge>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-slate-400">Check-In / Out</p>
+                        <p className="font-mono text-slate-700">{formatTime(log.checkIn)} – {formatTime(log.checkOut)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-slate-400">Duration & Method</p>
+                        <p className="font-semibold text-slate-800">
+                          {isCheckedIn ? <span className="text-amber-600">In Progress</span> : duration || '—'}
+                        </p>
+                        <div className="mt-0.5">
+                          {isQr ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full text-[10px] font-semibold">
+                              <ScanLine className="w-3 h-3" /> QR
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-semibold">
+                              Manual
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/50">
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Date</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Check-In</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Check-Out</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Duration</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Method</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {attendanceLogs.map((log) => {
+                    const isQr = log.checkInMethod === 'QR_CODE';
+                    const isCheckedIn = log.checkIn && !log.checkOut;
+                    const duration = calculateDuration(log.checkIn, log.checkOut);
+                    return (
+                      <tr key={log.id} className="hover:bg-slate-50 transition-colors text-xs">
+                        <td className="py-3 px-4 font-semibold text-slate-800">{formatLogDate(log.checkIn)}</td>
+                        <td className="py-3 px-4 text-slate-700 font-mono">{formatTime(log.checkIn)}</td>
+                        <td className="py-3 px-4 text-slate-700 font-mono">{formatTime(log.checkOut)}</td>
+                        <td className="py-3 px-4 text-slate-600 font-medium">
+                          {isCheckedIn ? (
+                            <span className="text-amber-600 font-semibold">In Progress</span>
+                          ) : duration ? (
+                            duration
+                          ) : '—'}
+                        </td>
+                        <td className="py-3 px-4">
+                          {isQr ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full text-[10px] font-semibold">
+                              <ScanLine className="w-3 h-3" /> QR Scan
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-semibold">
+                              Manual
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {isCheckedIn ? (
+                            <Badge variant="warning">Checked In</Badge>
+                          ) : log.checkOut ? (
+                            <Badge variant="success">Completed</Badge>
+                          ) : (
+                            <Badge variant="neutral">Recorded</Badge>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
       )}

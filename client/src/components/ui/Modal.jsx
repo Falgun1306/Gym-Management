@@ -51,7 +51,7 @@ function Modal({
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2.5 sm:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-slate-900/50 backdrop-blur-xs animate-fade-in"
@@ -63,15 +63,15 @@ function Modal({
         className={cn(
           'relative w-full bg-white border border-slate-200 rounded-xl shadow-xl',
           'animate-fade-in',
-          'max-h-[85vh] flex flex-col',
+          'max-h-[90vh] sm:max-h-[85vh] flex flex-col',
           sizeStyles[size],
           className
         )}
       >
         {/* Header */}
         {(title || showClose) && (
-          <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-slate-100">
-            <div className="space-y-0.5 flex-1 pr-4">
+          <div className="flex items-start justify-between px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b border-slate-100">
+            <div className="space-y-0.5 flex-1 pr-3 sm:pr-4">
               {title && (
                 <h2 className="text-base font-semibold text-slate-900">
                   {title}
@@ -93,11 +93,11 @@ function Modal({
         )}
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-3 sm:py-4">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/50 rounded-b-xl flex items-center justify-end gap-2.5">
+          <div className="px-4 sm:px-6 py-3 sm:py-3.5 border-t border-slate-100 bg-slate-50/50 rounded-b-xl flex flex-wrap items-center justify-end gap-2 sm:gap-2.5">
             {footer}
           </div>
         )}

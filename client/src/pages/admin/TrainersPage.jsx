@@ -328,7 +328,7 @@ export default function TrainersPage() {
                 })}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Gender *</label>
                 <select
@@ -375,7 +375,7 @@ export default function TrainersPage() {
       {promoteModal && (
         <Modal open onClose={() => { setPromoteModal(false); setPromoteForm(EMPTY_PROMOTE); }} title="Promote Member to Trainer">
           <form onSubmit={handlePromoteSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Account Username <span className="text-rose-500">*</span>
@@ -435,7 +435,7 @@ export default function TrainersPage() {
             </div>
 
             {/* Salary + Experience side-by-side */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Base Salary (₹) <span className="text-rose-500">*</span>
@@ -465,7 +465,7 @@ export default function TrainersPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Trainer Type *</label>
                 <select

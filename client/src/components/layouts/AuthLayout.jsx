@@ -109,8 +109,19 @@ export default function AuthLayout({ children, variant = 'login' }) {
       </div>
 
       {/* ── Right Panel: Form area ── */}
-      <div className="flex-1 bg-slate-50 flex items-center justify-center p-6 md:p-10">
-        <div className="w-full max-w-md">{children}</div>
+      <div className="flex-1 bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-6 md:p-10">
+        <div className="w-full max-w-md">
+          {/* Mobile brand header */}
+          <div className="lg:hidden flex items-center justify-center gap-2.5 mb-6">
+            <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center">
+              <Dumbbell className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold text-slate-900 tracking-tight">
+              IronPeak Elite
+            </span>
+          </div>
+          {children}
+        </div>
       </div>
     </div>
   );
