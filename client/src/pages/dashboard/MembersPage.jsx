@@ -386,7 +386,7 @@ function AddMemberModal({ open, onClose }) {
   return (
     <Modal open={open} onClose={onClose} title="Register New Member">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Username *</label>
             <input
@@ -421,7 +421,7 @@ function AddMemberModal({ open, onClose }) {
             required
           />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Password *</label>
             <input
@@ -562,7 +562,7 @@ function MemberDetailPanel({ member, onCloseSheet }) {
 
       {/* Membership Info */}
       {activeMembership && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
             <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
               Membership Plan
@@ -617,7 +617,7 @@ function MemberDetailPanel({ member, onCloseSheet }) {
         <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
           Physical Profile & Metrics
         </h4>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-center">
             <p className="text-[10px] text-slate-400 font-medium">Gender</p>
             <p className="text-xs font-bold text-slate-800 mt-0.5 capitalize">{formattedGender}</p>
@@ -695,7 +695,7 @@ function MemberDetailPanel({ member, onCloseSheet }) {
       {editModal && (
         <Modal open={editModal} onClose={() => setEditModal(false)} title="Edit Member Profile">
           <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">First Name *</label>
                 <input
@@ -718,7 +718,7 @@ function MemberDetailPanel({ member, onCloseSheet }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Phone Number</label>
                 <input

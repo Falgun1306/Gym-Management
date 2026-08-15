@@ -56,11 +56,11 @@ export default function PaymentsPage() {
           <h1 className="text-2xl font-bold text-slate-900">Payments & Invoices</h1>
           <p className="text-sm text-slate-500 mt-1">Audit facility billing transactions and payment status.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button onClick={() => setRecordPaymentModal(true)} icon={Plus}>
             Record Payment
           </Button>
-          <div className="flex items-center gap-1 border-l border-slate-200 pl-2">
+          <div className="flex flex-wrap items-center gap-1 border-l border-slate-200 pl-2">
             {['', 'SUCCESS', 'PENDING', 'FAILED'].map((st) => (
               <button
                 key={st}
@@ -86,69 +86,122 @@ export default function PaymentsPage() {
         ) : payments.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-sm">No payment records found.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Transaction ID</th>
-                  <th className="py-3 px-4">Member</th>
-                  <th className="py-3 px-4">Amount</th>
-                  <th className="py-3 px-4">Method / Date</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Invoice</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {payments.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-mono text-xs text-slate-700">
-                      {p.id.slice(0, 8).toUpperCase()}...
-                    </td>
-                    <td className="py-3.5 px-4 font-medium text-slate-900">
-                      {p.member ? `${p.member.firstName} ${p.member.lastName}` : 'N/A'}
-                    </td>
-                    <td className="py-3.5 px-4 font-bold text-slate-900">{formatCurrency(p.amount)}</td>
-                    <td className="py-3.5 px-4 text-xs text-slate-500">
+          <>
+            {/* Mobile Card List View (< md) */}
+            <div className="block md:hidden divide-y divide-slate-100 bg-white">
+              {payments.map((p) => (
+                <div key={p.id} className="p-4 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">
+                        {p.member ? `${p.member.firstName} ${p.member.lastName}` : 'N/A'}
+                      </p>
+                      <p className="text-[11px] font-mono text-slate-500">
+                        REF: {p.id.slice(0, 8).toUpperCase()}...
+                      </p>
+                    </div>
+                    <Badge variant={p.status === 'SUCCESS' ? 'success' : p.status === 'PENDING' ? 'warning' : 'danger'}>
+                      {p.status}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <p className="text-[10px] uppercase font-semibold text-slate-400">Amount</p>
+                      <p className="font-bold text-slate-900 text-sm">{formatCurrency(p.amount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-semibold text-slate-400">Method & Date</p>
                       <p className="font-medium text-slate-700 capitalize">{p.paymentMethod || 'Online'}</p>
-                      <p>{formatDate(p.paidAt || p.createdAt)}</p>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <Badge
-                        variant={
-                          p.status === 'SUCCESS' ? 'success' : p.status === 'PENDING' ? 'warning' : 'danger'
-                        }
+                      <p className="text-[11px] text-slate-500">{formatDate(p.paidAt || p.createdAt)}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    {p.status === 'PENDING' && (
+                      <Button
+                        variant="success"
+                        size="sm"
+                        onClick={() => handleApprove(p.id)}
+                        loading={approvePaymentMutation.isPending && approvePaymentMutation.variables === p.id}
+                        className="!px-3 !py-1 text-xs"
                       >
-                        {p.status}
-                      </Badge>
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {p.status === 'PENDING' && (
-                          <Button
-                            variant="success"
-                            size="sm"
-                            onClick={() => handleApprove(p.id)}
-                            loading={approvePaymentMutation.isPending && approvePaymentMutation.variables === p.id}
-                            className="!px-2 !py-1 text-xs"
-                          >
-                            Approve
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedInvoice(p)}
-                          className="!p-1.5"
-                        >
-                          <FileText className="w-4 h-4 text-slate-600" />
-                        </Button>
-                      </div>
-                    </td>
+                        Approve
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" onClick={() => setSelectedInvoice(p)} className="text-xs">
+                      <FileText className="w-3.5 h-3.5 mr-1" /> View Invoice
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4">Transaction ID</th>
+                    <th className="py-3 px-4">Member</th>
+                    <th className="py-3 px-4">Amount</th>
+                    <th className="py-3 px-4">Method / Date</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Invoice</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {payments.map((p) => (
+                    <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-mono text-xs text-slate-700">
+                        {p.id.slice(0, 8).toUpperCase()}...
+                      </td>
+                      <td className="py-3.5 px-4 font-medium text-slate-900">
+                        {p.member ? `${p.member.firstName} ${p.member.lastName}` : 'N/A'}
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-slate-900">{formatCurrency(p.amount)}</td>
+                      <td className="py-3.5 px-4 text-xs text-slate-500">
+                        <p className="font-medium text-slate-700 capitalize">{p.paymentMethod || 'Online'}</p>
+                        <p>{formatDate(p.paidAt || p.createdAt)}</p>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <Badge
+                          variant={
+                            p.status === 'SUCCESS' ? 'success' : p.status === 'PENDING' ? 'warning' : 'danger'
+                          }
+                        >
+                          {p.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {p.status === 'PENDING' && (
+                            <Button
+                              variant="success"
+                              size="sm"
+                              onClick={() => handleApprove(p.id)}
+                              loading={approvePaymentMutation.isPending && approvePaymentMutation.variables === p.id}
+                              className="!px-2 !py-1 text-xs"
+                            >
+                              Approve
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedInvoice(p)}
+                            className="!p-1.5"
+                          >
+                            <FileText className="w-4 h-4 text-slate-600" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
 
@@ -184,7 +237,7 @@ export default function PaymentsPage() {
                 required
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Amount (₹)</label>
                 <input

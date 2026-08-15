@@ -63,7 +63,7 @@ function AdminDashboard() {
             Overview of current operations, revenue, and attendance.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link to="/dashboard/members">
             <Button size="sm" icon={UserPlus} className="!py-2 text-xs">
               Add Member

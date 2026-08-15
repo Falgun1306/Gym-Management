@@ -112,114 +112,162 @@ export default function TrainerApplicationsPage() {
             No {statusFilter.toLowerCase()} applications found.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/50">
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Applicant</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Specialization(s)</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Applied On</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Status</th>
-                  <th className="text-right py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {applications.map((app) => {
-                  const mUser = app.user || {};
-                  const member = mUser.member || {};
-                  const specs = app.specializations?.length
-                    ? app.specializations
-                    : [app.specialization || 'GENERAL_FITNESS'];
+          <>
+            {/* Mobile Card List View (< md) */}
+            <div className="block md:hidden divide-y divide-slate-100 bg-white">
+              {applications.map((app) => {
+                const mUser = app.user || {};
+                const member = mUser.member || {};
+                const specs = app.specializations?.length
+                  ? app.specializations
+                  : [app.specialization || 'GENERAL_FITNESS'];
 
-                  return (
-                    <tr key={app.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar
-                            firstName={member.firstName || mUser.username?.split(' ')[0]}
-                            lastName={member.lastName || mUser.username?.split(' ')[1]}
-                            size="sm"
-                          />
-                          <div>
-                            <p className="font-semibold text-slate-900">
-                              {member.firstName
-                                ? `${member.firstName} ${member.lastName || ''}`.trim()
-                                : mUser.username}
-                            </p>
-                            <p className="text-xs text-slate-400 font-mono">{mUser.email}</p>
-                          </div>
+                return (
+                  <div key={app.id} className="p-4 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                      <div className="flex items-center gap-2.5">
+                        <Avatar
+                          firstName={member.firstName || mUser.username?.split(' ')[0]}
+                          lastName={member.lastName || mUser.username?.split(' ')[1]}
+                          size="sm"
+                        />
+                        <div>
+                          <p className="font-semibold text-slate-900 text-sm">
+                            {member.firstName
+                              ? `${member.firstName} ${member.lastName || ''}`.trim()
+                              : mUser.username}
+                          </p>
+                          <p className="text-xs text-slate-400 font-mono">{mUser.email}</p>
                         </div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex flex-wrap gap-1 max-w-xs">
-                          {specs.map((s, i) => (
-                            <span
-                              key={i}
-                              className="inline-block px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full"
-                            >
-                              {s.replace(/_/g, ' ')}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-500 text-xs">{formatDate(app.createdAt)}</td>
-                      <td className="py-3.5 px-4">
-                        <Badge
-                          variant={
-                            app.status === 'APPROVED' ? 'success' : app.status === 'REJECTED' ? 'danger' : 'warning'
-                          }
-                        >
-                          {app.status}
-                        </Badge>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedApp(app)}
-                            className="!p-1.5"
-                            title="View Details"
+                      </div>
+                      <Badge variant={app.status === 'APPROVED' ? 'success' : app.status === 'REJECTED' ? 'danger' : 'warning'}>
+                        {app.status}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-1 text-xs">
+                      <p className="text-[10px] uppercase font-semibold text-slate-400">Specializations</p>
+                      <div className="flex flex-wrap gap-1">
+                        {specs.map((s, i) => (
+                          <span
+                            key={i}
+                            className="inline-block px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full"
                           >
-                            <FileText className="w-4 h-4 text-slate-600" />
-                          </Button>
+                            {s.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-slate-400 pt-1">Applied: {formatDate(app.createdAt)}</p>
+                    </div>
 
-                          {app.status === 'PENDING' && (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setApproveModalApp(app);
-                                  setApproveForm({
-                                    salary: '45000',
-                                    experience: (app.experience != null ? app.experience : app.experienceYears) || 2,
-                                    specializations: specs,
-                                  });
-                                }}
-                                className="!py-1 !px-2.5 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                      <Button variant="outline" size="sm" onClick={() => setSelectedApp(app)} className="text-xs">
+                        <Eye className="w-3.5 h-3.5 mr-1" /> View Details
+                      </Button>
+                      {app.status === 'PENDING' && (
+                        <Button variant="success" size="sm" onClick={() => handleApproveClick(app)} className="text-xs">
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Approve
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/50">
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Applicant</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Specialization(s)</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Applied On</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Status</th>
+                    <th className="text-right py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {applications.map((app) => {
+                    const mUser = app.user || {};
+                    const member = mUser.member || {};
+                    const specs = app.specializations?.length
+                      ? app.specializations
+                      : [app.specialization || 'GENERAL_FITNESS'];
+
+                    return (
+                      <tr key={app.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar
+                              firstName={member.firstName || mUser.username?.split(' ')[0]}
+                              lastName={member.lastName || mUser.username?.split(' ')[1]}
+                              size="sm"
+                            />
+                            <div>
+                              <p className="font-semibold text-slate-900">
+                                {member.firstName
+                                  ? `${member.firstName} ${member.lastName || ''}`.trim()
+                                  : mUser.username}
+                              </p>
+                              <p className="text-xs text-slate-400 font-mono">{mUser.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {specs.map((s, i) => (
+                              <span
+                                key={i}
+                                className="inline-block px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full"
                               >
+                                {s.replace(/_/g, ' ')}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-500 text-xs">{formatDate(app.createdAt)}</td>
+                        <td className="py-3.5 px-4">
+                          <Badge
+                            variant={
+                              app.status === 'APPROVED' ? 'success' : app.status === 'REJECTED' ? 'danger' : 'warning'
+                            }
+                          >
+                            {app.status}
+                          </Badge>
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedApp(app)}
+                              className="text-xs font-semibold"
+                            >
+                              <Eye className="w-4 h-4 mr-1 text-slate-500" />
+                              View
+                            </Button>
+                            {app.status === 'PENDING' && (
+                              <Button
+                                variant="success"
+                                size="sm"
+                                onClick={() => handleApproveClick(app)}
+                                className="!px-3 !py-1 text-xs"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                                 Approve
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setRejectModalApp(app)}
-                                className="!py-1 !px-2.5 text-xs text-rose-600 hover:bg-rose-50"
-                              >
-                                Reject
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </td>
+                            )}
+                          </div>
+                        </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-        )}
+        </>
+      )}
       </Card>
 
       {/* Details Modal */}

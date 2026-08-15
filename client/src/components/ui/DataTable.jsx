@@ -178,8 +178,110 @@ export function DataTable({
         </div>
       )}
 
-      {/* Main Table View */}
-      <div className="overflow-x-auto">
+      {/* Mobile Card List View (< md screens) */}
+      <div className="block md:hidden divide-y divide-slate-100 bg-white">
+        {loading ? (
+          Array.from({ length: pageSize > 5 ? 5 : pageSize }).map((_, idx) => (
+            <div key={idx} className="p-4 space-y-3 animate-pulse">
+              <div className="h-4 bg-slate-200 rounded w-1/2" />
+              <div className="h-3 bg-slate-200 rounded w-3/4" />
+              <div className="h-3 bg-slate-200 rounded w-2/3" />
+            </div>
+          ))
+        ) : paginatedData.length === 0 ? (
+          <div className="px-4 py-12 text-center text-slate-400">
+            <EmptyIcon className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+            <p className="text-sm font-medium text-slate-500">{emptyMessage}</p>
+          </div>
+        ) : (
+          paginatedData.map((row, rowIndex) => {
+            const isSelected = selectedIds.includes(row.id);
+            const statusOrBadgeCol = columns.find(
+              (c) => c.key === 'status' || c.label?.toLowerCase() === 'status'
+            );
+            const actionCol = columns.find(
+              (c) => c.key === 'actions' || c.label?.toLowerCase() === 'actions' || c.label === 'Action'
+            );
+
+            return (
+              <div
+                key={row.id || rowIndex}
+                className={cn(
+                  'p-4 transition-colors hover:bg-slate-50/80 space-y-2.5',
+                  isSelected && 'bg-emerald-50/30',
+                  onRowClick && 'cursor-pointer active:bg-slate-100'
+                )}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+              >
+                {/* Header row of card: Checkbox + First Column label/value + Status badge */}
+                <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {selectable && (
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          onSelectRow && onSelectRow(row);
+                        }}
+                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/20"
+                      />
+                    )}
+                    {columns[0] && (
+                      <div className="font-semibold text-slate-900 text-sm truncate">
+                        {columns[0].render
+                          ? columns[0].render(row, getNestedValue(row, columns[0].key))
+                          : getNestedValue(row, columns[0].key) ?? '—'}
+                      </div>
+                    )}
+                  </div>
+
+                  {statusOrBadgeCol && statusOrBadgeCol !== columns[0] && (
+                    <div className="shrink-0">
+                      {statusOrBadgeCol.render
+                        ? statusOrBadgeCol.render(row, getNestedValue(row, statusOrBadgeCol.key))
+                        : getNestedValue(row, statusOrBadgeCol.key)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Key-Value fields grid */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs pt-1">
+                  {columns.slice(1).map((col) => {
+                    if (col === statusOrBadgeCol || col === actionCol) return null;
+                    const cellValue = getNestedValue(row, col.key);
+                    return (
+                      <div key={col.key} className={cn('space-y-0.5', col.className)}>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                          {col.label}
+                        </p>
+                        <div className="text-slate-800 font-medium break-words">
+                          {col.render ? col.render(row, cellValue) : cellValue ?? '—'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Bottom action bar */}
+                {actionCol && (
+                  <div
+                    className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {actionCol.render
+                      ? actionCol.render(row, getNestedValue(row, actionCol.key))
+                      : getNestedValue(row, actionCol.key)}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Main Table View (>= md screens) */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left border-collapse text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50/80 text-xs font-semibold uppercase tracking-wider text-slate-600">
@@ -299,8 +401,8 @@ export function DataTable({
 
       {/* Pagination Footer */}
       {!loading && totalItems > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 px-4 py-3 border-t border-slate-200/80 bg-slate-50/50">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 px-3 sm:px-4 py-3 border-t border-slate-200/80 bg-slate-50/50">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 text-center sm:text-left">
             <span>
               Showing{' '}
               <span className="font-semibold text-slate-700">
@@ -313,7 +415,7 @@ export function DataTable({
               of <span className="font-semibold text-slate-700">{totalItems}</span> results
             </span>
 
-            <div className="flex items-center gap-1.5 ml-2">
+            <div className="flex items-center gap-1.5 ml-0 sm:ml-2">
               <span>Rows per page:</span>
               <select
                 value={pageSize}
@@ -329,7 +431,7 @@ export function DataTable({
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-center gap-1">
             <button
               onClick={() => handlePageChange(1)}
               disabled={page === 1}
