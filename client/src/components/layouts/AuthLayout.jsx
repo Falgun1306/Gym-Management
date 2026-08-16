@@ -53,10 +53,11 @@ export default function AuthLayout({ children, variant = 'login' }) {
   };
 
   const content = taglines[variant] || taglines.login;
+  const isMobileBgVariant = ['login', 'register', 'forgot'].includes(variant);
 
   return (
     <div className="min-h-screen flex">
-      {/* ── Left Panel: Dark gym branding ── */}
+      {/* ── Left Panel: Dark gym branding (Desktop >= lg) ── */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         {/* Background image */}
         <img
@@ -108,18 +109,31 @@ export default function AuthLayout({ children, variant = 'login' }) {
         </div>
       </div>
 
-      {/* ── Right Panel: Form area ── */}
-      <div className="flex-1 bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-6 md:p-10">
-        <div className="w-full max-w-md">
+      {/* ── Right Panel: Form area (Mobile & Desktop) ── */}
+      <div className="flex-1 bg-slate-50 relative overflow-x-hidden flex flex-col items-center justify-center p-4 sm:p-6 md:p-10 min-h-screen">
+        {/* Mobile Background Image (Only for login, register, forgot on mobile screens < lg) */}
+        {isMobileBgVariant && (
+          <>
+            <img
+              src="/images/a_professional_high_end_gym_interior_with_modern_fitness_equipment_blurred.png"
+              alt="Gym Background"
+              className="lg:hidden absolute inset-0 w-full h-full object-cover object-center pointer-events-none"
+            />
+            <div className="lg:hidden absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-900/75 to-emerald-950/80 backdrop-blur-[1px] pointer-events-none" />
+          </>
+        )}
+
+        <div className="w-full max-w-md relative z-10 my-auto py-6">
           {/* Mobile brand header */}
           <div className="lg:hidden flex items-center justify-center gap-2.5 mb-6">
-            <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-emerald-600 shadow-md shadow-emerald-900/30 flex items-center justify-center">
               <Dumbbell className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-slate-900 tracking-tight">
+            <span className={`text-xl font-extrabold tracking-tight ${isMobileBgVariant ? 'text-white drop-shadow-sm' : 'text-slate-900'}`}>
               IronPeak Elite
             </span>
           </div>
+
           {children}
         </div>
       </div>
