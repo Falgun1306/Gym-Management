@@ -158,20 +158,6 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Remember me */}
-          <label className="flex items-center gap-2.5 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              name="remember"
-              checked={form.remember}
-              onChange={handleChange}
-              className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/20 w-4 h-4"
-            />
-            <span className="text-sm text-slate-600">
-              Remember me for 30 days
-            </span>
-          </label>
-
           {/* Submit */}
           <Button
             type="submit"
