@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import {
   useMemberAttendance,
-  useMemberQrCode,
   useMemberDashboard,
 } from '@/hooks/useMemberPortal';
 import { Card, CardHeader, Badge, Button, Modal, SkeletonTable } from '@/components/ui';
 import AttendanceCalendar from '@/components/ui/AttendanceCalendar';
+import MemberQrModal from '@/components/members/MemberQrModal';
 import {
   QrCode,
   Calendar,
@@ -25,7 +25,6 @@ export default function MyAttendancePage() {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState('calendar'); // 'calendar' | 'list'
   const { data: attendanceLogs = [], isLoading } = useMemberAttendance();
-  const { data: qrData, isLoading: qrLoading, error: qrError, refetch: refetchQr } = useMemberQrCode(qrModalOpen);
   const { data: dashboard } = useMemberDashboard();
   
   const activeMembership = dashboard?.activeMembership || dashboard?.membership;
@@ -288,53 +287,7 @@ export default function MyAttendancePage() {
       )}
 
       {/* ── QR Code Entrance Pass Modal ── */}
-      {qrModalOpen && (
-        <Modal open={qrModalOpen} onClose={() => setQrModalOpen(false)} title="Digital Entrance QR Pass">
-          <div className="text-center space-y-4 py-2">
-            <p className="text-xs text-slate-500">
-              Show this QR code to your trainer to check in or out. Valid for 5 minutes.
-            </p>
-
-            <div className="bg-slate-900 p-6 rounded-2xl inline-block border border-slate-800">
-              {qrLoading ? (
-                <div className="w-48 h-48 bg-slate-800 rounded-lg animate-pulse flex items-center justify-center text-slate-500 text-xs">
-                  Generating Pass...
-                </div>
-              ) : qrData?.qrCodeDataUrl || qrData?.qrCodeUrl ? (
-                <img
-                  src={qrData.qrCodeDataUrl || qrData.qrCodeUrl}
-                  alt="Member QR Pass"
-                  className="w-48 h-48 mx-auto rounded-lg bg-white p-2 shadow"
-                />
-              ) : qrData?.token || qrData?.qrToken ? (
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData.token || qrData.qrToken)}`}
-                  alt="Member QR Pass"
-                  className="w-48 h-48 mx-auto rounded-lg bg-white p-2 shadow"
-                />
-              ) : (
-                <div className="w-48 h-48 bg-slate-800 rounded-lg flex flex-col items-center justify-center p-4 text-slate-400 text-xs text-center">
-                  <p className="font-semibold text-rose-400 mb-1">QR Generation Issue</p>
-                  <p className="text-[11px] text-slate-400">{qrError?.message || 'You may need an active membership.'}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
-              <Clock className="w-3.5 h-3.5 text-emerald-500" /> Expires in 5 minutes
-            </div>
-
-            <div className="flex justify-center gap-2 pt-2 border-t border-slate-100">
-              <Button variant="outline" size="sm" onClick={() => refetchQr()} icon={RefreshCw}>
-                Refresh
-              </Button>
-              <Button size="sm" onClick={() => setQrModalOpen(false)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      <MemberQrModal open={qrModalOpen} onClose={() => setQrModalOpen(false)} />
     </div>
   );
 }
