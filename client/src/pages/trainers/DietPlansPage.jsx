@@ -147,16 +147,17 @@ export default function DietPlansPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Diet Plans</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Diet Plans</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             Create macro-based nutrition plans and assign them to members.
           </p>
         </div>
         <Button
           onClick={() => { setEditPlan(null); setShowBuilder(true); }}
           icon={Plus}
+          className="w-full sm:w-auto text-xs sm:text-sm justify-center"
         >
           New Diet Plan
         </Button>

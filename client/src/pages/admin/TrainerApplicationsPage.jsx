@@ -25,11 +25,28 @@ export default function TrainerApplicationsPage() {
   const [approveForm, setApproveForm] = useState({ salary: '45000', experience: 1, specializations: ['GENERAL_FITNESS'] });
   const [rejectReason, setRejectReason] = useState('');
 
-  const { data, isLoading } = useTrainerApplications({ status: statusFilter });
+  const params = statusFilter && statusFilter !== 'ALL' ? { status: statusFilter } : {};
+  const { data, isLoading } = useTrainerApplications(params);
   const approveMutation = useApproveTrainerApp();
   const rejectMutation = useRejectTrainerApp();
 
-  const applications = Array.isArray(data) ? data : (data?.applications || []);
+  const applications = Array.isArray(data) ? data : (data?.applications || data?.data || []);
+
+  const handleApproveClick = (app) => {
+    setApproveModalApp(app);
+    setApproveForm({
+      salary: '45000',
+      experience: (app.experience != null ? app.experience : app.experienceYears) || 1,
+      specializations: app.specializations?.length
+        ? app.specializations
+        : [app.specialization || 'GENERAL_FITNESS'],
+    });
+  };
+
+  const handleRejectClick = (app) => {
+    setRejectModalApp(app);
+    setRejectReason('');
+  };
 
   const toggleApproveSpec = (val) => {
     setApproveForm((prev) => {
@@ -80,20 +97,21 @@ export default function TrainerApplicationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* ── Header & Status Filters ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Trainer Applications</h1>
-          <p className="text-sm text-slate-500 mt-1">Review and verify incoming trainer applications.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Trainer Applications</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Review and verify incoming trainer applications.</p>
         </div>
-        <div className="flex items-center gap-2">
-          {['PENDING', 'APPROVED', 'REJECTED'].map((st) => (
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-full sm:w-auto overflow-x-auto">
+          {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold text-center transition-all ${
                 statusFilter === st
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
               }`}
             >
               {st}
@@ -109,7 +127,7 @@ export default function TrainerApplicationsPage() {
           </div>
         ) : applications.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-sm">
-            No {statusFilter.toLowerCase()} applications found.
+            No {statusFilter === 'ALL' ? '' : statusFilter.toLowerCase()} applications found.
           </div>
         ) : (
           <>
@@ -123,21 +141,21 @@ export default function TrainerApplicationsPage() {
                   : [app.specialization || 'GENERAL_FITNESS'];
 
                 return (
-                  <div key={app.id} className="p-4 space-y-2.5">
-                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                      <div className="flex items-center gap-2.5">
+                  <div key={app.id} className="p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <Avatar
                           firstName={member.firstName || mUser.username?.split(' ')[0]}
                           lastName={member.lastName || mUser.username?.split(' ')[1]}
                           size="sm"
                         />
-                        <div>
-                          <p className="font-semibold text-slate-900 text-sm">
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-900 text-sm truncate">
                             {member.firstName
                               ? `${member.firstName} ${member.lastName || ''}`.trim()
                               : mUser.username}
                           </p>
-                          <p className="text-xs text-slate-400 font-mono">{mUser.email}</p>
+                          <p className="text-[11px] text-slate-400 font-mono truncate">{mUser.email}</p>
                         </div>
                       </div>
                       <Badge variant={app.status === 'APPROVED' ? 'success' : app.status === 'REJECTED' ? 'danger' : 'warning'}>
@@ -145,8 +163,11 @@ export default function TrainerApplicationsPage() {
                       </Badge>
                     </div>
 
-                    <div className="space-y-1 text-xs">
-                      <p className="text-[10px] uppercase font-semibold text-slate-400">Specializations</p>
+                    <div className="space-y-1.5 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                      <div className="flex justify-between items-center text-[10px] uppercase font-semibold text-slate-400">
+                        <span>Specializations</span>
+                        <span>{app.experience ? `${app.experience} Yrs Exp` : ''}</span>
+                      </div>
                       <div className="flex flex-wrap gap-1">
                         {specs.map((s, i) => (
                           <span
@@ -160,14 +181,19 @@ export default function TrainerApplicationsPage() {
                       <p className="text-[11px] text-slate-400 pt-1">Applied: {formatDate(app.createdAt)}</p>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
                       <Button variant="outline" size="sm" onClick={() => setSelectedApp(app)} className="text-xs">
-                        <Eye className="w-3.5 h-3.5 mr-1" /> View Details
+                        <FileText className="w-3.5 h-3.5 mr-1" /> View Details
                       </Button>
                       {app.status === 'PENDING' && (
-                        <Button variant="success" size="sm" onClick={() => handleApproveClick(app)} className="text-xs">
-                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Approve
-                        </Button>
+                        <>
+                          <Button variant="success" size="sm" onClick={() => handleApproveClick(app)} className="text-xs">
+                            <CheckCircle className="w-3.5 h-3.5 mr-1" /> Approve
+                          </Button>
+                          <Button variant="danger" size="sm" onClick={() => handleRejectClick(app)} className="text-xs">
+                            <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -244,19 +270,30 @@ export default function TrainerApplicationsPage() {
                               onClick={() => setSelectedApp(app)}
                               className="text-xs font-semibold"
                             >
-                              <Eye className="w-4 h-4 mr-1 text-slate-500" />
+                              <FileText className="w-4 h-4 mr-1 text-slate-500" />
                               View
                             </Button>
                             {app.status === 'PENDING' && (
-                              <Button
-                                variant="success"
-                                size="sm"
-                                onClick={() => handleApproveClick(app)}
-                                className="!px-3 !py-1 text-xs"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                                Approve
-                              </Button>
+                              <>
+                                <Button
+                                  variant="success"
+                                  size="sm"
+                                  onClick={() => handleApproveClick(app)}
+                                  className="!px-3 !py-1 text-xs"
+                                >
+                                  <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  variant="danger"
+                                  size="sm"
+                                  onClick={() => handleRejectClick(app)}
+                                  className="!px-3 !py-1 text-xs"
+                                >
+                                  <XCircle className="w-3.5 h-3.5 mr-1" />
+                                  Reject
+                                </Button>
+                              </>
                             )}
                           </div>
                         </td>

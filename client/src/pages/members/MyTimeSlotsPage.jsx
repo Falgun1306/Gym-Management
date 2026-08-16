@@ -149,7 +149,7 @@ export default function MyTimeSlotsPage() {
               <h3 className="font-bold text-slate-800 text-sm sm:text-base">
                 Trainer Notification System Active
               </h3>
-              <Badge className="bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider">
+              <Badge className="bg-emerald-600 text-green text-[10px] font-bold uppercase tracking-wider">
                 Real-time Sync
               </Badge>
             </div>

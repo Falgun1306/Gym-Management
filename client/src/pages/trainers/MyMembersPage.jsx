@@ -116,7 +116,7 @@ export default function MyMembersPage() {
             }}
             icon={TrendingUp}
           >
-            Log Progress
+            + Log Progress
           </Button>
         </div>
       ),

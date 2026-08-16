@@ -54,36 +54,36 @@ function AdminDashboard() {
   const upcomingClasses = classesData?.slice(0, 3) || [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* Page Header & Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Admin Dashboard</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             Overview of current operations, revenue, and attendance.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link to="/dashboard/members">
-            <Button size="sm" icon={UserPlus} className="!py-2 text-xs">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
+          <Link to="/dashboard/members" className="col-span-1">
+            <Button size="sm" icon={UserPlus} className="w-full !py-2 text-xs">
               Add Member
             </Button>
           </Link>
-          <Link to="/dashboard/payments">
-            <Button size="sm" variant="outline" icon={CreditCard} className="!py-2 text-xs">
-              Record Payment
+          <Link to="/dashboard/payments" className="col-span-1">
+            <Button size="sm" variant="outline" icon={CreditCard} className="w-full !py-2 text-xs">
+              Record
             </Button>
           </Link>
-          <Link to="/dashboard/membership-plans">
-            <Button size="sm" variant="outline" icon={PlusCircle} className="!py-2 text-xs">
+          <Link to="/dashboard/membership-plans" className="col-span-2 sm:col-span-1">
+            <Button size="sm" variant="outline" icon={PlusCircle} className="w-full !py-2 text-xs">
               New Plan
             </Button>
           </Link>
         </div>
       </div>
 
-      {/* Stat Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* Stat Cards Grid — 2x2 on Mobile */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
         {isLoading ? (
           Array.from({ length: 6 }).map((_, i) => <SkeletonStat key={i} />)
         ) : isError ? (
@@ -126,6 +126,7 @@ function AdminDashboard() {
               value={data?.monthlyRevenue != null ? formatCurrency(data.monthlyRevenue) : '—'}
               icon={CreditCard}
               iconBg="bg-amber-50 text-amber-600"
+              className="col-span-2 sm:col-span-1 lg:col-span-1"
             />
             <StatCard
               title="Pending Payments"
@@ -137,6 +138,7 @@ function AdminDashboard() {
                   : 'bg-slate-100 text-slate-500'
               }
               subtitle={data?.pendingPayments > 0 ? 'Requires attention' : undefined}
+              className="col-span-2 sm:col-span-1 lg:col-span-1"
             />
           </>
         )}
@@ -146,17 +148,17 @@ function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader title="Revenue Trend" subtitle="Monthly gross revenue accumulation" />
-          <div className="bg-slate-50 rounded-lg h-48 flex items-center justify-center border border-slate-200">
+          <div className="bg-slate-50 rounded-lg h-44 sm:h-48 flex items-center justify-center border border-slate-200 p-4 text-center">
             <p className="text-xs font-semibold text-slate-400">
-              [Line Chart: Revenue over last 30 days]
+              [Line Chart: Monthly revenue accumulation]
             </p>
           </div>
         </Card>
         <Card>
           <CardHeader title="Peak Attendance Hours" subtitle="Hourly check-ins distribution" />
-          <div className="bg-slate-50 rounded-lg h-48 flex items-center justify-center border border-slate-200">
+          <div className="bg-slate-50 rounded-lg h-44 sm:h-48 flex items-center justify-center border border-slate-200 p-4 text-center">
             <p className="text-xs font-semibold text-slate-400">
-              [Bar Chart: Attendance by hour today]
+              [Bar Chart: Hourly check-ins distribution]
             </p>
           </div>
         </Card>
@@ -166,7 +168,7 @@ function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Recent Payments Table Widget */}
         <Card className="lg:col-span-2 !p-0 overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+          <div className="p-3.5 sm:p-4 border-b border-slate-100 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-900">Recent Payments</h3>
               <p className="text-xs text-slate-500">Latest transactions</p>
@@ -178,37 +180,27 @@ function AdminDashboard() {
           {recentPayments.length === 0 ? (
             <p className="text-xs text-slate-400 p-6 text-center">No recent payment records found.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold uppercase tracking-wider">
-                  <tr>
-                    <th className="py-2.5 px-4">Member</th>
-                    <th className="py-2.5 px-4">Amount</th>
-                    <th className="py-2.5 px-4">Status</th>
-                    <th className="py-2.5 px-4">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {recentPayments.map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50/50">
-                      <td className="py-3 px-4 font-semibold text-slate-900">
-                        {p.member ? `${p.member.firstName} ${p.member.lastName}` : 'N/A'}
-                      </td>
-                      <td className="py-3 px-4 font-bold text-slate-900">{formatCurrency(p.amount)}</td>
-                      <td className="py-3 px-4">
-                        <Badge variant={p.status === 'SUCCESS' ? 'success' : 'warning'}>{p.status}</Badge>
-                      </td>
-                      <td className="py-3 px-4 text-slate-500">{formatDate(p.paidAt || p.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="divide-y divide-slate-100">
+              {recentPayments.map((p) => (
+                <div key={p.id} className="p-3.5 flex items-center justify-between text-xs hover:bg-slate-50/50">
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-slate-900">
+                      {p.member ? `${p.member.firstName} ${p.member.lastName}` : 'N/A'}
+                    </p>
+                    <p className="text-[11px] text-slate-400">{formatDate(p.paidAt || p.createdAt)}</p>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <p className="font-bold text-slate-900 text-sm">{formatCurrency(p.amount)}</p>
+                    <Badge variant={p.status === 'SUCCESS' ? 'success' : 'warning'}>{p.status}</Badge>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </Card>
 
         {/* Upcoming Classes Widget */}
-        <Card className="!p-4 space-y-3">
+        <Card className="!p-3.5 sm:!p-4 space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <h3 className="text-sm font-bold text-slate-900">Upcoming Classes</h3>
@@ -223,7 +215,7 @@ function AdminDashboard() {
           ) : (
             <div className="space-y-2.5">
               {upcomingClasses.map((c) => (
-                <div key={c.id} className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-xs">
+                <div key={c.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
                   <div>
                     <p className="font-bold text-slate-900">{c.name}</p>
                     <p className="text-slate-500 text-[11px]">
@@ -252,24 +244,46 @@ function AdminDashboard() {
 
 function TrainerDashboard() {
   const { data, isLoading, isError } = useTrainerDashboard();
+  const trainerName = data?.trainerProfile?.firstName || 'Trainer';
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Trainer Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          {data?.trainerProfile
-            ? `Welcome back, ${data.trainerProfile.firstName || 'Trainer'}`
-            : 'Manage your members, schedules, and training plans.'}
-        </p>
+    <div className="space-y-5 sm:space-y-6">
+      {/* ── Page Header & Quick Actions ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase tracking-wider">
+              Trainer Portal
+            </span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+            Welcome back, {trainerName}! 💪
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Manage member training protocols, view assigned classes, and track daily progress.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+          <Link to="/dashboard/workout-plans" className="w-full">
+            <Button size="sm" icon={Dumbbell} className="w-full !py-2 text-xs justify-center">
+              Assign Workout
+            </Button>
+          </Link>
+          <Link to="/dashboard/diet-plans" className="w-full">
+            <Button size="sm" variant="outline" icon={UtensilsCrossed} className="w-full !py-2 text-xs justify-center">
+              Assign Diet
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* ── 2x2 Stat Cards on Mobile / 4-Col on Desktop ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <SkeletonStat key={i} />)
         ) : isError ? (
           <div className="col-span-full bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">
-            Failed to load dashboard data.
+            Failed to load dashboard metrics. Please refresh.
           </div>
         ) : (
           <>
@@ -278,27 +292,111 @@ function TrainerDashboard() {
               value={data?.assignedMembersCount?.toLocaleString() ?? '—'}
               icon={Users}
               iconBg="bg-blue-50 text-blue-600"
+              subtitle="Active clients"
             />
             <StatCard
-              title="Workout Plans"
+              title="Active Workouts"
               value={data?.workoutPlansCount?.toLocaleString() ?? '—'}
               icon={Dumbbell}
               iconBg="bg-emerald-50 text-emerald-600"
+              subtitle="Assigned plans"
             />
             <StatCard
-              title="Diet Plans"
+              title="Active Diets"
               value={data?.dietPlansCount?.toLocaleString() ?? '—'}
               icon={UtensilsCrossed}
               iconBg="bg-amber-50 text-amber-600"
+              subtitle="Macro plans"
             />
             <StatCard
-              title="Gym Classes"
+              title="Assigned Classes"
               value={data?.gymClassesCount?.toLocaleString() ?? '—'}
               icon={Activity}
               iconBg="bg-violet-50 text-violet-600"
+              subtitle="Group sessions"
             />
           </>
         )}
+      </div>
+
+      {/* ── Quick Navigation Cards (Mobile-optimized) ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Link to="/dashboard/my-members" className="group">
+          <Card className="p-3.5 sm:p-4 text-center hover:border-emerald-500/50 hover:shadow-md transition-all">
+            <div className="w-9 h-9 mx-auto mb-2 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Users className="w-4 h-4" />
+            </div>
+            <h4 className="text-xs font-bold text-slate-900">My Members</h4>
+            <p className="text-[10px] text-slate-400 mt-0.5">Log metrics & view list</p>
+          </Card>
+        </Link>
+        <Link to="/dashboard/workout-plans" className="group">
+          <Card className="p-3.5 sm:p-4 text-center hover:border-emerald-500/50 hover:shadow-md transition-all">
+            <div className="w-9 h-9 mx-auto mb-2 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Dumbbell className="w-4 h-4" />
+            </div>
+            <h4 className="text-xs font-bold text-slate-900">Workout Plans</h4>
+            <p className="text-[10px] text-slate-400 mt-0.5">Program builder</p>
+          </Card>
+        </Link>
+        <Link to="/dashboard/diet-plans" className="group">
+          <Card className="p-3.5 sm:p-4 text-center hover:border-emerald-500/50 hover:shadow-md transition-all">
+            <div className="w-9 h-9 mx-auto mb-2 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <UtensilsCrossed className="w-4 h-4" />
+            </div>
+            <h4 className="text-xs font-bold text-slate-900">Diet Plans</h4>
+            <p className="text-[10px] text-slate-400 mt-0.5">Nutrition templates</p>
+          </Card>
+        </Link>
+        <Link to="/dashboard/exercises" className="group">
+          <Card className="p-3.5 sm:p-4 text-center hover:border-emerald-500/50 hover:shadow-md transition-all">
+            <div className="w-9 h-9 mx-auto mb-2 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Activity className="w-4 h-4" />
+            </div>
+            <h4 className="text-xs font-bold text-slate-900">Exercise Library</h4>
+            <p className="text-[10px] text-slate-400 mt-0.5">Movement catalog</p>
+          </Card>
+        </Link>
+      </div>
+
+      {/* ── Schedule & Progress Widgets ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Upcoming Sessions</h3>
+              <p className="text-xs text-slate-500">Your scheduled group training classes</p>
+            </div>
+            <Link to="/dashboard/class-bookings" className="text-xs font-semibold text-emerald-700 hover:underline">
+              View All
+            </Link>
+          </div>
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+            <div className="space-y-0.5">
+              <p className="font-bold text-slate-900">Cardio & Group Conditioning</p>
+              <p className="text-[11px] text-slate-500">Studio Room B • Fitness Zone</p>
+            </div>
+            <div className="text-right space-y-0.5">
+              <span className="font-mono font-bold text-emerald-700 block">02:52 PM</span>
+              <Badge variant="info">12 Enrolled</Badge>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Client Progress Logs</h3>
+              <p className="text-xs text-slate-500">Recent body composition updates</p>
+            </div>
+            <Link to="/dashboard/my-members" className="text-xs font-semibold text-emerald-700 hover:underline">
+              View All
+            </Link>
+          </div>
+          <div className="p-6 text-center text-slate-400 text-xs">
+            No new progress metrics recorded today. Click <span className="font-semibold text-emerald-700">"My Members"</span> to log body measurements.
+          </div>
+        </Card>
       </div>
     </div>
   );
@@ -310,17 +408,31 @@ function MemberDashboard() {
   const { data, isLoading, isError } = useMemberDashboard();
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Member Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          {data?.memberProfile
-            ? `Welcome back, ${data.memberProfile.firstName || 'Member'}`
-            : 'Track your fitness journey and membership.'}
-        </p>
+    <div className="space-y-5 sm:space-y-6">
+      {/* Green Welcome Banner matching mobileUI/member dashboard.png */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-800 via-emerald-900 to-slate-900 text-white rounded-2xl p-4 sm:p-6 shadow-md">
+        <div className="relative z-10 space-y-3">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-700/50 border border-emerald-500/30 text-emerald-200">
+            ★ Member Portal
+          </span>
+          <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+            Welcome back, {data?.memberProfile?.firstName || 'Member'}! 💪
+          </h1>
+          <p className="text-xs sm:text-sm text-emerald-100/90 max-w-xl">
+            Track your fitness goals, access your workout & diet plans, and check in effortlessly.
+          </p>
+          <div className="pt-1">
+            <Link to="/dashboard/my-attendance">
+              <Button size="sm" className="!bg-emerald-400 hover:!bg-emerald-300 !text-slate-950 font-bold !py-2 text-xs shadow">
+                Digital QR Entrance Pass
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 2x2 Stat Cards on mobile */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <SkeletonStat key={i} />)
         ) : isError ? (
@@ -337,7 +449,7 @@ function MemberDashboard() {
               subtitle={
                 data?.activeMembership
                   ? `Active • Expires ${new Date(data.activeMembership.endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}`
-                  : 'No active membership'
+                  : 'No active plan'
               }
             />
             <StatCard
@@ -347,7 +459,7 @@ function MemberDashboard() {
               iconBg="bg-blue-50 text-blue-600"
             />
             <StatCard
-              title="Assigned Workouts"
+              title="Workouts"
               value={data?.assignedWorkoutsCount?.toLocaleString() ?? '—'}
               icon={Dumbbell}
               iconBg="bg-violet-50 text-violet-600"
@@ -365,6 +477,46 @@ function MemberDashboard() {
             />
           </>
         )}
+      </div>
+
+      {/* Quick Access Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <h3 className="text-sm font-bold text-slate-900">Active Membership Plan</h3>
+            <Link to="/dashboard/my-membership" className="text-xs font-semibold text-emerald-700 hover:underline">
+              Manage
+            </Link>
+          </div>
+          {data?.activeMembership ? (
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Plan:</span>
+                <span className="font-bold text-slate-900">{data.activeMembership.plan?.name}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Expires:</span>
+                <span className="font-semibold text-emerald-700">
+                  {new Date(data.activeMembership.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400 py-2">No active membership found.</p>
+          )}
+        </Card>
+
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <h3 className="text-sm font-bold text-slate-900">Assigned Fitness Guide</h3>
+            <Link to="/dashboard/my-support" className="text-xs font-semibold text-emerald-700 hover:underline">
+              Contact
+            </Link>
+          </div>
+          <p className="text-xs text-slate-500">
+            Connect with certified trainers for workout & diet guidance.
+          </p>
+        </Card>
       </div>
     </div>
   );

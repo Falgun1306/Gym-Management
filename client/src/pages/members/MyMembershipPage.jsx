@@ -395,52 +395,99 @@ export default function MyMembershipPage() {
         ) : payments.length === 0 ? (
           <div className="py-8 text-center text-slate-400 text-xs">No payment records found.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/50">
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Invoice ID</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Date</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Amount</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Method</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Status</th>
-                  <th className="text-right py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {payments.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50 transition-colors text-xs">
-                    <td className="py-3 px-4 font-mono font-semibold text-slate-800">
-                      #{p.invoiceNumber || p.id?.slice(-8)?.toUpperCase()}
-                    </td>
-                    <td className="py-3 px-4 text-slate-600">{formatDate(p.createdAt)}</td>
-                    <td className="py-3 px-4 font-bold text-slate-900">{formatCurrency(p.amount)}</td>
-                    <td className="py-3 px-4 text-slate-600">{p.paymentMethod || p.gateway || 'ONLINE'}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <Badge variant={p.status === 'SUCCESS' || p.status === 'COMPLETED' ? 'success' : p.status === 'FAILED' ? 'danger' : 'warning'}>
-                          {p.status}
-                        </Badge>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      {p.status === 'FAILED' && p.paymentMethod === 'ONLINE' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="!py-1 !px-2 text-[10px]"
-                          onClick={() => handleRetryPayment(p.id)}
-                          loading={retryMutation.isPending}
-                        >
-                          Retry
-                        </Button>
-                      )}
-                    </td>
+          <>
+            {/* Mobile Card List View (< md screens) */}
+            <div className="block md:hidden divide-y divide-slate-100 bg-white">
+              {payments.map((p) => (
+                <div key={p.id} className="p-4 space-y-2">
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                    <div>
+                      <p className="font-mono text-xs font-bold text-slate-900">
+                        #{p.invoiceNumber || p.id?.slice(-8)?.toUpperCase()}
+                      </p>
+                      <p className="text-[11px] text-slate-400">{formatDate(p.createdAt)}</p>
+                    </div>
+                    <Badge variant={p.status === 'SUCCESS' || p.status === 'COMPLETED' ? 'success' : p.status === 'FAILED' ? 'danger' : 'warning'}>
+                      {p.status}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-semibold uppercase block">Amount</span>
+                      <span className="font-bold text-slate-900 text-sm">{formatCurrency(p.amount)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-semibold uppercase block">Method</span>
+                      <span className="font-medium text-slate-700">{p.paymentMethod || p.gateway || 'ONLINE'}</span>
+                    </div>
+                  </div>
+
+                  {p.status === 'FAILED' && p.paymentMethod === 'ONLINE' && (
+                    <div className="flex justify-end pt-2 border-t border-slate-100">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="!py-1 !px-3 text-xs"
+                        onClick={() => handleRetryPayment(p.id)}
+                        loading={retryMutation.isPending}
+                      >
+                        Retry Payment
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= md screens) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/50">
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Invoice ID</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Date</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Amount</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Method</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Status</th>
+                    <th className="text-right py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {payments.map((p) => (
+                    <tr key={p.id} className="hover:bg-slate-50 transition-colors text-xs">
+                      <td className="py-3 px-4 font-mono font-semibold text-slate-800">
+                        #{p.invoiceNumber || p.id?.slice(-8)?.toUpperCase()}
+                      </td>
+                      <td className="py-3 px-4 text-slate-600">{formatDate(p.createdAt)}</td>
+                      <td className="py-3 px-4 font-bold text-slate-900">{formatCurrency(p.amount)}</td>
+                      <td className="py-3 px-4 text-slate-600">{p.paymentMethod || p.gateway || 'ONLINE'}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={p.status === 'SUCCESS' || p.status === 'COMPLETED' ? 'success' : p.status === 'FAILED' ? 'danger' : 'warning'}>
+                            {p.status}
+                          </Badge>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {p.status === 'FAILED' && p.paymentMethod === 'ONLINE' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="!py-1 !px-2 text-[10px]"
+                            onClick={() => handleRetryPayment(p.id)}
+                            loading={retryMutation.isPending}
+                          >
+                            Retry
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
 

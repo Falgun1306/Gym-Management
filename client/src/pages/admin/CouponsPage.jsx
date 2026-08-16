@@ -343,7 +343,7 @@ export default function CouponsPage() {
         </div>
       </Card>
 
-      {/* ── Coupon List Table ── */}
+      {/* ── Coupon List ── */}
       <Card>
         {couponsLoading ? (
           <SkeletonTable rows={5} columns={7} />
@@ -353,145 +353,244 @@ export default function CouponsPage() {
             No coupons found matching your criteria.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Code</th>
-                  <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Discount</th>
-                  <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Limits & Rules</th>
-                  <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Applicable Plans</th>
-                  <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Usage</th>
-                  <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Expiry</th>
-                  <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Status</th>
-                  <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredCoupons.map((coupon) => {
-                  const isExpired = coupon.expiresAt && new Date(coupon.expiresAt) < new Date();
-                  const effectiveStatus = isExpired ? 'EXPIRED' : coupon.status;
+          <>
+            {/* Mobile Card List View (< md screens) */}
+            <div className="block md:hidden divide-y divide-slate-100 bg-white">
+              {filteredCoupons.map((coupon) => {
+                const isExpired = coupon.expiresAt && new Date(coupon.expiresAt) < new Date();
+                const effectiveStatus = isExpired ? 'EXPIRED' : coupon.status;
 
-                  return (
-                    <tr key={coupon.id} className="hover:bg-slate-50/80 transition-colors text-xs">
-                      {/* Code */}
-                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
-                        <div className="flex items-center gap-1.5">
-                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded font-mono text-xs">
-                            {coupon.code}
-                          </span>
-                          <button
-                            onClick={() => handleCopyCode(coupon.code)}
-                            title="Copy code"
-                            className="p-1 text-slate-400 hover:text-slate-600 rounded"
-                          >
-                            {copiedCode === coupon.code ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                        {coupon.description && <p className="text-[11px] text-slate-500 font-normal mt-0.5 line-clamp-1">{coupon.description}</p>}
-                      </td>
-
-                      {/* Discount Value */}
-                      <td className="py-3.5 px-4">
-                        <span className="font-bold text-slate-800">
-                          {coupon.discountType === 'PERCENTAGE' && `${coupon.discountValue}% OFF`}
-                          {coupon.discountType === 'FIXED_AMOUNT' && formatCurrency(coupon.discountValue)}
-                          {coupon.discountType === 'FREE_DAYS' && `+${coupon.discountValue} Extra Days`}
+                return (
+                  <div key={coupon.id} className="p-4 space-y-3">
+                    {/* Header: Code + Copy + Status */}
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded font-mono text-xs font-bold">
+                          {coupon.code}
                         </span>
-                        {coupon.maxDiscountAmount && (
-                          <p className="text-[10px] text-slate-500 mt-0.5">Cap: {formatCurrency(coupon.maxDiscountAmount)}</p>
-                        )}
-                      </td>
-
-                      {/* Limits & Rules */}
-                      <td className="py-3.5 px-4 text-slate-600">
-                        <div>Min Order: {coupon.minPurchaseAmount ? formatCurrency(coupon.minPurchaseAmount) : 'None'}</div>
-                        <div className="text-[10px] text-slate-500">Per Member: {coupon.perUserLimit} use(s)</div>
-                      </td>
-
-                      {/* Applicable Plans */}
-                      <td className="py-3.5 px-4">
-                        {!coupon.applicablePlanIds || coupon.applicablePlanIds.length === 0 ? (
-                          <Badge variant="neutral">All Plans</Badge>
-                        ) : (
-                          <div className="flex flex-wrap gap-1 max-w-[150px]">
-                            {coupon.applicablePlanIds.map((pId) => {
-                              const plan = plans.find((p) => p.id === pId);
-                              return (
-                                <span key={pId} className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px] truncate">
-                                  {plan ? plan.name : 'Plan'}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Usage */}
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-slate-800">
-                          {coupon.usageCount} {coupon.maxUsageCount ? `/ ${coupon.maxUsageCount}` : 'uses'}
-                        </div>
-                      </td>
-
-                      {/* Expiry */}
-                      <td className="py-3.5 px-4 text-slate-600">
-                        {coupon.expiresAt ? formatDate(coupon.expiresAt) : 'Never'}
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-3.5 px-4">
-                        <Badge
-                          variant={
-                            effectiveStatus === 'ACTIVE'
-                              ? 'success'
-                              : effectiveStatus === 'EXPIRED'
-                              ? 'danger'
-                              : 'neutral'
-                          }
+                        <button
+                          onClick={() => handleCopyCode(coupon.code)}
+                          className="p-1 text-slate-400 hover:text-slate-600 rounded"
+                          title="Copy Code"
                         >
-                          {effectiveStatus}
-                        </Badge>
-                      </td>
+                          {copiedCode === coupon.code ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                      <Badge
+                        variant={
+                          effectiveStatus === 'ACTIVE'
+                            ? 'success'
+                            : effectiveStatus === 'EXPIRED'
+                            ? 'danger'
+                            : 'neutral'
+                        }
+                      >
+                        {effectiveStatus}
+                      </Badge>
+                    </div>
 
-                      {/* Actions */}
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => handleOpenUsageModal(coupon)}
-                            title="View Redemptions"
-                            className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
+                    {/* Discount & Usage */}
+                    <div className="flex items-center justify-between text-xs pt-1">
+                      <div>
+                        <p className="text-[10px] text-slate-400 font-semibold uppercase">Discount</p>
+                        <p className="text-base font-extrabold text-slate-900">
+                          {coupon.discountType === 'PERCENTAGE' && `${coupon.discountValue}%`}
+                          {coupon.discountType === 'FIXED_AMOUNT' && formatCurrency(coupon.discountValue)}
+                          {coupon.discountType === 'FREE_DAYS' && `+${coupon.discountValue} Days`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-slate-400 font-semibold uppercase">Usage</p>
+                        <p className="text-sm font-bold text-slate-800">
+                          {coupon.usageCount} / {coupon.maxUsageCount || '∞'}
+                        </p>
+                      </div>
+                    </div>
 
-                          <button
-                            onClick={() => handleOpenEditModal(coupon)}
-                            title="Edit Coupon"
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
+                    {/* Limits & Expiry */}
+                    <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                      <div>
+                        <span className="text-slate-400 block text-[10px] font-semibold uppercase">Limits</span>
+                        <span className="text-slate-700 font-medium">Min: {coupon.minPurchaseAmount ? formatCurrency(coupon.minPurchaseAmount) : 'None'}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] font-semibold uppercase">Expiry</span>
+                        <span className="text-slate-700 font-medium">{coupon.expiresAt ? formatDate(coupon.expiresAt) : 'Never'}</span>
+                      </div>
+                    </div>
 
-                          <button
-                            onClick={() => toggleStatusMutation.mutate(coupon.id)}
-                            title={coupon.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                            className={`p-1.5 rounded-lg transition-colors ${
-                              coupon.status === 'ACTIVE'
-                                ? 'text-emerald-600 hover:text-red-600 hover:bg-red-50'
-                                : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
-                            }`}
+                    {/* Actions */}
+                    <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+                      <button
+                        onClick={() => handleOpenUsageModal(coupon)}
+                        className="p-1.5 text-slate-500 hover:text-emerald-600 rounded-lg"
+                        title="View Redemptions"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleOpenEditModal(coupon)}
+                        className="p-1.5 text-slate-500 hover:text-blue-600 rounded-lg"
+                        title="Edit Coupon"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => toggleStatusMutation.mutate(coupon.id)}
+                        className={`p-1.5 rounded-lg ${
+                          coupon.status === 'ACTIVE' ? 'text-emerald-600 hover:text-red-600' : 'text-slate-400 hover:text-emerald-600'
+                        }`}
+                        title="Toggle Status"
+                      >
+                        <Power className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View (>= md screens) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Code</th>
+                    <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Discount</th>
+                    <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Limits & Rules</th>
+                    <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Applicable Plans</th>
+                    <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Usage</th>
+                    <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Expiry</th>
+                    <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Status</th>
+                    <th className="py-3 px-4 font-semibold text-[11px] uppercase text-slate-500 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredCoupons.map((coupon) => {
+                    const isExpired = coupon.expiresAt && new Date(coupon.expiresAt) < new Date();
+                    const effectiveStatus = isExpired ? 'EXPIRED' : coupon.status;
+
+                    return (
+                      <tr key={coupon.id} className="hover:bg-slate-50/80 transition-colors text-xs">
+                        {/* Code */}
+                        <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                          <div className="flex items-center gap-1.5">
+                            <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded font-mono text-xs">
+                              {coupon.code}
+                            </span>
+                            <button
+                              onClick={() => handleCopyCode(coupon.code)}
+                              title="Copy code"
+                              className="p-1 text-slate-400 hover:text-slate-600 rounded"
+                            >
+                              {copiedCode === coupon.code ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                          {coupon.description && <p className="text-[11px] text-slate-500 font-normal mt-0.5 line-clamp-1">{coupon.description}</p>}
+                        </td>
+
+                        {/* Discount Value */}
+                        <td className="py-3.5 px-4">
+                          <span className="font-bold text-slate-800">
+                            {coupon.discountType === 'PERCENTAGE' && `${coupon.discountValue}% OFF`}
+                            {coupon.discountType === 'FIXED_AMOUNT' && formatCurrency(coupon.discountValue)}
+                            {coupon.discountType === 'FREE_DAYS' && `+${coupon.discountValue} Extra Days`}
+                          </span>
+                          {coupon.maxDiscountAmount && (
+                            <p className="text-[10px] text-slate-500 mt-0.5">Cap: {formatCurrency(coupon.maxDiscountAmount)}</p>
+                          )}
+                        </td>
+
+                        {/* Limits & Rules */}
+                        <td className="py-3.5 px-4 text-slate-600">
+                          <div>Min Order: {coupon.minPurchaseAmount ? formatCurrency(coupon.minPurchaseAmount) : 'None'}</div>
+                          <div className="text-[10px] text-slate-500">Per Member: {coupon.perUserLimit} use(s)</div>
+                        </td>
+
+                        {/* Applicable Plans */}
+                        <td className="py-3.5 px-4">
+                          {!coupon.applicablePlanIds || coupon.applicablePlanIds.length === 0 ? (
+                            <Badge variant="neutral">All Plans</Badge>
+                          ) : (
+                            <div className="flex flex-wrap gap-1 max-w-[150px]">
+                              {coupon.applicablePlanIds.map((pId) => {
+                                const plan = plans.find((p) => p.id === pId);
+                                return (
+                                  <span key={pId} className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px] truncate">
+                                    {plan ? plan.name : 'Plan'}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Usage */}
+                        <td className="py-3.5 px-4">
+                          <div className="font-semibold text-slate-800">
+                            {coupon.usageCount} {coupon.maxUsageCount ? `/ ${coupon.maxUsageCount}` : 'uses'}
+                          </div>
+                        </td>
+
+                        {/* Expiry */}
+                        <td className="py-3.5 px-4 text-slate-600">
+                          {coupon.expiresAt ? formatDate(coupon.expiresAt) : 'Never'}
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-3.5 px-4">
+                          <Badge
+                            variant={
+                              effectiveStatus === 'ACTIVE'
+                                ? 'success'
+                                : effectiveStatus === 'EXPIRED'
+                                ? 'danger'
+                                : 'neutral'
+                            }
                           >
-                            <Power className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                            {effectiveStatus}
+                          </Badge>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleOpenUsageModal(coupon)}
+                              title="View Redemptions"
+                              className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              onClick={() => handleOpenEditModal(coupon)}
+                              title="Edit Coupon"
+                              className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              onClick={() => toggleStatusMutation.mutate(coupon.id)}
+                              title={coupon.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                coupon.status === 'ACTIVE'
+                                  ? 'text-emerald-600 hover:text-red-600 hover:bg-red-50'
+                                  : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
+                              }`}
+                            >
+                              <Power className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
 
