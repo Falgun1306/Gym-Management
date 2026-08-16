@@ -373,9 +373,174 @@ export default function DashboardLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">
+        <main className="flex-1 p-3.5 sm:p-6 pb-20 md:pb-6 overflow-x-hidden">
           <Outlet />
         </main>
+
+        {/* ── Mobile Bottom Navigation Bar ── */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-2 py-1.5 flex items-center justify-around shadow-lg text-[11px]">
+          {role === 'ADMIN' && (
+            <>
+              <NavLink
+                to="/dashboard"
+                end
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors',
+                    isActive ? 'text-emerald-700 font-bold bg-emerald-50' : 'text-slate-500 hover:text-slate-900'
+                  )
+                }
+              >
+                <LayoutDashboard className="w-5 h-5" />
+                <span>Home</span>
+              </NavLink>
+              <NavLink
+                to="/dashboard/gym-classes"
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors',
+                    isActive ? 'text-emerald-700 font-bold bg-emerald-50' : 'text-slate-500 hover:text-slate-900'
+                  )
+                }
+              >
+                <CalendarDays className="w-5 h-5" />
+                <span>Classes</span>
+              </NavLink>
+              <NavLink
+                to="/dashboard/members"
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors',
+                    isActive ? 'text-emerald-700 font-bold bg-emerald-50' : 'text-slate-500 hover:text-slate-900'
+                  )
+                }
+              >
+                <Users className="w-5 h-5" />
+                <span>Members</span>
+              </NavLink>
+              <NavLink
+                to="/dashboard/profile"
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors',
+                    isActive ? 'text-emerald-700 font-bold bg-emerald-50' : 'text-slate-500 hover:text-slate-900'
+                  )
+                }
+              >
+                <User className="w-5 h-5" />
+                <span>Profile</span>
+              </NavLink>
+            </>
+          )}
+
+          {role === 'TRAINER' && (
+            <>
+              <NavLink
+                to="/dashboard"
+                end
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors',
+                    isActive ? 'text-emerald-700 font-bold bg-emerald-50' : 'text-slate-500 hover:text-slate-900'
+                  )
+                }
+              >
+                <LayoutDashboard className="w-5 h-5" />
+                <span>Home</span>
+              </NavLink>
+              <NavLink
+                to="/dashboard/class-bookings"
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors',
+                    isActive ? 'text-emerald-700 font-bold bg-emerald-50' : 'text-slate-500 hover:text-slate-900'
+                  )
+                }
+              >
+                <CalendarDays className="w-5 h-5" />
+                <span>Classes</span>
+              </NavLink>
+              <NavLink
+                to="/dashboard/attendance"
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors',
+                    isActive ? 'text-emerald-700 font-bold bg-emerald-50' : 'text-slate-500 hover:text-slate-900'
+                  )
+                }
+              >
+                <UserCheck className="w-5 h-5" />
+                <span>Attendance</span>
+              </NavLink>
+              <NavLink
+                to="/dashboard/profile"
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors',
+                    isActive ? 'text-emerald-700 font-bold bg-emerald-50' : 'text-slate-500 hover:text-slate-900'
+                  )
+                }
+              >
+                <User className="w-5 h-5" />
+                <span>Profile</span>
+              </NavLink>
+            </>
+          )}
+
+          {role === 'MEMBER' && (
+            <>
+              <NavLink
+                to="/dashboard"
+                end
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors',
+                    isActive ? 'text-emerald-700 font-bold bg-emerald-50' : 'text-slate-500 hover:text-slate-900'
+                  )
+                }
+              >
+                <LayoutDashboard className="w-5 h-5" />
+                <span>Home</span>
+              </NavLink>
+              <NavLink
+                to="/dashboard/classes"
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors',
+                    isActive ? 'text-emerald-700 font-bold bg-emerald-50' : 'text-slate-500 hover:text-slate-900'
+                  )
+                }
+              >
+                <CalendarDays className="w-5 h-5" />
+                <span>Classes</span>
+              </NavLink>
+              <NavLink
+                to="/dashboard/my-attendance"
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors',
+                    isActive ? 'text-emerald-700 font-bold bg-emerald-50' : 'text-slate-500 hover:text-slate-900'
+                  )
+                }
+              >
+                <UserCheck className="w-5 h-5" />
+                <span>Attendance</span>
+              </NavLink>
+              <NavLink
+                to="/dashboard/profile"
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors',
+                    isActive ? 'text-emerald-700 font-bold bg-emerald-50' : 'text-slate-500 hover:text-slate-900'
+                  )
+                }
+              >
+                <User className="w-5 h-5" />
+                <span>Profile</span>
+              </NavLink>
+            </>
+          )}
+        </nav>
       </div>
     </div>
   );

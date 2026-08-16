@@ -131,12 +131,12 @@ export default function TrainersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Trainers Management</h1>
-          <p className="text-sm text-slate-500 mt-1">View trainer profiles, set salaries, update specializations, and manage team members.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Trainers Management</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">View trainer profiles, set salaries, update specializations, and manage team members.</p>
         </div>
-        <Button onClick={() => setPromoteModal(true)} icon={Plus}>
+        <Button onClick={() => setPromoteModal(true)} icon={Plus} className="w-full sm:w-auto">
           Promote Member to Trainer
         </Button>
       </div>
@@ -155,7 +155,7 @@ export default function TrainersPage() {
         </div>
       </Card>
 
-      {/* Trainers Table */}
+      {/* Trainers List */}
       <Card className="!p-0 overflow-hidden">
         {isLoading ? (
           <div className="p-4">
@@ -164,98 +164,178 @@ export default function TrainersPage() {
         ) : trainers.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-sm">No trainers found.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/50">
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Trainer</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Type</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Gender</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Specializations</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Experience</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Avg Rating</th>
-                  <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Monthly Salary</th>
-                  <th className="text-right py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {trainers.map((t) => {
-                  const specs = t.specializations?.length
-                    ? t.specializations
-                    : [t.specialization || 'GENERAL_FITNESS'];
-                  const formattedGender = t.gender ? t.gender.charAt(0) + t.gender.slice(1).toLowerCase() : '—';
+          <>
+            {/* Mobile Card List View (< md screens) */}
+            <div className="block md:hidden divide-y divide-slate-100 bg-white">
+              {trainers.map((t) => {
+                const specs = t.specializations?.length
+                  ? t.specializations
+                  : [t.specialization || 'GENERAL_FITNESS'];
+                const formattedGender = t.gender ? t.gender.charAt(0) + t.gender.slice(1).toLowerCase() : '—';
 
-                  return (
-                    <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar firstName={t.firstName} lastName={t.lastName} size="sm" />
-                          <div>
-                            <p className="font-semibold text-slate-900">{t.firstName} {t.lastName}</p>
-                            <p className="text-xs text-slate-400 font-mono">@{t.user?.username || 'trainer'}</p>
-                          </div>
+                return (
+                  <div key={t.id} className="p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Avatar firstName={t.firstName} lastName={t.lastName} size="sm" />
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-900 text-sm truncate">{t.firstName} {t.lastName}</p>
+                          <p className="text-[11px] text-slate-400 font-mono">@{t.user?.username || 'trainer'}</p>
                         </div>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600">
-                        <Badge variant={t.trainerType === 'PERSONAL' ? 'purple' : 'slate'}>
-                          {t.trainerType === 'PERSONAL' ? 'Personal' : 'Common'}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600 capitalize">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
-                          {formattedGender}
+                      </div>
+                      <Badge variant={t.trainerType === 'PERSONAL' ? 'purple' : 'slate'}>
+                        {t.trainerType === 'PERSONAL' ? 'Personal' : 'Common'}
+                      </Badge>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1">
+                      {specs.map((s, i) => (
+                        <span key={i} className="inline-block px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+                          {s.replace(/_/g, ' ')}
                         </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex flex-wrap gap-1 max-w-xs">
-                          {specs.map((s, i) => (
-                            <span key={i} className="inline-block px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
-                              {s.replace(/_/g, ' ')}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600 font-medium">
-                        {t.experience ? `${t.experience} Yrs` : '—'}
-                      </td>
-                      <td className="py-3 px-4 text-amber-500 font-semibold flex items-center gap-1">
-                        ⭐ {t.averageRating ? t.averageRating.toFixed(1) : 'N/A'}
-                      </td>
-                      <td className="py-3 px-4 font-semibold text-emerald-700">{formatCurrency(t.salary ?? 0)}</td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => setSelectedTrainer(t)} className="!p-1.5" title="View Details">
-                            <Eye className="w-4 h-4 text-slate-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setEditTrainer(t);
-                              setEditForm({
-                                specializations: specs,
-                                salary: t.salary || '',
-                                experience: t.experience || '',
-                                gender: t.gender || 'MALE',
-                                trainerType: t.trainerType || 'PERSONAL',
-                              });
-                            }}
-                            className="!p-1.5"
-                            title="Edit Trainer"
-                          >
-                            <Edit className="w-4 h-4 text-slate-600" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleRemove(t.id)} className="!p-1.5 hover:bg-rose-50" title="Remove Trainer">
-                            <Trash2 className="w-4 h-4 text-rose-600" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase block">Salary</span>
+                        <span className="font-bold text-emerald-700">{formatCurrency(t.salary ?? 0)}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase block">Experience</span>
+                        <span className="font-medium text-slate-700">{t.experience ? `${t.experience} Yrs` : '—'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase block">Rating</span>
+                        <span className="font-bold text-amber-600">⭐ {t.averageRating ? t.averageRating.toFixed(1) : '5.0'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedTrainer(t)} className="!p-1.5" title="View Details">
+                        <Eye className="w-4 h-4 text-slate-600" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditTrainer(t);
+                          setEditForm({
+                            specializations: specs,
+                            salary: t.salary || '',
+                            experience: t.experience || '',
+                            gender: t.gender || 'MALE',
+                            trainerType: t.trainerType || 'PERSONAL',
+                          });
+                        }}
+                        className="!p-1.5"
+                        title="Edit Trainer"
+                      >
+                        <Edit className="w-4 h-4 text-slate-600" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleRemove(t.id)} className="!p-1.5 hover:bg-rose-50" title="Remove Trainer">
+                        <Trash2 className="w-4 h-4 text-rose-600" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View (>= md screens) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/50">
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Trainer</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Type</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Gender</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Specializations</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Experience</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Avg Rating</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Monthly Salary</th>
+                    <th className="text-right py-3 px-4 font-semibold text-[11px] uppercase text-slate-500">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {trainers.map((t) => {
+                    const specs = t.specializations?.length
+                      ? t.specializations
+                      : [t.specialization || 'GENERAL_FITNESS'];
+                    const formattedGender = t.gender ? t.gender.charAt(0) + t.gender.slice(1).toLowerCase() : '—';
+
+                    return (
+                      <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar firstName={t.firstName} lastName={t.lastName} size="sm" />
+                            <div>
+                              <p className="font-semibold text-slate-900">{t.firstName} {t.lastName}</p>
+                              <p className="text-xs text-slate-400 font-mono">@{t.user?.username || 'trainer'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-slate-600">
+                          <Badge variant={t.trainerType === 'PERSONAL' ? 'purple' : 'slate'}>
+                            {t.trainerType === 'PERSONAL' ? 'Personal' : 'Common'}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 text-slate-600 capitalize">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
+                            {formattedGender}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {specs.map((s, i) => (
+                              <span key={i} className="inline-block px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+                                {s.replace(/_/g, ' ')}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-slate-600 font-medium">
+                          {t.experience ? `${t.experience} Yrs` : '—'}
+                        </td>
+                        <td className="py-3 px-4 text-amber-500 font-semibold flex items-center gap-1">
+                          ⭐ {t.averageRating ? t.averageRating.toFixed(1) : 'N/A'}
+                        </td>
+                        <td className="py-3 px-4 font-semibold text-emerald-700">{formatCurrency(t.salary ?? 0)}</td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedTrainer(t)} className="!p-1.5" title="View Details">
+                              <Eye className="w-4 h-4 text-slate-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditTrainer(t);
+                                setEditForm({
+                                  specializations: specs,
+                                  salary: t.salary || '',
+                                  experience: t.experience || '',
+                                  gender: t.gender || 'MALE',
+                                  trainerType: t.trainerType || 'PERSONAL',
+                                });
+                              }}
+                              className="!p-1.5"
+                              title="Edit Trainer"
+                            >
+                              <Edit className="w-4 h-4 text-slate-600" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleRemove(t.id)} className="!p-1.5 hover:bg-rose-50" title="Remove Trainer">
+                              <Trash2 className="w-4 h-4 text-rose-600" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
 

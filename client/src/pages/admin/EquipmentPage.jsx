@@ -70,12 +70,12 @@ export default function EquipmentPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Equipment Inventory & Maintenance</h1>
-          <p className="text-sm text-slate-500 mt-1">Track workout equipment operational status and repairs.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Equipment Inventory & Maintenance</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">Track workout equipment operational status and repairs.</p>
         </div>
-        <Button onClick={() => setCreateModal(true)} icon={Plus}>
+        <Button onClick={() => setCreateModal(true)} icon={Plus} className="w-full sm:w-auto">
           Add Equipment
         </Button>
       </div>

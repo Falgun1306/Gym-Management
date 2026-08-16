@@ -133,7 +133,7 @@ export default function MemberSupportPage() {
               tab === 'trainer-application' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <GraduationCap className="w-3.5 h-3.5 text-emerald-600" /> Apply as Trainer
+            <GraduationCap className="w-3.5 h-3.5 text-emerald-600" /> Apply for Trainer
           </button>
         </div>
       </div>

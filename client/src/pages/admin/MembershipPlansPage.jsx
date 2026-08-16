@@ -105,19 +105,20 @@ export default function MembershipPlansPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* ── Page Header & Action Buttons ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Membership Plans & Subscriptions</h1>
-          <p className="text-sm text-slate-500 mt-1">Configure membership tiers, pricing, and active subscriptions.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Membership Plans & Subscriptions</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Configure membership tiers, pricing, and active subscriptions.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setAssignModal(true)} icon={UserCheck}>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={() => setAssignModal(true)} icon={UserCheck} className="w-full sm:w-auto text-xs sm:text-sm justify-center">
             Assign to Member
           </Button>
           <Button onClick={() => {
-            setPlanForm({ name: '', price: '', durationMonths: 1, description: '' });
+            setPlanForm({ name: '', price: '', durationMonths: 1, description: '', providedTrainerType: 'COMMON' });
             setCreateModal(true);
-          }} icon={Plus}>
+          }} icon={Plus} className="w-full sm:w-auto text-xs sm:text-sm justify-center">
             New Membership Plan
           </Button>
         </div>
@@ -136,11 +137,11 @@ export default function MembershipPlansPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans.map((plan) => (
-            <Card key={plan.id} className="relative p-6 flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow">
+            <Card key={plan.id} className="relative p-5 sm:p-6 flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow">
               <div>
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                   <h3 className="text-lg font-bold text-slate-900">{plan.name}</h3>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     <Badge variant="info">
                       {Math.round((plan.durationInDays || plan.durationMonths * 30) / 30)} Month{Math.round((plan.durationInDays || plan.durationMonths * 30) / 30) !== 1 ? 's' : ''}
                     </Badge>

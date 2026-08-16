@@ -109,10 +109,10 @@ export default function MemberAttendancePage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Member Attendance</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Member Attendance</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             Track and mark attendance for your assigned members.
           </p>
         </div>
@@ -120,7 +120,7 @@ export default function MemberAttendancePage() {
         <Button
           onClick={() => setShowScanner(true)}
           icon={QrCode}
-          className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-200"
+          className="w-full sm:w-auto gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-200 !py-2.5"
         >
           Scan QR Code
         </Button>
@@ -129,7 +129,7 @@ export default function MemberAttendancePage() {
       {/* ── Last Scan Result Banner ── */}
       {lastScanResult && (
         <div
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-xs sm:text-sm font-medium ${
             lastScanResult.action === 'CHECK_IN'
               ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
               : 'bg-blue-50 border-blue-200 text-blue-800'
@@ -140,14 +140,14 @@ export default function MemberAttendancePage() {
           ) : (
             <LogOut className="w-5 h-5 text-blue-600 shrink-0" />
           )}
-          <span>
+          <span className="min-w-0 truncate">
             <strong>{lastScanResult.memberName}</strong>{' '}
             {lastScanResult.action === 'CHECK_IN' ? 'checked in' : 'checked out'} at{' '}
             {lastScanResult.time}
           </span>
           <button
             onClick={() => setLastScanResult(null)}
-            className="ml-auto text-xs underline opacity-60 hover:opacity-100"
+            className="ml-auto text-xs underline opacity-60 hover:opacity-100 shrink-0"
           >
             Dismiss
           </button>
@@ -155,10 +155,10 @@ export default function MemberAttendancePage() {
       )}
 
       {/* ── Member Selector ── */}
-      <Card>
-        <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+      <Card className="!p-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 sm:gap-4">
           <Select
-            label="Select Member"
+            label="SELECT MEMBER"
             value={selectedMemberId}
             onChange={(e) => setSelectedMemberId(e.target.value)}
             placeholder="Choose a member..."
@@ -166,7 +166,7 @@ export default function MemberAttendancePage() {
               value: m.id || m.userId,
               label: `${m.firstName || ''} ${m.lastName || ''} (@${m.user?.username || 'Member'})`.trim(),
             }))}
-            containerClassName="flex-1 min-w-[250px]"
+            containerClassName="flex-1 min-w-0"
           />
           {selectedMemberId && (
             <Button
@@ -174,6 +174,7 @@ export default function MemberAttendancePage() {
               loading={markMutation.isPending}
               icon={UserCheck}
               variant="outline"
+              className="w-full sm:w-auto"
             >
               Mark Present Manually
             </Button>

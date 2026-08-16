@@ -132,10 +132,11 @@ export default function GymClassesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* ── Page Header & Action Button ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Gym Classes & Schedules</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Gym Classes & Schedules</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             {role === 'ADMIN'
               ? 'Schedule group fitness sessions, manage trainers, and view enrollments.'
               : role === 'TRAINER'
@@ -144,7 +145,7 @@ export default function GymClassesPage() {
           </p>
         </div>
         {role === 'ADMIN' && (
-          <Button onClick={() => setCreateModal(true)} icon={Plus}>
+          <Button onClick={() => setCreateModal(true)} icon={Plus} className="w-full sm:w-auto text-xs sm:text-sm justify-center">
             Schedule New Class
           </Button>
         )}
@@ -172,36 +173,36 @@ export default function GymClassesPage() {
             const isBookedByMe = !!userBooking;
 
             return (
-              <Card key={cls.id} className="relative p-6 flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow">
+              <Card key={cls.id} className="relative p-5 sm:p-6 flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow">
                 <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900">{cls.title || cls.name}</h3>
-                      <p className="text-xs text-slate-500 font-medium">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="text-base font-bold text-slate-900 truncate">{cls.title || cls.name}</h3>
+                      <p className="text-xs text-slate-500 font-medium truncate">
                         Trainer: {cls.trainer ? `${cls.trainer.firstName} ${cls.trainer.lastName}` : 'Unassigned'}
                       </p>
                     </div>
-                    <Badge variant={isBookedByMe ? 'success' : isFull ? 'danger' : 'info'}>
+                    <Badge variant={isBookedByMe ? 'success' : isFull ? 'danger' : 'info'} className="shrink-0 self-start">
                       {isBookedByMe ? 'BOOKED' : isFull ? 'FULL' : `${cls.capacity - bookedCount} slots left`}
                     </Badge>
                   </div>
 
-                  <p className="text-xs text-slate-600 leading-relaxed">{cls.description || 'Group training session.'}</p>
+                  <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">{cls.description || 'Group training session.'}</p>
 
                   <div className="space-y-1.5 pt-2 text-xs text-slate-600">
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-emerald-600" />
+                      <Calendar className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>{formatDate(cls.startTime)}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-emerald-600" />
+                      <Clock className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>
                         {new Date(cls.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -{' '}
                         {new Date(cls.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-emerald-600" />
+                      <Users className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span className="font-semibold text-slate-800">
                         {bookedCount} / {cls.capacity} Enrolled
                       </span>
@@ -209,7 +210,7 @@ export default function GymClassesPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -274,10 +275,11 @@ export default function GymClassesPage() {
                           });
                         }}
                         className="!p-1.5"
+                        title="Edit Class"
                       >
                         <Edit2 className="w-4 h-4 text-slate-600" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(cls.id)} className="!p-1.5 hover:bg-rose-50">
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(cls.id)} className="!p-1.5 hover:bg-rose-50" title="Delete Class">
                         <Trash2 className="w-4 h-4 text-rose-600" />
                       </Button>
                     </div>

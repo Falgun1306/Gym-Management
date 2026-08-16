@@ -172,7 +172,85 @@ export default function MembersPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Mobile Card List View (< md screens) */}
+            <div className="block md:hidden divide-y divide-slate-100 bg-white">
+              {members.map((member) => {
+                const activeMembership = member.memberships?.[0];
+                const membershipPlan = activeMembership?.plan?.name ?? 'No Plan';
+                const memberStatus = activeMembership?.status ?? 'EXPIRED';
+
+                return (
+                  <div
+                    key={member.id}
+                    onClick={() => setSelectedMemberId(member.id)}
+                    className="p-4 space-y-3 hover:bg-slate-50 cursor-pointer active:bg-slate-100 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Avatar firstName={member.firstName} lastName={member.lastName} size="sm" />
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-900 text-sm truncate">
+                            {member.firstName} {member.lastName}
+                          </p>
+                          <p className="text-[11px] text-slate-400 font-mono">
+                            #MM-{member.id?.slice(-4)?.toUpperCase()}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant={STATUS_BADGE_MAP[memberStatus] || 'neutral'}>
+                        {memberStatus}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase block">Plan</span>
+                        <span className="font-bold text-slate-800">{membershipPlan}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase block">Trainer</span>
+                        <span className="font-medium text-slate-700">
+                          {member.trainer ? `${member.trainer.firstName} ${member.trainer.lastName}` : 'Unassigned'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase block">Phone</span>
+                        <span className="font-mono text-slate-700">{formatPhone(member.phone)}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase block">Gender</span>
+                        <span className="capitalize text-slate-700">{member.gender?.toLowerCase() || '—'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedMemberId(member.id);
+                        }}
+                        className="text-xs"
+                      >
+                        View Profile
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleDeleteMemberQuick(e, member)}
+                        className="text-xs text-rose-600 hover:bg-rose-50"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View (>= md screens) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/50">

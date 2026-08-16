@@ -60,14 +60,14 @@ export default function ExercisesPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Exercise Library</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Exercise Library</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             Manage and curate training movements for member programs.
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)} icon={Plus}>
+        <Button onClick={() => setShowCreateModal(true)} icon={Plus} className="w-full sm:w-auto text-xs sm:text-sm justify-center">
           New Exercise
         </Button>
       </div>
