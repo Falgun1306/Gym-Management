@@ -171,6 +171,7 @@ export default function GymClassesPage() {
               (b) => b.member?.user?.username === user?.username || b.member?.userId === user?.id
             );
             const isBookedByMe = !!userBooking;
+            const isPastClass = cls.endTime ? new Date(cls.endTime).getTime() < Date.now() : false;
 
             return (
               <Card key={cls.id} className="relative p-5 sm:p-6 flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow">
@@ -182,8 +183,8 @@ export default function GymClassesPage() {
                         Trainer: {cls.trainer ? `${cls.trainer.firstName} ${cls.trainer.lastName}` : 'Unassigned'}
                       </p>
                     </div>
-                    <Badge variant={isBookedByMe ? 'success' : isFull ? 'danger' : 'info'} className="shrink-0 self-start">
-                      {isBookedByMe ? 'BOOKED' : isFull ? 'FULL' : `${cls.capacity - bookedCount} slots left`}
+                    <Badge variant={isPastClass ? 'neutral' : isBookedByMe ? 'success' : isFull ? 'danger' : 'info'} className="shrink-0 self-start">
+                      {isPastClass ? 'CLASS ENDED' : isBookedByMe ? 'BOOKED' : isFull ? 'FULL' : `${cls.capacity - bookedCount} slots left`}
                     </Badge>
                   </div>
 
@@ -425,21 +426,27 @@ export default function GymClassesPage() {
               <p className="text-xs text-slate-400 py-8 text-center">No bookings for this class yet.</p>
             ) : (
               <div className="space-y-2">
-                {selectedClassBookings.bookings.map((b) => (
-                  <div key={b.id || b.memberId} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs">
-                    <div>
-                      <p className="font-semibold text-slate-900">
-                        {b.member?.firstName
-                          ? `${b.member.firstName} ${b.member.lastName || ''}`.trim()
-                          : b.member?.user?.username || 'Member'}
-                      </p>
-                      <p className="text-slate-400">Booked: {b.createdAt ? formatDate(b.createdAt) : 'Enrolled'}</p>
+                {(() => {
+                  const isClassPast = selectedClassBookings.endTime
+                    ? new Date(selectedClassBookings.endTime).getTime() < Date.now()
+                    : false;
+
+                  return selectedClassBookings.bookings.map((b) => (
+                    <div key={b.id || b.memberId} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+                      <div>
+                        <p className="font-semibold text-slate-900">
+                          {b.member?.firstName
+                            ? `${b.member.firstName} ${b.member.lastName || ''}`.trim()
+                            : b.member?.user?.username || 'Member'}
+                        </p>
+                        <p className="text-slate-400">Booked: {b.createdAt ? formatDate(b.createdAt) : 'Enrolled'}</p>
+                      </div>
+                      <Badge variant={b.status === 'CANCELLED' ? 'danger' : isClassPast ? (b.status === 'ATTENDED' ? 'success' : 'danger') : 'success'}>
+                        {b.status === 'CANCELLED' ? 'CANCELLED' : isClassPast ? (b.status === 'ATTENDED' ? 'COMPLETED' : 'MISSED') : (b.status || 'ENROLLED')}
+                      </Badge>
                     </div>
-                    <Badge variant={b.status === 'CANCELLED' ? 'danger' : 'success'}>
-                      {b.status || 'ENROLLED'}
-                    </Badge>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             )}
           </div>

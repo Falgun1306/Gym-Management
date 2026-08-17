@@ -166,6 +166,9 @@ export default function MemberClassesPage() {
                   ? cls.trainer.specialization.replace(/_/g, ' ')
                   : 'GENERAL FITNESS';
 
+                const isPastClass = cls.endTime ? new Date(cls.endTime).getTime() < Date.now() : false;
+                const isAttended = userBooking?.status === 'ATTENDED';
+
                 return (
                   <Card key={cls.id} className="hover:shadow-md transition-all border-slate-200 flex flex-col justify-between">
                     <div className="space-y-3">
@@ -178,8 +181,18 @@ export default function MemberClassesPage() {
                             {cls.title || cls.name || 'Gym Class'}
                           </h3>
                         </div>
-                        <Badge variant={isBookedByMe ? 'success' : isFull ? 'danger' : 'info'}>
-                          {isBookedByMe ? 'RESERVED' : isFull ? 'FULL' : `${capacity - bookedCount} left`}
+                        <Badge variant={isPastClass ? (isBookedByMe ? (isAttended ? 'success' : 'danger') : 'neutral') : isBookedByMe ? 'success' : isFull ? 'danger' : 'info'}>
+                          {isPastClass
+                            ? isBookedByMe
+                              ? isAttended
+                                ? 'COMPLETED'
+                                : 'MISSED THE CLASS'
+                              : 'CLASS ENDED'
+                            : isBookedByMe
+                            ? 'RESERVED'
+                            : isFull
+                            ? 'FULL'
+                            : `${capacity - bookedCount} left`}
                         </Badge>
                       </div>
 
@@ -208,7 +221,23 @@ export default function MemberClassesPage() {
                     </div>
 
                     <div className="pt-4 border-t border-slate-100 mt-4">
-                      {isBookedByMe ? (
+                      {isPastClass ? (
+                        isBookedByMe ? (
+                          isAttended ? (
+                            <Button size="sm" disabled variant="success" className="w-full">
+                              Completed
+                            </Button>
+                          ) : (
+                            <Button size="sm" disabled variant="outline" className="w-full text-rose-600 border-rose-200">
+                              Missed the Class
+                            </Button>
+                          )
+                        ) : (
+                          <Button size="sm" disabled variant="outline" className="w-full">
+                            Class Ended
+                          </Button>
+                        )
+                      ) : isBookedByMe ? (
                         <Button
                           variant="outline"
                           size="sm"
@@ -240,6 +269,7 @@ export default function MemberClassesPage() {
                     </div>
                   </Card>
                 );
+
               })}
             </div>
           )}
@@ -269,6 +299,8 @@ export default function MemberClassesPage() {
                 <tbody className="divide-y divide-slate-100">
                   {myBookingsList.map((b) => {
                     const cls = b.gymClass;
+                    const isPastClass = cls?.endTime ? new Date(cls.endTime).getTime() < Date.now() : false;
+                    const isAttended = b.status === 'ATTENDED';
                     const trainerName = cls?.trainer
                       ? `${cls.trainer.firstName} ${cls.trainer.lastName}`
                       : 'Assigned Trainer';
@@ -284,19 +316,33 @@ export default function MemberClassesPage() {
                           {formatClassTime(cls?.startTime)} - {formatClassTime(cls?.endTime)}
                         </td>
                         <td className="py-3 px-4">
-                          <Badge variant="success">RESERVED</Badge>
+                          {isPastClass ? (
+                            isAttended ? (
+                              <Badge variant="success">COMPLETED</Badge>
+                            ) : (
+                              <Badge variant="danger">MISSED THE CLASS</Badge>
+                            )
+                          ) : (
+                            <Badge variant="success">RESERVED</Badge>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCancel(b.id)}
-                            loading={cancelMutation.isPending}
-                            className="text-rose-600 hover:bg-rose-50 !py-1 !px-2.5 text-xs"
-                            icon={XCircle}
-                          >
-                            Cancel Spot
-                          </Button>
+                          {isPastClass ? (
+                            <span className="text-xs text-slate-400 font-semibold italic">
+                              {isAttended ? 'Completed' : 'Missed'}
+                            </span>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCancel(b.id)}
+                              loading={cancelMutation.isPending}
+                              className="text-rose-600 hover:bg-rose-50 !py-1 !px-2.5 text-xs"
+                              icon={XCircle}
+                            >
+                              Cancel Spot
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     );
