@@ -12,7 +12,6 @@ import {
   BarChart3,
   MessageSquare,
   Bell,
-  Settings,
   LogOut,
   Search,
   HelpCircle,
@@ -263,19 +262,6 @@ export default function DashboardLayout() {
           >
             <User className="w-[18px] h-[18px]" />
             {(!sidebarCollapsed || mobileOpen) && <span>My Profile</span>}
-          </NavLink>
-          <NavLink
-            to="/dashboard/settings"
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full',
-                isActive ? 'bg-emerald-700/20 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-slate-800',
-                sidebarCollapsed && !mobileOpen && 'md:justify-center md:px-2'
-              )
-            }
-          >
-            <Settings className="w-[18px] h-[18px]" />
-            {(!sidebarCollapsed || mobileOpen) && <span>Settings</span>}
           </NavLink>
           <button
             onClick={handleLogout}

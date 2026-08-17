@@ -4,7 +4,7 @@ import { Camera, X, SwitchCamera } from 'lucide-react';
 
 /**
  * QrScanner — Native getUserMedia + jsQR based scanner.
- * No third-party UI libraries — full control, no double-render issues.
+ * Robust camera streaming handling with play promise interruption protection.
  *
  * Props:
  *  - onScan(decodedText): fires once on successful scan
@@ -70,8 +70,10 @@ export default function QrScanner({ onScan, onClose }) {
     setScanning(false);
     scannedRef.current = false;
 
-    const constraints = deviceId
-      ? { video: { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } } }
+    const validDeviceId = deviceId && typeof deviceId === 'string' && deviceId.trim() !== '' ? deviceId : null;
+
+    const constraints = validDeviceId
+      ? { video: { deviceId: { exact: validDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } } }
       : { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } };
 
     try {
@@ -81,45 +83,69 @@ export default function QrScanner({ onScan, onClose }) {
         return;
       }
       streamRef.current = stream;
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        setScanning(true);
-        rafRef.current = requestAnimationFrame(tick);
+
+        try {
+          await videoRef.current.play();
+        } catch (playErr) {
+          // Ignore AbortError / interrupted by new load request
+          if (
+            playErr.name === 'AbortError' ||
+            playErr.message?.includes('interrupted') ||
+            playErr.message?.includes('new load request')
+          ) {
+            console.warn('Camera play() interrupted (handled gracefully):', playErr);
+          } else {
+            throw playErr;
+          }
+        }
+
+        if (isMountedRef.current) {
+          setScanning(true);
+          rafRef.current = requestAnimationFrame(tick);
+        }
+      }
+
+      // Enumerate camera devices AFTER permission has been granted
+      if (navigator.mediaDevices?.enumerateDevices) {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoDevices = devices.filter((d) => d.kind === 'videoinput');
+          setCameras(videoDevices);
+        } catch (e) {
+          // ignore enumeration error
+        }
       }
     } catch (err) {
       if (!isMountedRef.current) return;
+
+      // Ignore play interruption errors
+      if (
+        err.name === 'AbortError' ||
+        err.message?.includes('interrupted') ||
+        err.message?.includes('new load request')
+      ) {
+        return;
+      }
+
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         setError('Camera permission denied. Please allow camera access in your browser settings.');
-      } else if (err.name === 'NotFoundError') {
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         setError('No camera found on this device.');
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        setError('Camera is in use by another application. Please close other camera apps and retry.');
       } else {
         setError(`Camera error: ${err.message}`);
       }
     }
   }, [stopStream, tick]);
 
-  // On mount: enumerate cameras, then start
+  // On mount: start camera cleanly
   useEffect(() => {
     isMountedRef.current = true;
-
-    navigator.mediaDevices.enumerateDevices()
-      .then((devices) => {
-        const videoDevices = devices.filter((d) => d.kind === 'videoinput');
-        setCameras(videoDevices);
-
-        // Prefer a rear camera
-        const rearIndex = videoDevices.findIndex((d) =>
-          /back|rear|environment/i.test(d.label)
-        );
-        const startIndex = rearIndex >= 0 ? rearIndex : 0;
-        setCurrentCamIndex(startIndex);
-        startCamera(videoDevices[startIndex]?.deviceId);
-      })
-      .catch(() => {
-        // If enumeration fails, just try with facingMode
-        startCamera(undefined);
-      });
+    startCamera(undefined);
 
     return () => {
       isMountedRef.current = false;
@@ -178,7 +204,7 @@ export default function QrScanner({ onScan, onClose }) {
           autoPlay
         />
 
-        {/* Hidden canvas used for jsQR decoding (not shown to user) */}
+        {/* Hidden canvas used for jsQR decoding */}
         <canvas ref={canvasRef} className="hidden" />
 
         {/* Scanning overlay: dark edges + bright centre */}
@@ -210,7 +236,7 @@ export default function QrScanner({ onScan, onClose }) {
             <p className="text-white font-semibold text-base mb-2">Camera Error</p>
             <p className="text-slate-400 text-sm mb-6">{error}</p>
             <button
-              onClick={() => startCamera(cameras[currentCamIndex]?.deviceId)}
+              onClick={() => startCamera(undefined)}
               className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors"
             >
               Retry
