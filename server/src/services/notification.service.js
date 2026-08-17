@@ -79,10 +79,10 @@ class NotificationService {
                 where: { role },
                 select: { id: true },
             });
-            targetUserIds = users.map((u) => u.id);
+            targetUserIds = (users || []).map((u) => u.id);
         } else {
             const users = await prisma.user.findMany({ select: { id: true } });
-            targetUserIds = users.map((u) => u.id);
+            targetUserIds = (users || []).map((u) => u.id);
         }
 
         if (targetUserIds.length === 0) {
