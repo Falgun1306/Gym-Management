@@ -379,6 +379,7 @@ model Payment {
   status        PaymentStatus @default(PENDING)
   transactionId String?       @unique
   paidAt        DateTime      @default(now())
+  createdAt     DateTime      @default(now())
   description   String?
 
   // ─── Razorpay Gateway Fields ──────────────────────────
