@@ -15,3 +15,5 @@ export { Skeleton, SkeletonText, SkeletonCard, SkeletonTable, SkeletonStat } fro
 export { EmptyState } from './EmptyState';
 export { Card, CardHeader, CardTitle, CardContent, StatCard } from './Card';
 export { Avatar } from './Avatar';
+export { Spinner } from './Spinner';
+export { GlobalLoader } from './GlobalLoader';
