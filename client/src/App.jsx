@@ -31,7 +31,6 @@ import PaymentsPage from '@/pages/admin/PaymentsPage';
 import EquipmentPage from '@/pages/admin/EquipmentPage';
 import ComplaintsPage from '@/pages/admin/ComplaintsPage';
 import ReportsPage from '@/pages/admin/ReportsPage';
-import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
 
 // ── Trainer pages ──
 import TrainerDashboard from '@/pages/trainers/TrainerDashboard';
@@ -135,7 +134,6 @@ export default function App() {
         <Route path="complaints" element={<RoleGuard allowedRoles={['ADMIN']}><ComplaintsPage /></RoleGuard>} />
         <Route path="reports" element={<RoleGuard allowedRoles={['ADMIN']}><ReportsPage /></RoleGuard>} />
         <Route path="gym-classes" element={<RoleGuard allowedRoles={['ADMIN']}><GymClassesPage /></RoleGuard>} />
-        <Route path="settings" element={<RoleGuard allowedRoles={['ADMIN', 'TRAINER', 'MEMBER']}><AdminSettingsPage /></RoleGuard>} />
 
         {/* ── Trainer-only routes ── */}
         <Route path="my-members" element={<RoleGuard allowedRoles={['TRAINER']}><MyMembersPage /></RoleGuard>} />
