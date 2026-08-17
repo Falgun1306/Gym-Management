@@ -7,6 +7,7 @@
 import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
+import ErrorHandler from "../../src/utility/ErrorHandler.utility.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -125,17 +126,29 @@ describe("Authorize Middleware (authorize.middleware.js)", () => {
         expect(next).toHaveBeenCalledTimes(1);
     });
 
-    it("should throw 401 ErrorHandler if req.user is undefined", () => {
+    it("should pass 401 ErrorHandler to next() if req.user is undefined", () => {
         const middleware = authorize("ADMIN");
 
-        expect(() => middleware(req, res, next)).toThrow("Authentication required");
+        middleware(req, res, next);
+
+        expect(next).toHaveBeenCalledTimes(1);
+        const err = next.mock.calls[0][0];
+        expect(err).toBeInstanceOf(ErrorHandler);
+        expect(err.statusCode).toBe(401);
+        expect(err.message).toBe("Authentication required");
     });
 
-    it("should throw 403 ErrorHandler if req.user role is not in allowed roles", () => {
+    it("should pass 403 ErrorHandler to next() if req.user role is not in allowed roles", () => {
         req.user = { id: "u1", role: "MEMBER" };
         const middleware = authorize("ADMIN", "TRAINER");
 
-        expect(() => middleware(req, res, next)).toThrow("Access denied: insufficient permissions");
+        middleware(req, res, next);
+
+        expect(next).toHaveBeenCalledTimes(1);
+        const err = next.mock.calls[0][0];
+        expect(err).toBeInstanceOf(ErrorHandler);
+        expect(err.statusCode).toBe(403);
+        expect(err.message).toBe("Access denied: insufficient permissions");
     });
 });
 
