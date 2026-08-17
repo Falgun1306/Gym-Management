@@ -6,14 +6,56 @@ import errorHandler from "./middlewares/errorHandler.middleware.js";
 const app = express();
 
 // ── CORS ─────────────────────────────────────────────────────────────────────
-const allowedOrigins = [
-    process.env.CLIENT_URL || "http://localhost:3000",
-].filter(Boolean);
+const parseOrigins = () => {
+    const raw = process.env.CLIENT_URL || "";
+    const list = raw
+        .split(",")
+        .map((url) => url.trim().replace(/\/+$/, ""))
+        .filter(Boolean);
 
-app.use(cors({
-    origin: allowedOrigins,
-    credentials: true,
-}));
+    return [
+        ...list,
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ];
+};
+
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            // Allow server-to-server or non-browser requests (e.g. Postman, curl, webhooks)
+            if (!origin) return callback(null, true);
+
+            const allowed = parseOrigins();
+            const normalizedOrigin = origin.replace(/\/+$/, "");
+
+            try {
+                const url = new URL(origin);
+                if (
+                    allowed.includes(normalizedOrigin) ||
+                    allowed.includes(origin) ||
+                    url.hostname.endsWith(".vercel.app") ||
+                    url.hostname === "localhost" ||
+                    url.hostname === "127.0.0.1"
+                ) {
+                    return callback(null, true);
+                }
+            } catch {
+                // If URL parsing fails, fallback to direct string check
+                if (allowed.includes(normalizedOrigin)) {
+                    return callback(null, true);
+                }
+            }
+
+            callback(new Error(`Origin ${origin} not allowed by CORS`));
+        },
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+    })
+);
 
 // ── Raw body parsing for Razorpay webhook (must come BEFORE express.json) ──
 app.use("/api/v1/payments/webhook", express.raw({ type: "application/json" }), (req, _res, next) => {
