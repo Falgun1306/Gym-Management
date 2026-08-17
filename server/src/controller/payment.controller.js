@@ -332,6 +332,16 @@ const verifyPayment = asyncHandler(async (req, res) => {
                 include: { plan: { select: { name: true } } },
             });
             if (updatedMem?.plan?.name) planName = updatedMem.plan.name;
+
+            // When new membership is activated, expire previous active memberships
+            await tx.membership.updateMany({
+                where: {
+                    memberId: payment.memberId,
+                    id: { not: payment.membershipId },
+                    status: "ACTIVE",
+                },
+                data: { status: "EXPIRED" },
+            });
         }
 
         // Clean up pending payment notifications & post success notification

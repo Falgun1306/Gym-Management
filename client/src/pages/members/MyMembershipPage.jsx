@@ -107,10 +107,14 @@ export default function MyMembershipPage() {
     e.preventDefault();
     if (!couponInput.trim() || !selectedPlanToPurchase) return;
 
+    const targetPrice = parseFloat(selectedPlanToPurchase.price);
+    const isUpgradePlan = hasActivePlan && targetPrice > currentPlanPrice;
+    const baseAmount = isUpgradePlan ? targetPrice - currentPlanPrice : targetPrice;
+
     validateCouponMutation.mutate(
       {
         code: couponInput.trim(),
-        amount: selectedPlanToPurchase.price,
+        amount: baseAmount,
         planId: selectedPlanToPurchase.id,
       },
       {
@@ -265,7 +269,17 @@ export default function MyMembershipPage() {
     setAppliedCoupon(null);
   };
 
-  const activeSub = subscriptions.find((s) => s.status === 'ACTIVE' || s.status === 'FROZEN') || subscriptions[0];
+  const activeSub = subscriptions.find((s) => (s.status === 'ACTIVE' || s.status === 'FROZEN') && new Date(s.endDate) >= new Date()) || subscriptions.find((s) => s.status === 'ACTIVE' || s.status === 'FROZEN') || subscriptions[0];
+  const currentPlanPrice = activeSub?.plan?.price ? parseFloat(activeSub.plan.price) : 0;
+  const currentDuration = activeSub?.plan?.durationMonths || 1;
+  const hasActivePlan = Boolean(activeSub && activeSub.status === 'ACTIVE' && new Date(activeSub.endDate) >= new Date());
+
+  const targetPlanPrice = selectedPlanToPurchase ? parseFloat(selectedPlanToPurchase.price) : 0;
+  const targetDuration = selectedPlanToPurchase ? (selectedPlanToPurchase.durationMonths || 1) : 1;
+  const isUpgradePlan = hasActivePlan && targetPlanPrice > currentPlanPrice && targetDuration >= currentDuration;
+  const upgradePriceDifference = isUpgradePlan ? targetPlanPrice - currentPlanPrice : targetPlanPrice;
+  const netPayable = appliedCoupon ? appliedCoupon.finalAmount : upgradePriceDifference;
+
   const payments = paymentData?.payments || [];
   const paymentPagination = paymentData?.pagination || { page: 1, total: payments.length, totalPages: 1 };
 
@@ -615,8 +629,13 @@ export default function MyMembershipPage() {
 
       {/* ── Purchase Plan Modal ── */}
       {purchaseModalOpen && (
-        <Modal open={purchaseModalOpen} onClose={handleClosePurchaseModal} title={selectedPlanToPurchase ? "Select Payment Method" : "Available Membership Plans"}>
-          <div className="max-h-[70vh] overflow-y-auto space-y-4 p-1">
+        <Modal
+          open={purchaseModalOpen}
+          onClose={handleClosePurchaseModal}
+          size={selectedPlanToPurchase ? "md" : "xl"}
+          title={selectedPlanToPurchase ? "Select Payment Method" : "Available Membership Plans"}
+        >
+          <div className="space-y-4">
             {!selectedPlanToPurchase ? (
               // Step 1: Select Plan
               plansLoading ? (
@@ -627,32 +646,113 @@ export default function MyMembershipPage() {
               ) : availablePlans.length === 0 ? (
                 <p className="text-center text-slate-500 py-8">No plans available at the moment.</p>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {availablePlans.map((plan) => (
-                    <Card key={plan.id} className="p-5 border border-slate-200 hover:border-emerald-500 transition-colors">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-bold text-slate-900 text-lg">{plan.name}</h3>
-                        <Badge variant="info">
-                          {Math.round((plan.durationInDays || plan.durationMonths * 30) / 30)} Month{Math.round((plan.durationInDays || plan.durationMonths * 30) / 30) !== 1 ? 's' : ''}
-                        </Badge>
-                      </div>
-                      <div className="text-2xl font-extrabold text-slate-800 mb-2">
-                        {formatCurrency(plan.price)}
-                      </div>
-                      {plan.providedTrainerType && (
-                        <Badge variant={plan.providedTrainerType === 'PERSONAL' ? 'purple' : 'slate'} className="mb-4">
-                          {plan.providedTrainerType === 'PERSONAL' ? 'Personal Trainer' : 'Common Trainer'}
-                        </Badge>
-                      )}
-                      <p className="text-xs text-slate-500 mb-4 h-8 line-clamp-2">{plan.description}</p>
-                      <Button
-                        className="w-full"
-                        onClick={() => handlePurchaseClick(plan)}
-                      >
-                        Select Plan
-                      </Button>
-                    </Card>
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {availablePlans.map((plan) => {
+                    const planPrice = parseFloat(plan.price);
+                    const planDuration = plan.durationMonths || 1;
+                    const isCurrentPlan = activeSub?.planId === plan.id;
+                    const isPriceHigher = planPrice > currentPlanPrice;
+                    const isDurationValid = planDuration >= currentDuration;
+                    const isUpgrade = hasActivePlan && isPriceHigher && isDurationValid;
+                    const isInvalidUpgrade = hasActivePlan && !isCurrentPlan && (!isPriceHigher || !isDurationValid);
+                    const upgradeDifference = isUpgrade ? planPrice - currentPlanPrice : planPrice;
+                    const extraMonths = planDuration - currentDuration;
+
+                    return (
+                      <Card key={plan.id} className="p-5 border border-slate-200 hover:border-emerald-500 transition-colors flex flex-col justify-between overflow-hidden">
+                        <div>
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                            <h3 className="font-bold text-slate-900 text-base sm:text-lg min-w-0">
+                              {plan.name}
+                            </h3>
+                            <Badge
+                              size="sm"
+                              variant={
+                                isCurrentPlan
+                                  ? 'success'
+                                  : isUpgrade
+                                  ? 'purple'
+                                  : isInvalidUpgrade
+                                  ? 'slate'
+                                  : 'info'
+                              }
+                              className="shrink-0 text-[10px] font-semibold whitespace-nowrap"
+                            >
+                              {isCurrentPlan
+                                ? 'CURRENT PLAN'
+                                : isUpgrade
+                                ? 'UPGRADE AVAILABLE'
+                                : !isPriceHigher
+                                ? 'LOWER PRICE'
+                                : 'SHORTER DURATION'}
+                            </Badge>
+                          </div>
+
+                          {isUpgrade ? (
+                            <div className="mb-2">
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-extrabold text-emerald-600">
+                                  {formatCurrency(upgradeDifference)}
+                                </span>
+                                <span className="text-xs font-medium text-slate-400 line-through">
+                                  {formatCurrency(planPrice)}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-emerald-700 font-medium">
+                                {extraMonths > 0
+                                  ? `+${extraMonths} month${extraMonths > 1 ? 's' : ''} added to expiry (Pay difference)`
+                                  : 'Pay only upgrade difference'}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="text-2xl font-extrabold text-slate-800 mb-2">
+                              {formatCurrency(planPrice)}
+                            </div>
+                          )}
+
+                          {plan.providedTrainerType && (
+                            <Badge variant={plan.providedTrainerType === 'PERSONAL' ? 'purple' : 'slate'} className="mb-4">
+                              {plan.providedTrainerType === 'PERSONAL' ? 'Personal Trainer' : 'Common Trainer'}
+                            </Badge>
+                          )}
+                          <p className="text-xs text-slate-500 mb-4 h-8 line-clamp-2">{plan.description}</p>
+                        </div>
+
+                        {isCurrentPlan ? (
+                          <Button className="w-full" disabled variant="outline">
+                            Current Active Plan
+                          </Button>
+                        ) : isInvalidUpgrade ? (
+                          <Button
+                            className="w-full opacity-60 cursor-not-allowed text-slate-400 border-slate-200"
+                            disabled
+                            variant="outline"
+                            title={
+                              !isPriceHigher
+                                ? 'Cannot purchase lower-priced plans while active'
+                                : 'New plan duration must be equal or longer than current'
+                            }
+                          >
+                            Cannot Downgrade
+                          </Button>
+                        ) : isUpgrade ? (
+                          <Button
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-semibold"
+                            onClick={() => handlePurchaseClick(plan)}
+                          >
+                            Upgrade (Pay {formatCurrency(upgradeDifference)})
+                          </Button>
+                        ) : (
+                          <Button
+                            className="w-full"
+                            onClick={() => handlePurchaseClick(plan)}
+                          >
+                            Select Plan
+                          </Button>
+                        )}
+                      </Card>
+                    );
+                  })}
                 </div>
               )
             ) : (
@@ -662,7 +762,10 @@ export default function MyMembershipPage() {
                 <Card className="p-4 bg-slate-50 border border-slate-200">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-bold text-slate-900">{selectedPlanToPurchase.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-slate-900">{selectedPlanToPurchase.name}</h3>
+                        {isUpgradePlan && <Badge variant="purple" size="sm">PLAN UPGRADE</Badge>}
+                      </div>
                       <p className="text-xs text-slate-500 mt-0.5">
                         Duration: {selectedPlanToPurchase.durationMonths} Months
                       </p>
@@ -672,9 +775,34 @@ export default function MyMembershipPage() {
 
                   <div className="mt-3 pt-3 border-t border-slate-200/80 space-y-1.5 text-xs">
                     <div className="flex justify-between text-slate-600">
-                      <span>Original Price:</span>
-                      <span>{formatCurrency(selectedPlanToPurchase.price)}</span>
+                      <span>New Plan Price:</span>
+                      <span>{formatCurrency(targetPlanPrice)}</span>
                     </div>
+
+                    {isUpgradePlan && (
+                      <div className="flex justify-between text-emerald-700 font-medium">
+                        <span>Current Plan Credit ({activeSub.plan?.name}):</span>
+                        <span>-{formatCurrency(currentPlanPrice)}</span>
+                      </div>
+                    )}
+
+                    {isUpgradePlan && (
+                      <div className="flex justify-between text-slate-800 font-semibold pt-1 border-t border-slate-200">
+                        <span>Upgrade Difference:</span>
+                        <span>{formatCurrency(upgradePriceDifference)}</span>
+                      </div>
+                    )}
+
+                    {isUpgradePlan && (
+                      <div className="flex justify-between text-purple-700 font-medium">
+                        <span>Expiry Extension:</span>
+                        <span>
+                          {targetDuration > currentDuration
+                            ? `+${targetDuration - currentDuration} Month${targetDuration - currentDuration > 1 ? 's' : ''} added to expiry`
+                            : `Retains current expiry date (${formatDate(activeSub?.endDate)})`}
+                        </span>
+                      </div>
+                    )}
 
                     {appliedCoupon && appliedCoupon.discountAmount > 0 && (
                       <div className="flex justify-between text-emerald-600 font-semibold">
@@ -693,7 +821,7 @@ export default function MyMembershipPage() {
                     <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
                       <span>Total Net Payable:</span>
                       <span className="text-emerald-600">
-                        {formatCurrency(appliedCoupon ? appliedCoupon.finalAmount : selectedPlanToPurchase.price)}
+                        {formatCurrency(netPayable)}
                       </span>
                     </div>
                   </div>
@@ -794,7 +922,7 @@ export default function MyMembershipPage() {
                   >
                     {paymentMethod === 'CASH'
                       ? 'Request Membership'
-                      : `Pay ${formatCurrency(appliedCoupon ? appliedCoupon.finalAmount : selectedPlanToPurchase.price)}`}
+                      : `Pay ${formatCurrency(netPayable)}`}
                   </Button>
                 </div>
               </div>

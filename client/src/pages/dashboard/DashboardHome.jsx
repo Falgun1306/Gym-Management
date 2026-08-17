@@ -105,7 +105,7 @@ function AdminDashboard() {
               iconBg="bg-emerald-50 text-emerald-600"
               subtitle={
                 data?.totalMembers
-                  ? `${Math.round((data.activeMemberships / data.totalMembers) * 100)}% active rate`
+                  ? `${Math.min(100, Math.round(((data.activeMembers ?? data.activeMemberships) / data.totalMembers) * 100))}% active rate`
                   : undefined
               }
             />

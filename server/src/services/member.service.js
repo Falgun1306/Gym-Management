@@ -578,7 +578,68 @@ class MemberService {
             throw new ErrorHandler("Invalid or inactive membership plan", 404);
         }
 
-        const rawPrice = parseFloat(plan.price);
+        // Check if member has an active unexpired membership
+        const activeMembership = await prisma.membership.findFirst({
+            where: {
+                memberId: member.id,
+                status: "ACTIVE",
+                endDate: { gte: new Date() },
+            },
+            include: { plan: true },
+            orderBy: { endDate: "desc" },
+        });
+
+        const targetPlanPrice = parseFloat(plan.price);
+        const targetDuration = plan.durationMonths || 1;
+        let rawPrice = targetPlanPrice;
+        let isUpgrade = false;
+        let activePlanName = null;
+        let start = new Date();
+        let end = new Date(start);
+        end.setMonth(end.getMonth() + targetDuration);
+
+        if (activeMembership && activeMembership.plan) {
+            const currentActivePrice = parseFloat(activeMembership.plan.price);
+            const currentDuration = activeMembership.plan.durationMonths || 1;
+            activePlanName = activeMembership.plan.name;
+
+            if (plan.id === activeMembership.planId) {
+                // Exact same plan renewal: start from current end date
+                rawPrice = targetPlanPrice;
+                start = new Date(activeMembership.endDate);
+                end = new Date(start);
+                end.setMonth(end.getMonth() + targetDuration);
+            } else {
+                // Condition 1: Price must be more
+                if (targetPlanPrice <= currentActivePrice) {
+                    throw new ErrorHandler(
+                        `To upgrade, the new plan price (₹${targetPlanPrice}) must be greater than your current "${activePlanName}" plan (₹${currentActivePrice}).`,
+                        400
+                    );
+                }
+
+                // Condition 2: Duration/expiry must be same or later
+                if (targetDuration < currentDuration) {
+                    throw new ErrorHandler(
+                        `To upgrade, the new plan duration (${targetDuration} month${targetDuration > 1 ? "s" : ""}) must be equal to or longer than your current plan duration (${currentDuration} month${currentDuration > 1 ? "s" : ""}).`,
+                        400
+                    );
+                }
+
+                // Both conditions met: calculate price difference and manage expiry date
+                isUpgrade = true;
+                rawPrice = targetPlanPrice - currentActivePrice;
+
+                start = new Date(activeMembership.startDate);
+                const extraMonths = targetDuration - currentDuration;
+                end = new Date(activeMembership.endDate);
+
+                if (extraMonths > 0) {
+                    end.setMonth(end.getMonth() + extraMonths);
+                }
+            }
+        }
+
         let finalPrice = rawPrice;
         let validatedCouponCode = null;
 
@@ -591,11 +652,11 @@ class MemberService {
             );
             finalPrice = validation.finalAmount;
             validatedCouponCode = validation.code;
-        }
 
-        const start = new Date();
-        const end = new Date(start);
-        end.setMonth(end.getMonth() + plan.durationMonths);
+            if (validation.extraDays && validation.extraDays > 0) {
+                end.setDate(end.getDate() + validation.extraDays);
+            }
+        }
 
         const isCash = method === "CASH";
 
@@ -607,7 +668,9 @@ class MemberService {
                 receipt: `rcpt_${Date.now()}_${member.id.slice(-6)}`,
                 notes: {
                     memberId: member.id,
-                    description: `Purchased via Member Portal - ${plan.name}`,
+                    description: isUpgrade
+                        ? `Upgrade from ${activePlanName} to ${plan.name}`
+                        : `Purchased via Member Portal - ${plan.name}`,
                     couponCode: validatedCouponCode || "",
                 },
             });
@@ -637,7 +700,9 @@ class MemberService {
                     status: payStatus,
                     razorpayOrderId: razorpayOrder ? razorpayOrder.id : null,
                     appliedCouponCode: validatedCouponCode,
-                    description: `Purchased via Member Portal - ${plan.name}${validatedCouponCode ? ` (Coupon: ${validatedCouponCode})` : ""}`,
+                    description: isUpgrade
+                        ? `Upgrade from ${activePlanName} to ${plan.name}${validatedCouponCode ? ` (Coupon: ${validatedCouponCode})` : ""}`
+                        : `Purchased via Member Portal - ${plan.name}${validatedCouponCode ? ` (Coupon: ${validatedCouponCode})` : ""}`,
                 },
             });
 

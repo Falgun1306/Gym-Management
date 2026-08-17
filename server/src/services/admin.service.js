@@ -928,6 +928,16 @@ class AdminService {
                     where: { id: payment.membershipId },
                     data: { status: "ACTIVE" },
                 });
+
+                // Expire any prior active memberships for this member
+                await tx.membership.updateMany({
+                    where: {
+                        memberId: payment.memberId,
+                        id: { not: payment.membershipId },
+                        status: "ACTIVE",
+                    },
+                    data: { status: "EXPIRED" },
+                });
             }
 
             if (payment.member?.userId) {
