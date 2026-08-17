@@ -1,45 +1,61 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useLoadingStore } from '@/store/useLoadingStore';
 
 /**
  * Pre-configured Axios instance for all API calls.
  *
  * Features:
  *  - Base URL pointing to the backend API (v1)
- *  - Request interceptor: auto-injects JWT Bearer token from Zustand store
- *  - Response interceptor: unwraps successful ApiResponse.data,
+ *  - Request interceptor: auto-injects JWT Bearer token from Zustand store + starts global loader
+ *  - Response interceptor: unwraps successful ApiResponse.data, stops global loader,
  *    handles 401 (auto-logout), and normalizes error messages for toast consumers
  */
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true,
 });
 
-// ── Request Interceptor: JWT Injection ───────────────────────────────────────
+// ── Request Interceptor: JWT Injection & Loader Trigger ───────────────────────
 
 api.interceptors.request.use(
   (config) => {
+    if (!config?.skipGlobalLoader) {
+      useLoadingStore.getState().startLoading();
+    }
+
     const token = useAuthStore.getState().token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    useLoadingStore.getState().stopLoading();
+    return Promise.reject(error);
+  }
 );
 
-// ── Response Interceptor: Unwrap & Error Handling ────────────────────────────
+// ── Response Interceptor: Unwrap, Loader Finish & Error Handling ──────────────
 
 api.interceptors.response.use(
   (response) => {
+    if (!response.config?.skipGlobalLoader) {
+      useLoadingStore.getState().stopLoading();
+    }
+
     // Backend wraps all responses in ApiResponse { statusCode, success, message, data, pagination? }
     // We unwrap to make consumers' lives simpler:  response.data → { data, message, pagination }
     return response.data;
   },
   (error) => {
+    if (!error.config?.skipGlobalLoader) {
+      useLoadingStore.getState().stopLoading();
+    }
+
     const status = error.response?.status;
     const serverMessage =
       error.response?.data?.message || error.message || 'An unexpected error occurred';
@@ -64,3 +80,4 @@ api.interceptors.response.use(
 );
 
 export default api;
+

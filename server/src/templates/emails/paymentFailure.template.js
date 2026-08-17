@@ -54,7 +54,7 @@ const getPaymentFailureEmailTemplate = (data) => {
             <p>If you'd like to try again, you can easily retry this payment directly from your Member Portal dashboard.</p>
             
             <div class="btn-container">
-                <a href="${process.env.CLIENT_URL || "http://localhost:5173"}/members/my-membership" class="btn">Retry Payment</a>
+                <a href="${process.env.CLIENT_URL || "http://localhost:3000"}/members/my-membership" class="btn">Retry Payment</a>
             </div>
         </div>
 

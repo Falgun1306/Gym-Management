@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
+import { GlobalLoader } from '@/components/ui/GlobalLoader';
 
 // ── Auth pages ──
 import LoginPage from '@/pages/auth/LoginPage';
@@ -83,7 +84,9 @@ export default function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   return (
-    <Routes>
+    <>
+      <GlobalLoader />
+      <Routes>
       {/* ── Public / Auth Routes ── */}
       <Route
         path="/login"
@@ -172,5 +175,6 @@ export default function App() {
       {/* ── 404 Catch-all ── */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    </>
   );
 }
