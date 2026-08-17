@@ -91,7 +91,7 @@ export async function getMyPayments(params = {}) {
 }
 
 export async function downloadPaymentInvoice(paymentId) {
-  return api.get(`/payments/${paymentId}/invoice`);
+  return api.get(`/payments/${paymentId}/invoice`, { responseType: 'blob' });
 }
 
 // ─── Coupons & Referrals ─────────────────────────────────────────────────────

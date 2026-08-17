@@ -11,7 +11,7 @@ import {
   useFailPayment,
   useValidateCoupon,
 } from '@/hooks/useMemberPortal';
-import { verifyPayment } from '@/services/memberPortalService';
+import { verifyPayment, downloadPaymentInvoice } from '@/services/memberPortalService';
 import { Card, CardHeader, Badge, Button, Modal, SkeletonTable } from '@/components/ui';
 import {
   CreditCard,
@@ -29,13 +29,17 @@ import {
   Tag,
   Ticket,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/utils/formatters';
 import toast from 'react-hot-toast';
 
 export default function MyMembershipPage() {
+  const [paymentPage, setPaymentPage] = useState(1);
+  const paymentLimit = 10;
   const { data: subscriptions = [], isLoading: subsLoading } = useMemberSubscriptions();
-  const { data: paymentData, isLoading: paymentsLoading } = useMemberPayments();
+  const { data: paymentData, isLoading: paymentsLoading } = useMemberPayments({ page: paymentPage, limit: paymentLimit });
   const { data: referralData } = useMemberReferralLink();
 
   const [copied, setCopied] = useState(false);
@@ -43,6 +47,27 @@ export default function MyMembershipPage() {
   const [selectedMembership, setSelectedMembership] = useState(null);
   const [freezeDays, setFreezeDays] = useState(7);
   const [freezeReason, setFreezeReason] = useState('');
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState(null);
+
+  const handleDownloadInvoice = async (paymentId) => {
+    try {
+      setDownloadingInvoiceId(paymentId);
+      const blob = await downloadPaymentInvoice(paymentId);
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice-${paymentId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Invoice downloaded successfully!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to download invoice');
+    } finally {
+      setDownloadingInvoiceId(null);
+    }
+  };
 
   const freezeMutation = useFreezeMembership();
   const unfreezeMutation = useUnfreezeMembership();
@@ -242,6 +267,10 @@ export default function MyMembershipPage() {
 
   const activeSub = subscriptions.find((s) => s.status === 'ACTIVE' || s.status === 'FROZEN') || subscriptions[0];
   const payments = paymentData?.payments || [];
+  const paymentPagination = paymentData?.pagination || { page: 1, total: payments.length, totalPages: 1 };
+
+  const payStartItem = payments.length > 0 ? (paymentPagination.page - 1) * paymentLimit + 1 : 0;
+  const payEndItem = Math.min(paymentPagination.page * paymentLimit, paymentPagination.total);
 
   const handleCopyReferral = () => {
     if (!referralData?.shareUrl) return;
@@ -405,7 +434,7 @@ export default function MyMembershipPage() {
                       <p className="font-mono text-xs font-bold text-slate-900">
                         #{p.invoiceNumber || p.id?.slice(-8)?.toUpperCase()}
                       </p>
-                      <p className="text-[11px] text-slate-400">{formatDate(p.createdAt)}</p>
+                      <p className="text-[11px] text-slate-400">{formatDate(p.paidAt || p.createdAt)}</p>
                     </div>
                     <Badge variant={p.status === 'SUCCESS' || p.status === 'COMPLETED' ? 'success' : p.status === 'FAILED' ? 'danger' : 'warning'}>
                       {p.status}
@@ -423,6 +452,20 @@ export default function MyMembershipPage() {
                     </div>
                   </div>
 
+                  {(p.status === 'SUCCESS' || p.status === 'COMPLETED') && (
+                    <div className="flex justify-end pt-2 border-t border-slate-100">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="!py-1 !px-3 text-xs text-emerald-700 hover:text-emerald-800 border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/50"
+                        onClick={() => handleDownloadInvoice(p.id)}
+                        loading={downloadingInvoiceId === p.id}
+                        icon={Receipt}
+                      >
+                        Download Invoice
+                      </Button>
+                    </div>
+                  )}
                   {p.status === 'FAILED' && p.paymentMethod === 'ONLINE' && (
                     <div className="flex justify-end pt-2 border-t border-slate-100">
                       <Button
@@ -459,7 +502,7 @@ export default function MyMembershipPage() {
                       <td className="py-3 px-4 font-mono font-semibold text-slate-800">
                         #{p.invoiceNumber || p.id?.slice(-8)?.toUpperCase()}
                       </td>
-                      <td className="py-3 px-4 text-slate-600">{formatDate(p.createdAt)}</td>
+                      <td className="py-3 px-4 text-slate-600">{formatDate(p.paidAt || p.createdAt)}</td>
                       <td className="py-3 px-4 font-bold text-slate-900">{formatCurrency(p.amount)}</td>
                       <td className="py-3 px-4 text-slate-600">{p.paymentMethod || p.gateway || 'ONLINE'}</td>
                       <td className="py-3 px-4">
@@ -470,6 +513,18 @@ export default function MyMembershipPage() {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right">
+                        {(p.status === 'SUCCESS' || p.status === 'COMPLETED') && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="!py-1 !px-2.5 text-xs text-emerald-700 hover:text-emerald-800 border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/50"
+                            onClick={() => handleDownloadInvoice(p.id)}
+                            loading={downloadingInvoiceId === p.id}
+                            icon={Receipt}
+                          >
+                            Invoice
+                          </Button>
+                        )}
                         {p.status === 'FAILED' && p.paymentMethod === 'ONLINE' && (
                           <Button
                             size="sm"
@@ -486,6 +541,34 @@ export default function MyMembershipPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* ── Pagination Bar ── */}
+            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50/50 mt-2">
+              <p className="text-xs text-slate-500 font-medium">
+                Showing {payStartItem}–{payEndItem} of {paymentPagination.total} payments
+              </p>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setPaymentPage((p) => Math.max(1, p - 1))}
+                  disabled={paymentPagination.page <= 1}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  title="Previous Page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-xs font-semibold text-slate-700 px-2">
+                  Page {paymentPagination.page} of {paymentPagination.totalPages || 1}
+                </span>
+                <button
+                  onClick={() => setPaymentPage((p) => Math.min(paymentPagination.totalPages || 1, p + 1))}
+                  disabled={paymentPagination.page >= (paymentPagination.totalPages || 1)}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  title="Next Page"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </>
         )}

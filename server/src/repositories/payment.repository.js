@@ -8,7 +8,7 @@ class PaymentRepository {
         });
     }
 
-    async findMany(where = {}, skip = 0, take = 20, orderBy = { createdAt: "desc" }, include = null) {
+    async findMany(where = {}, skip = 0, take = 20, orderBy = { paidAt: "desc" }, include = null) {
         const [data, total] = await Promise.all([
             prisma.payment.findMany({
                 where,

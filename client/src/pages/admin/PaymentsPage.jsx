@@ -2,13 +2,38 @@ import { useState } from 'react';
 import { useAdminPayments, useCreateAdminPayment, useApprovePayment } from '@/hooks/useAdmin';
 import { useMembers } from '@/hooks/useMembers';
 import { Card, Badge, Button, Modal, SkeletonTable } from '@/components/ui';
-import { CreditCard, FileText, Plus, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { CreditCard, FileText, Plus, CheckCircle, Clock, AlertCircle, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/utils/formatters';
+import { downloadPaymentInvoice } from '@/services/memberPortalService';
+import toast from 'react-hot-toast';
 
 export default function PaymentsPage() {
   const [statusFilter, setStatusFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [recordPaymentModal, setRecordPaymentModal] = useState(false);
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState(null);
+
+  const handleDownloadInvoice = async (paymentId) => {
+    try {
+      setDownloadingInvoiceId(paymentId);
+      const blob = await downloadPaymentInvoice(paymentId);
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice-${paymentId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Invoice downloaded successfully!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to download invoice');
+    } finally {
+      setDownloadingInvoiceId(null);
+    }
+  };
 
   const [form, setForm] = useState({
     username: '',
@@ -20,8 +45,12 @@ export default function PaymentsPage() {
   const { data: membersRes } = useMembers({ limit: 100 });
   const memberList = membersRes?.members || (Array.isArray(membersRes) ? membersRes : []);
 
-  const { data, isLoading } = useAdminPayments({ status: statusFilter || undefined });
+  const { data, isLoading } = useAdminPayments({ status: statusFilter || undefined, page, limit });
   const payments = data?.payments || [];
+  const pagination = data?.pagination || { page: 1, total: payments.length, totalPages: 1 };
+
+  const startItem = payments.length > 0 ? (pagination.page - 1) * limit + 1 : 0;
+  const endItem = Math.min(pagination.page * limit, pagination.total);
   const createPaymentMutation = useCreateAdminPayment();
   const approvePaymentMutation = useApprovePayment();
 
@@ -64,12 +93,14 @@ export default function PaymentsPage() {
             {['', 'SUCCESS', 'PENDING', 'FAILED'].map((st) => (
               <button
                 key={st}
-                onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                  statusFilter === st
+                onClick={() => {
+                  setStatusFilter(st);
+                  setPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${statusFilter === st
                     ? 'bg-slate-900 text-white'
                     : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 {st || 'All'}
               </button>
@@ -201,6 +232,34 @@ export default function PaymentsPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* ── Pagination Bar ── */}
+            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50/50">
+              <p className="text-xs text-slate-500 font-medium">
+                Showing {startItem}–{endItem} of {pagination.total} payment transactions
+              </p>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={pagination.page <= 1}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  title="Previous Page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-xs font-semibold text-slate-700 px-2">
+                  Page {pagination.page} of {pagination.totalPages || 1}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(pagination.totalPages || 1, p + 1))}
+                  disabled={pagination.page >= (pagination.totalPages || 1)}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  title="Next Page"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </>
         )}
       </Card>
@@ -299,10 +358,19 @@ export default function PaymentsPage() {
               <p><strong>Date & Time:</strong> {formatDate(selectedInvoice.paidAt || selectedInvoice.createdAt)}</p>
               <p><strong>Status:</strong> {selectedInvoice.status}</p>
             </div>
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end gap-2 pt-2">
               <Button onClick={() => window.print()} variant="outline">
                 Print Invoice
               </Button>
+              {(selectedInvoice.status === 'SUCCESS' || selectedInvoice.status === 'COMPLETED') && (
+                <Button
+                  onClick={() => handleDownloadInvoice(selectedInvoice.id)}
+                  loading={downloadingInvoiceId === selectedInvoice.id}
+                  icon={Download}
+                >
+                  Download PDF
+                </Button>
+              )}
             </div>
           </div>
         </Modal>
