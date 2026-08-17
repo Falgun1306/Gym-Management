@@ -225,9 +225,65 @@ class GymClassService {
     }
 
     async deleteGymClass(id) {
-        const gymClass = await gymClassRepository.findById(id);
+        const gymClass = await gymClassRepository.findById(id, {
+            trainer: { select: { userId: true, firstName: true, lastName: true } },
+            bookings: {
+                where: { status: { not: "CANCELLED" } },
+                select: {
+                    id: true,
+                    status: true,
+                    member: { select: { userId: true, firstName: true, lastName: true } },
+                },
+            },
+        });
         if (!gymClass) {
             throw new ErrorHandler("Gym class not found", 404);
+        }
+
+        const classTitle = gymClass.title || gymClass.name || "Gym Class";
+        const formattedDate = gymClass.startTime
+            ? new Date(gymClass.startTime).toLocaleDateString("en-US", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+              })
+            : "scheduled date";
+
+        const notifications = [];
+
+        // 1. Notify Trainer if assigned
+        if (gymClass.trainer?.userId) {
+            notifications.push({
+                userId: gymClass.trainer.userId,
+                title: `Class Cancelled: ${classTitle}`,
+                message: `The scheduled class "${classTitle}" on ${formattedDate} has been cancelled by administration.`,
+                type: "CLASS",
+            });
+        }
+
+        // 2. Notify all enrolled members
+        if (gymClass.bookings && gymClass.bookings.length > 0) {
+            gymClass.bookings.forEach((b) => {
+                if (b.member?.userId) {
+                    notifications.push({
+                        userId: b.member.userId,
+                        title: `Class Cancelled: ${classTitle}`,
+                        message: `Your reserved class "${classTitle}" scheduled for ${formattedDate} has been cancelled by administration.`,
+                        type: "CLASS",
+                    });
+                }
+            });
+        }
+
+        // Send notifications in bulk if any
+        if (notifications.length > 0) {
+            try {
+                await prisma.notification.createMany({
+                    data: notifications,
+                });
+            } catch (err) {
+                console.error("Failed to send class cancellation notifications:", err);
+            }
         }
 
         return gymClassRepository.delete(id);
