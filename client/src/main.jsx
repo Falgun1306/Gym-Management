@@ -46,3 +46,17 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </QueryClientProvider>
   </React.StrictMode>
 );
+
+// Register Service Worker for PWA installation & offline functionality
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((registration) => {
+        // console.log('SW registered successfully:', registration.scope);
+      })
+      .catch((err) => {
+        console.warn('SW registration warning:', err);
+      });
+  });
+}

@@ -97,9 +97,13 @@ export default function NotFoundPage() {
             {/* Brand footer */}
             <div className="mt-10 pt-6 border-t border-slate-100">
               <div className="flex items-center gap-2 text-slate-400">
-                <Dumbbell className="w-4 h-4 text-emerald-600" />
-                <span className="text-xs font-semibold uppercase tracking-widest">
-                  IronPeak Management System
+                <img
+                  src="/images/app-icon.png"
+                  alt="Vajra Fitness Logo"
+                  className="w-5 h-5 object-contain"
+                />
+                <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                  Vajra Fitness Platform
                 </span>
               </div>
             </div>

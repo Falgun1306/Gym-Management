@@ -127,7 +127,7 @@ export default function MyTimeSlotsPage() {
             My Workout Time Slots
           </h1>
           <p className="text-slate-300 text-sm mt-1 max-w-2xl">
-            Specify when you train at IronPeak Elite so your personal trainer and facility managers can ensure equipment availability and optimal space for your sessions.
+            Specify when you train at Vajra Fitness so your personal trainer and facility managers can ensure equipment availability and optimal space for your sessions.
           </p>
         </div>
         <Button

@@ -46,7 +46,7 @@ export default function AuthLayout({ children, variant = 'login' }) {
         'Operational continuity is paramount. Restore access to your facility management workspace swiftly and securely.',
     },
     reset: {
-      heading: 'IronPeak\nEnterprise',
+      heading: 'Vajra Fitness\nEnterprise',
       subtext:
         'Industrial-grade performance management for fitness professionals.',
     },
@@ -71,12 +71,14 @@ export default function AuthLayout({ children, variant = 'login' }) {
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-10 w-full">
           {/* Brand */}
-          <Link to="/login" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center">
-              <Dumbbell className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-bold text-white tracking-tight">
-              IronPeak Elite
+          <Link to="/" className="flex items-center gap-2.5">
+            <img
+              src="/images/app-icon.png"
+              alt="Vajra Fitness Logo"
+              className="w-10 h-10 rounded-xl object-contain shadow-md"
+            />
+            <span className="text-xl font-bold text-white tracking-tight">
+              Vajra Fitness
             </span>
           </Link>
 
@@ -126,11 +128,13 @@ export default function AuthLayout({ children, variant = 'login' }) {
         <div className="w-full max-w-md relative z-10 my-auto py-6">
           {/* Mobile brand header */}
           <div className="lg:hidden flex items-center justify-center gap-2.5 mb-6">
-            <div className="w-9 h-9 rounded-lg bg-emerald-600 shadow-md shadow-emerald-900/30 flex items-center justify-center">
-              <Dumbbell className="w-5 h-5 text-white" />
-            </div>
+            <img
+              src="/images/app-icon.png"
+              alt="Vajra Fitness Logo"
+              className="w-10 h-10 rounded-xl object-contain shadow-md shadow-emerald-900/30"
+            />
             <span className={`text-xl font-extrabold tracking-tight ${isMobileBgVariant ? 'text-white drop-shadow-sm' : 'text-slate-900'}`}>
-              IronPeak Elite
+              Vajra Fitness
             </span>
           </div>
 

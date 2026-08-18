@@ -190,7 +190,7 @@ export default function MemberSupportPage() {
         <Card>
           <CardHeader
             title="Trainer Application Status"
-            subtitle="Apply to become a certified trainer at IronPeak Elite"
+            subtitle="Apply to become a certified trainer at Vajra Fitness"
             action={
               <Button onClick={() => setTrainerModal(true)} icon={GraduationCap} size="sm">
                 Apply to Become Trainer
