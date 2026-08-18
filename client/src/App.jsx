@@ -2,7 +2,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { GlobalLoader } from '@/components/ui/GlobalLoader';
 
-// ── Auth pages ──
+// ── Landing & Auth pages ──
+import LandingPage from '@/pages/LandingPage';
 import LoginPage from '@/pages/auth/LoginPage';
 import RegisterPage from '@/pages/auth/RegisterPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
@@ -166,11 +167,9 @@ export default function App() {
       {/* ── Dev Tools ── */}
       <Route path="/components" element={<ComponentShowcase />} />
 
-      {/* ── Root redirect ── */}
-      <Route
-        path="/"
-        element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />}
-      />
+      {/* ── Landing Page (Root & Alias) ── */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/landing" element={<LandingPage />} />
 
       {/* ── 404 Catch-all ── */}
       <Route path="*" element={<NotFoundPage />} />

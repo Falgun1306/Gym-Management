@@ -318,7 +318,7 @@ export default function DashboardLayout() {
 
             {/* Mobile Title preview if breadcrumbs hidden */}
             <span className="sm:hidden text-sm font-bold text-slate-800 truncate">
-              IronPeak Elite
+              Vajra Fitness
             </span>
           </div>
 
