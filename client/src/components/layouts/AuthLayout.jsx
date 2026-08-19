@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Dumbbell, Users, CreditCard, BarChart3, CheckCircle2 } from 'lucide-react';
+import { useAppMode } from '@/hooks/useAppMode';
 
 /**
  * AuthLayout — Split-screen layout for all auth pages.
@@ -54,6 +55,7 @@ export default function AuthLayout({ children, variant = 'login' }) {
 
   const content = taglines[variant] || taglines.login;
   const isMobileBgVariant = ['login', 'register', 'forgot'].includes(variant);
+  const isAppMode = useAppMode();
 
   return (
     <div className="min-h-screen flex">
@@ -71,7 +73,7 @@ export default function AuthLayout({ children, variant = 'login' }) {
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-10 w-full">
           {/* Brand */}
-          <Link to="/" className="flex items-center gap-2.5">
+          <Link to={isAppMode ? '/login' : '/'} className="flex items-center gap-2.5">
             <img
               src="/images/app-icon.png"
               alt="Vajra Fitness Logo"

@@ -61,6 +61,8 @@ import MyTimeSlotsPage from '@/pages/members/MyTimeSlotsPage';
 // ── Dev tools ──
 import ComponentShowcase from '@/pages/ComponentShowcase';
 
+import { useAppMode } from '@/hooks/useAppMode';
+
 /**
  * GuestRoute — redirects authenticated users to /dashboard.
  */
@@ -68,6 +70,23 @@ function GuestRoute({ children }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
   return children;
+}
+
+/**
+ * RootRoute — Displays the marketing Landing Page for regular web browser visitors,
+ * but for installed PWAs, standalone display mode, and APK wrappers, bypasses
+ * the marketing landing page and routes directly to /dashboard (if authenticated)
+ * or /login (if guest).
+ */
+function RootRoute() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isApp = useAppMode();
+
+  if (isApp) {
+    return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />;
+  }
+
+  return <LandingPage />;
 }
 
 /**
@@ -168,8 +187,8 @@ export default function App() {
       <Route path="/components" element={<ComponentShowcase />} />
 
       {/* ── Landing Page (Root & Alias) ── */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/landing" element={<LandingPage />} />
+      <Route path="/" element={<RootRoute />} />
+      <Route path="/landing" element={<RootRoute />} />
 
       {/* ── 404 Catch-all ── */}
       <Route path="*" element={<NotFoundPage />} />
