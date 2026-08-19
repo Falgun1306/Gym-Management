@@ -2,7 +2,7 @@
   "name": "Vajra Fitness — Gym Management",
   "short_name": "Vajra Fitness",
   "description": "Industrial-grade gym & fitness management platform for members, trainers, and administrators.",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

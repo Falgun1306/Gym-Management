@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import {
   Dumbbell,
   Download,
@@ -28,14 +28,21 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
+import { useAppMode } from '@/hooks/useAppMode';
 
 export default function LandingPage() {
   const { isAuthenticated, user } = useAuthStore();
   const { isInstalled, installApp } = usePWAInstall();
+  const isAppMode = useAppMode();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeRoleTab, setActiveRoleTab] = useState('members');
   const [openFaq, setOpenFaq] = useState(0);
+
+  // If running as an installed PWA or APK wrapper, immediately bypass the landing page
+  if (isAppMode) {
+    return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />;
+  }
 
   const handleInstallClick = async () => {
     await installApp();

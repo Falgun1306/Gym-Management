@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
+import { checkIsAppMode } from '@/hooks/useAppMode';
 
 /**
  * usePWAInstall — Hook to manage Progressive Web App install prompts,
@@ -12,8 +13,8 @@ export function usePWAInstall() {
   const [isInstallable, setIsInstallable] = useState(
     typeof window !== 'undefined' ? Boolean(window.deferredPWAInstallPrompt) : false
   );
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(() => checkIsAppMode());
+  const [isStandalone, setIsStandalone] = useState(() => checkIsAppMode());
   const [platform, setPlatform] = useState({
     isIOS: false,
     isAndroid: false,
@@ -27,10 +28,7 @@ export function usePWAInstall() {
 
   useEffect(() => {
     // 1. Detect standalone / installed state
-    const isStandaloneMode =
-      window.matchMedia?.('(display-mode: standalone)').matches ||
-      window.navigator.standalone === true ||
-      document.referrer.includes('android-app://');
+    const isStandaloneMode = checkIsAppMode();
 
     setIsStandalone(isStandaloneMode);
     if (isStandaloneMode) {
