@@ -163,7 +163,7 @@ export default function MembershipPlansPage() {
 
               <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                 <span className="text-xs text-slate-400 font-medium">
-                  {plan._count?.memberships || 0} active members
+                  {plan._count?.memberships || 0} active {plan._count?.memberships === 1 ? 'member' : 'members'}
                 </span>
                 <div className="flex items-center gap-1">
                   <button

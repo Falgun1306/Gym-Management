@@ -99,8 +99,8 @@ function AdminDashboard() {
               iconBg="bg-blue-50 text-blue-600"
             />
             <StatCard
-              title="Active Memberships"
-              value={data?.activeMemberships?.toLocaleString() ?? '—'}
+              title="Active Members"
+              value={data?.activeMembers?.toLocaleString() ?? data?.activeMemberships?.toLocaleString() ?? '—'}
               icon={ShieldCheck}
               iconBg="bg-emerald-50 text-emerald-600"
               subtitle={

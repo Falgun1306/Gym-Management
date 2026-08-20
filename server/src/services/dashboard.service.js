@@ -27,8 +27,11 @@ class DashboardService {
             pendingPayments,
             attendanceToday,
         ] = await Promise.all([
-            memberRepository.count(),
-            memberRepository.count({ memberships: { some: { status: "ACTIVE", endDate: { gte: today } } } }),
+            memberRepository.count({ user: { role: "MEMBER" } }),
+            memberRepository.count({
+                user: { role: "MEMBER" },
+                memberships: { some: { status: "ACTIVE", endDate: { gte: today } } },
+            }),
             trainerRepository.count(),
             membershipRepository.countMemberships({ status: "ACTIVE", endDate: { gte: today } }),
             paymentRepository.aggregate({ status: "SUCCESS", paidAt: { gte: monthStart, lt: monthEnd } }),
@@ -38,7 +41,7 @@ class DashboardService {
 
         return {
             totalMembers,
-            activeMembers,
+            activeMembers: Math.min(activeMembers, totalMembers),
             totalTrainers,
             activeMemberships,
             monthlyRevenue: monthlyRevenueAgg._sum.amount || 0,
