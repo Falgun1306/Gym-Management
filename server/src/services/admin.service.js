@@ -471,8 +471,20 @@ class AdminService {
     }
 
     async listMembershipPlans() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         return membershipRepository.findPlans({}, {
-            _count: { select: { memberships: true } },
+            _count: {
+                select: {
+                    memberships: {
+                        where: {
+                            status: "ACTIVE",
+                            endDate: { gte: today },
+                        },
+                    },
+                },
+            },
         });
     }
 
@@ -508,15 +520,27 @@ class AdminService {
     }
 
     async deleteMembershipPlan(id) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         const plan = await membershipRepository.findPlanById(id, {
-            _count: { select: { memberships: true } },
+            _count: {
+                select: {
+                    memberships: {
+                        where: {
+                            status: "ACTIVE",
+                            endDate: { gte: today },
+                        },
+                    },
+                },
+            },
         });
 
         if (!plan) {
             throw new ErrorHandler("Membership plan not found", 404);
         }
 
-        if (plan._count.memberships > 0) {
+        if (plan._count?.memberships > 0) {
             await membershipRepository.updatePlan(id, { isActive: false });
             return { deactivated: true, message: "Plan has active memberships — deactivated instead of deleted" };
         }
