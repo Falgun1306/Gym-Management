@@ -1,16 +1,53 @@
-# React + Vite
+# 🏋️ Vajra Fitness — Client Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+This is the frontend single-page application and Progressive Web App (PWA) for **Vajra Fitness Gym Management System**.
 
-Currently, two official plugins are available:
+Built with **React 19**, **Vite 8**, and **Tailwind CSS v4**.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+For complete system documentation, architecture, API endpoints, and full-stack setup, please see the [Main Project README](../README.md).
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠️ Quick Start
 
-## Expanding the Oxlint configuration
+### 1. Install Dependencies
+```bash
+npm install
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+### 2. Environment Variables
+Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env
+```
+
+| Variable | Description | Default |
+|---|---|---|
+| `VITE_API_URL` | Base API URL or Vite reverse proxy path | `/api/v1` |
+
+### 3. Development Server
+```bash
+npm run dev
+```
+The application will be running at `http://localhost:3000`.
+
+### 4. Build for Production
+```bash
+npm run build
+```
+
+### 5. Linting
+```bash
+npm run lint
+```
+
+---
+
+## 📱 Features & Highlights
+- **Role-Based Portals**: Dedicated views for Admins, Trainers, and Members.
+- **PWA Ready**: Offline caching, installable on mobile/desktop, app manifest.
+- **Dynamic QR Code Check-in**: Integrated QR generation and scanner.
+- **Razorpay Checkout**: Seamless online membership subscription flow.
+- **State Management**: Zustand stores for auth and persistent state.
+- **Data Fetching & Cache**: TanStack React Query v5.
+- **Iconography**: Lucide React.
